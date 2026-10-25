@@ -163,6 +163,7 @@ export async function print(
         method: "GET",
         token,
         signal,
-        guard: (_): _ is Uint8Array<ArrayBuffer> | null => true,
+        guard: (data): data is Uint8Array<ArrayBuffer> =>
+            data instanceof Uint8Array,
     });
 }

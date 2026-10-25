@@ -323,7 +323,7 @@ impl WorksheetsRepository for PgPool {
         .fetch_optional(self)
         .await?;
 
-        let _ = prefix.ok_or(RepositoryError::DocumentPrefixNotSet)?;
+        let prefix = prefix.ok_or(RepositoryError::DocumentPrefixNotSet)?;
 
         Ok(sqlx::query_as::<_, Worksheet>(
             "WITH counter AS (
@@ -336,14 +336,14 @@ impl WorksheetsRepository for PgPool {
              INSERT INTO worksheets
                  (display_id, display_year, display_seq, description, customer_id,
                   project_id, created_by_id, status)
-             SELECT (SELECT document_prefix FROM owner_profile LIMIT 1)
-                        || '-ML-' || counter.year || '-' || counter.last_value,
+             SELECT $1 || '-ML-' || counter.year || '-' || counter.last_value,
                     counter.year,
                     counter.last_value,
-                    $1, $2, $3, $4, $5
+                    $2, $3, $4, $5, $6
              FROM counter
              RETURNING *",
         )
+        .bind(prefix)
         .bind(worksheet_user_input.description.as_str())
         .bind(worksheet_user_input.customer_id.as_uuid()?)
         .bind(worksheet_user_input.project_id.as_uuid())

@@ -332,7 +332,7 @@ describe("extract_field", () => {
 
 describe("encode_get_query", () => {
     it("should encode valid get query", () => {
-        let get_query_params: GetQuery = {
+        const get_query_params: GetQuery = {
             ordering: {
                 order_by: "test",
                 order: "asc",
@@ -354,7 +354,7 @@ describe("encode_get_query", () => {
     });
 
     it("should encode valid get query with dashes", () => {
-        let get_query_params: GetQuery = {
+        const get_query_params: GetQuery = {
             ordering: {
                 order_by: "type-with-dash",
                 order: "desc",
@@ -381,7 +381,7 @@ describe("decode_get_query", () => {
         const input =
             "ordering:test-asc paging:1-25 filtering:test-|warehouse 1|";
         const result = decode_get_query(input);
-        let expectedResult: GetQuery = {
+        const expectedResult: GetQuery = {
             ordering: {
                 order_by: "test",
                 order: "asc",
@@ -403,7 +403,7 @@ describe("decode_get_query", () => {
         const input =
             "ordering:type-with-dash-desc paging:1-25 filtering:test-|KD-ML-2026-1|";
         const result = decode_get_query(input);
-        let expectedResult: GetQuery = {
+        const expectedResult: GetQuery = {
             ordering: {
                 order_by: "type-with-dash",
                 order: "desc",

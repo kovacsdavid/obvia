@@ -66,14 +66,16 @@ async function processResponse(response: Response): Promise<unknown> {
     if (type.includes("application/json")) {
         try {
             return await response.json();
-        } catch {
+        } catch (e) {
+            console.log(e);
             return undefined;
         }
     }
     if (type.includes("application/pdf")) {
         try {
             return response.bytes();
-        } catch {
+        } catch (e) {
+            console.log(e);
             return undefined;
         }
     }

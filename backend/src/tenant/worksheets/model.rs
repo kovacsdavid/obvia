@@ -27,7 +27,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Worksheet {
     pub id: Uuid,
-    pub name: String,
+    pub display_id: String,
     pub description: Option<String>,
     pub customer_id: Uuid,
     pub project_id: Option<Uuid>,
@@ -41,7 +41,7 @@ pub struct Worksheet {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct WorksheetResolved {
     pub id: Uuid,
-    pub name: String,
+    pub display_id: String,
     pub description: Option<String>,
     pub customer_id: Uuid,
     pub customer: String,
@@ -69,7 +69,7 @@ pub mod tests {
         let mut builder = WorksheetResolvedBuilder::default();
         builder
             .id(Uuid::now_v7())
-            .name("Test worksheet".to_string())
+            .display_id("KD-2026-1".to_string())
             .description(Some("Test description".to_string()))
             .customer_id(Uuid::now_v7())
             .customer("Test Customer".to_string())

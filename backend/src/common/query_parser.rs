@@ -127,10 +127,13 @@ where
             .split("-")
             .map(|v| v.to_string())
             .collect();
-        if collection.len() == 2 {
+        let order = collection.last().and_then(|v| Order::from_str(v).ok());
+        if order.is_some() {
             Ok(Ordering {
-                order_by: collection[0].parse::<ValueObjectOptional<T>>()?,
-                order: Some(Order::from_str(&collection[1])?),
+                order_by: collection[0..collection.len() - 1]
+                    .join("-")
+                    .parse::<ValueObjectOptional<T>>()?,
+                order,
             })
         } else {
             Ok(Ordering {
@@ -221,12 +224,11 @@ where
             .split("-")
             .map(|v| v.to_string())
             .collect();
-        if collection.len() == 2 {
-            let value = collection[1].replace("|", "");
-            Ok(Filtering {
-                filter_by: collection[0].parse::<ValueObjectOptional<F>>()?,
-                value: Some(value),
-            })
+
+        let filter_by = collection[0].parse::<ValueObjectOptional<F>>()?;
+        if filter_by.is_present() {
+            let value = Some(collection[1..].join("-").replace("|", ""));
+            Ok(Filtering { filter_by, value })
         } else {
             Ok(Filtering {
                 filter_by: "".parse::<ValueObjectOptional<F>>()?,
@@ -318,6 +320,7 @@ impl CommonRawQuery {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[derive(Debug, PartialEq, Clone)]
     pub struct TestOrderBy(String);
@@ -335,7 +338,7 @@ mod tests {
         }
         fn validate(&self) -> Result<(), ValueObjectError> {
             match self.0.as_str() {
-                "test" | "name" => Ok(()),
+                "test" | "name" | "type-with-dash" => Ok(()),
                 _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
             }
         }
@@ -594,6 +597,64 @@ mod tests {
                 Some("some type".to_string()),
             ),
         );
+        assert_eq!(query_from_str, query_constructed);
+    }
+
+    #[test]
+    fn test_filtering_can_handle_dashes() {
+        let test_str = "filtering:type-|KD-ML-2026-1|";
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+
+        let query_constructed = ResourceQuery::new(
+            Ordering::new("".parse().unwrap(), None),
+            Paging::new(None, None),
+            Filtering::new("type".parse().unwrap(), Some("KD-ML-2026-1".to_string())),
+        );
+
+        assert_eq!(query_from_str, query_constructed);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_filtering_can_handle_strangely_placed_pipes() {
+        // TODO: it would be nice to handle pipes nicely too
+        let test_str = "filtering:type-||||some type ||||";
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+
+        let query_constructed = ResourceQuery::new(
+            Ordering::new("".parse().unwrap(), None),
+            Paging::new(None, None),
+            Filtering::new(
+                "type".parse().unwrap(),
+                Some("|||some type |||".to_string()),
+            ),
+        );
+
+        assert_eq!(query_from_str, query_constructed);
+    }
+
+    #[test]
+    fn test_ordering_can_handle_dashes() {
+        let test_str = "ordering:type-with-dash-desc";
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+
+        let query_constructed = ResourceQuery::new(
+            Ordering::new(
+                "type-with-dash"
+                    .parse::<ValueObjectOptional<TestOrderBy>>()
+                    .unwrap(),
+                Some(Order::Descending),
+            ),
+            Paging::new(None, None),
+            Filtering::new(
+                "".parse::<ValueObjectOptional<TestFilterBy>>().unwrap(),
+                None,
+            ),
+        );
+
         assert_eq!(query_from_str, query_constructed);
     }
 }

@@ -22,6 +22,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "@/components/layout/Layout";
 import type { RootState } from "./store";
 import { useAppSelector } from "./store/hooks";
+import { Toaster } from "@/components/ui/toast";
 
 const LandingPage = lazy(
     () => import("@/components/modules/landing_page/LandingPage"),
@@ -267,6 +268,7 @@ export default function App() {
                     )}
                 </Routes>
             </Suspense>
+            <Toaster />
         </Layout>
     );
 }

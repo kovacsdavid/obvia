@@ -56,6 +56,9 @@ pub enum RepositoryError {
 
     #[error("InvalidState error: {0}")]
     InvalidState(&'static str),
+
+    #[error("Állítsd be a dokumentum előtagot (Beállítások / Saját adatok / Dokumentum előtag)")]
+    DocumentPrefixNotSet,
 }
 
 impl From<ValueObjectError> for RepositoryError {

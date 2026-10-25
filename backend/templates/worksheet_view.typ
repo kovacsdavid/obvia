@@ -119,8 +119,7 @@
 // Worksheet details section
 #section("Munkalap adatai")
 
-#row("Munkalap azonosító", worksheet.id)
-#row("Munkalap neve", worksheet.name)
+#row("Munkalap azonosító", worksheet.display_id)
 #row("Leírás", worksheet.description)
 #row("Ügyfél", customer.name)
 #row("Állapot", worksheet.status)

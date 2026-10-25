@@ -36,7 +36,7 @@ impl ValueObjectData for OrderBy {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.trim() {
-            "name"
+            "display_id"
             | "customer"
             | "net_material_cost"
             | "gross_material_cost"
@@ -65,8 +65,10 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let order_by = "name".parse::<ValueObjectRequired<OrderBy>>().unwrap();
-        assert_eq!(order_by.as_str().unwrap(), "name");
+        let order_by = "display_id"
+            .parse::<ValueObjectRequired<OrderBy>>()
+            .unwrap();
+        assert_eq!(order_by.as_str().unwrap(), "display_id");
     }
 
     #[test]

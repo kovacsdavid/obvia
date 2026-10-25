@@ -18,12 +18,14 @@
  */
 
 pub(crate) mod contact_name;
+pub(crate) mod document_prefix;
 pub(crate) mod name;
 pub(crate) mod owner_profile_type;
 pub(crate) mod phone_number;
 pub(crate) mod website;
 
 pub(crate) use contact_name::ContactName as OwnerProfileContactName;
+pub(crate) use document_prefix::DocumentPrefix as OwnerProfileDocumentPrefix;
 pub(crate) use name::Name as OwnerProfileName;
 pub(crate) use owner_profile_type::OwnerProfileType;
 pub(crate) use phone_number::PhoneNumber as OwnerProfilePhoneNumber;

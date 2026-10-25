@@ -27,7 +27,6 @@ import {
 
 export interface WorksheetUserInput {
     id: string | null;
-    name: string;
     description: string;
     customerId: string;
     projectId: string;
@@ -36,7 +35,7 @@ export interface WorksheetUserInput {
 
 export interface Worksheet {
     id: string;
-    name: string;
+    display_id: string;
     description: string | null;
     customer_id: string;
     project_id: string | null;
@@ -47,9 +46,17 @@ export interface Worksheet {
     deleted_at: string | null;
 }
 
+export interface WorksheetError {
+    id: string | null;
+    description: string | null;
+    customer_id: string | null;
+    project_id: string | null;
+    status: string | null;
+}
+
 export interface WorksheetResolved {
     id: string;
-    name: string;
+    display_id: string;
     description: string | null;
     customer_id: string;
     customer: string;

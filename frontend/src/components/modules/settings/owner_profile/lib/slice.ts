@@ -20,8 +20,15 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as ownerProfileApi from "@/components/modules/settings/owner_profile/lib/service.ts";
 import type { RootState } from "@/store";
-import type { OwnerProfileUserInput } from "@/components/modules/settings/owner_profile/lib/interface.ts";
+import type {
+    OwnerProfileErrors,
+    OwnerProfileFullResponse,
+    OwnerProfileUserInput,
+    UpdateOwnerProfileResponse,
+} from "@/components/modules/settings/owner_profile/lib/interface.ts";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
 interface OwnerProfileState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,23 +38,33 @@ const initialState: OwnerProfileState = {
     status: "idle",
 };
 
-export const get_full = createAsyncThunk(
+export const get_full = createAsyncThunk<
+    ApiResult<OwnerProfileFullResponse, never>,
+    { silent?: boolean } | undefined,
+    { state: RootState }
+>(
     "owner_profile/get_full",
-    async (_, { getState, dispatch }) => {
+    async ({ silent = false } = {}, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await ownerProfileApi.get_full(token);
+        const token = getState().auth.login.token;
+        const result = await ownerProfileApi.get_full(token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const update = createAsyncThunk(
+export const update = createAsyncThunk<
+    ApiResult<UpdateOwnerProfileResponse, OwnerProfileErrors>,
+    { input: OwnerProfileUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "owner_profile/update",
-    async (requestData: OwnerProfileUserInput, { getState, dispatch }) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await ownerProfileApi.update(requestData, token);
+        const token = getState().auth.login.token;
+        const result = await ownerProfileApi.update(input, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

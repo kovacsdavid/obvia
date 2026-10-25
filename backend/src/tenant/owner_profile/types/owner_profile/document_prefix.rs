@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -18,13 +18,17 @@
  */
 
 use crate::common::value_object::*;
+use regex::Regex;
 use std::fmt::Display;
-use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Name(String);
+pub struct DocumentPrefix(String);
 
-impl ValueObjectData for Name {
+impl DocumentPrefix {
+    pub const VALIDATION_ERROR: &'static str = "A dokumentum előtag 1–10 karakterből állhat, és csak nagybetűket (A–Z) és számokat (0–9) tartalmazhat";
+}
+
+impl ValueObjectData for DocumentPrefix {
     type DataType = String;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
@@ -35,12 +39,9 @@ impl ValueObjectData for Name {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.graphemes(true).count() <= 255 && self.0.chars().count() <= 255 {
-            Ok(())
-        } else {
-            Err(ValueObjectError::InvalidInput(
-                "A név nem lehet 255 karakternél hosszabb",
-            ))
+        match Regex::new(r"^[A-Z0-9]{1,10}$")?.is_match(&self.0) {
+            true => Ok(()),
+            false => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 
@@ -49,7 +50,7 @@ impl ValueObjectData for Name {
     }
 }
 
-impl Display for Name {
+impl Display for DocumentPrefix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -60,15 +61,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_name() {
-        let name = "Test Name".parse::<ValueObjectRequired<Name>>().unwrap();
-        assert_eq!(name.as_str().unwrap(), "Test Name");
+    fn test_valid_document_prefix() {
+        let document_prefix = "TE".parse::<ValueObjectRequired<DocumentPrefix>>().unwrap();
+        assert_eq!(document_prefix.as_str().unwrap(), "TE");
     }
 
     #[test]
-    fn test_invalid_name() {
-        let invalid = "a".repeat(256);
-        let name = invalid.parse::<ValueObjectRequired<Name>>();
-        assert!(name.is_err())
+    fn test_invalid_document_prefix() {
+        let document_prefix = "T"
+            .repeat(11)
+            .parse::<ValueObjectRequired<DocumentPrefix>>();
+        assert_eq!(
+            document_prefix.unwrap_err().to_string(),
+            DocumentPrefix::VALIDATION_ERROR.to_string()
+        );
     }
 }

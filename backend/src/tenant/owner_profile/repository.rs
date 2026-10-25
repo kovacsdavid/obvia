@@ -40,7 +40,7 @@ pub trait OwnerProfileRepository: Send + Sync {
         &self,
         owner_profile_user_input: &OwnerProfileUserInput,
         sub: Uuid,
-    ) -> RepositoryResult<OwnerProfile>;
+    ) -> RepositoryResult<OwnerProfileFull>;
 }
 
 #[async_trait]
@@ -97,7 +97,7 @@ impl OwnerProfileRepository for PgPool {
         &self,
         owner_profile_user_input: &OwnerProfileUserInput,
         sub: Uuid,
-    ) -> RepositoryResult<OwnerProfile> {
+    ) -> RepositoryResult<OwnerProfileFull> {
         let contact_name = match &owner_profile_user_input.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
@@ -161,18 +161,19 @@ impl OwnerProfileRepository for PgPool {
             }
         };
 
-        let owner_profile_updated = sqlx::query_as::<_, OwnerProfile>(
+        let _ = sqlx::query_as::<_, OwnerProfile>(
             r#"
             UPDATE owner_profile
             SET name = $1,
                 contact_name = $2,
                 email = $3,
                 website = $4,
-                phone_number = $5,
-                owner_profile_type = $6,
-                billing_address = $7,
-                mailing_address = $8
-            WHERE id = $9
+                document_prefix = $5,
+                phone_number = $6,
+                owner_profile_type = $7,
+                billing_address = $8,
+                mailing_address = $9
+            WHERE id = $10
             RETURNING *
             "#,
         )
@@ -180,6 +181,7 @@ impl OwnerProfileRepository for PgPool {
         .bind(contact_name)
         .bind(owner_profile_user_input.email.as_str()?)
         .bind(owner_profile_user_input.website.as_str())
+        .bind(owner_profile_user_input.document_prefix.as_str())
         .bind(owner_profile_user_input.phone_number.as_str())
         .bind(owner_profile_user_input.owner_profile_type.as_str()?)
         .bind(billing_address.map(|v| v.id))
@@ -190,7 +192,7 @@ impl OwnerProfileRepository for PgPool {
 
         tx.commit().await?;
 
-        Ok(owner_profile_updated)
+        Ok(self.get_full().await?)
     }
 }
 
@@ -215,6 +217,7 @@ where
             owner_profile.contact_name as contact_name,
             owner_profile.email as email,
             owner_profile.website as website,
+            owner_profile.document_prefix as document_prefix,
             owner_profile.phone_number as phone_number,
             owner_profile.owner_profile_type as owner_profile_type,
             owner_profile.created_at as created_at,

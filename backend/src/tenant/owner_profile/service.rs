@@ -23,7 +23,7 @@ use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::owner_profile::OwnerProfileModuleInterface;
 use crate::tenant::owner_profile::dto::user_input::OwnerProfileUserInput;
-use crate::tenant::owner_profile::model::{OwnerProfile, OwnerProfileFull};
+use crate::tenant::owner_profile::model::OwnerProfileFull;
 use axum::http::StatusCode;
 use serde_json::json;
 use thiserror::Error;
@@ -101,7 +101,7 @@ pub trait OwnerProfileService {
     fn update(
         &self,
         payload: &OwnerProfileUserInput,
-    ) -> impl Future<Output = OwnerProfileServiceResult<OwnerProfile>> + Send;
+    ) -> impl Future<Output = OwnerProfileServiceResult<OwnerProfileFull>> + Send;
 }
 
 impl<'a, T> OwnerProfileService for Service<'a, T>
@@ -118,7 +118,7 @@ where
     async fn update(
         &self,
         payload: &OwnerProfileUserInput,
-    ) -> OwnerProfileServiceResult<OwnerProfile> {
+    ) -> OwnerProfileServiceResult<OwnerProfileFull> {
         if !payload.id.is_present() {
             return Err(OwnerProfileServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",

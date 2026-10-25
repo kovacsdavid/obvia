@@ -20,8 +20,20 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as worksheetsApi from "@/components/modules/worksheets/lib/service.ts";
 import type { RootState } from "@/store";
-import type { WorksheetUserInput } from "@/components/modules/worksheets/lib/interface.ts";
+import type {
+    WorksheetUserInput,
+    WorksheetError,
+    CreateWorksheetResponse,
+    PaginatedWorksheetResolvedListResponse,
+    WorksheetResolvedResponse,
+    WorksheetResponse,
+    UpdateWorksheetResponse,
+    DeleteWorksheetResponse,
+} from "@/components/modules/worksheets/lib/interface.ts";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { SelectOptionListResponse } from "@/lib/interface";
 
 interface WorksheetsState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,83 +43,123 @@ const initialState: WorksheetsState = {
     status: "idle",
 };
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<CreateWorksheetResponse, WorksheetError>,
+    { input: WorksheetUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "worksheets/create",
-    async (requestData: WorksheetUserInput, { getState, dispatch }) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return worksheetsApi.create(requestData, token);
+        const token = getState().auth.login.token;
+        const result = await worksheetsApi.create(input, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const select_list = createAsyncThunk(
+export const select_list = createAsyncThunk<
+    ApiResult<SelectOptionListResponse>,
+    { list: string; silent?: boolean },
+    { state: RootState }
+>(
     "worksheets/select_list",
-    async (list: string, { getState, dispatch }) => {
+    async ({ list, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await worksheetsApi.select_list(list, token);
+        const token = getState().auth.login.token;
+        const result = await worksheetsApi.select_list(list, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedWorksheetResolvedListResponse>,
+    { query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "worksheets/list",
-    async (query: string | null, { getState, dispatch }) => {
+    async ({ query, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return worksheetsApi.list(query, token);
+        const token = getState().auth.login.token;
+        const result = await worksheetsApi.list(query, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get_resolved = createAsyncThunk(
+export const get_resolved = createAsyncThunk<
+    ApiResult<WorksheetResolvedResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "worksheets/get_resolved",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await worksheetsApi.get_resolved(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await worksheetsApi.get_resolved(uuid, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get = createAsyncThunk(
+export const get = createAsyncThunk<
+    ApiResult<WorksheetResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "worksheets/get",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await worksheetsApi.get(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await worksheetsApi.get(uuid, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const update = createAsyncThunk(
+export const update = createAsyncThunk<
+    ApiResult<UpdateWorksheetResponse, WorksheetError>,
+    { input: WorksheetUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "worksheets/update",
-    async (requestData: WorksheetUserInput, { getState, dispatch }) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await worksheetsApi.update(requestData, token);
+        const token = getState().auth.login.token;
+        const result = await worksheetsApi.update(input, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteItem = createAsyncThunk(
+export const deleteItem = createAsyncThunk<
+    ApiResult<DeleteWorksheetResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "worksheets/deleteItem",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await worksheetsApi.deleteItem(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await worksheetsApi.deleteItem(uuid, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const print = createAsyncThunk(
+export const print = createAsyncThunk<
+    ApiResult<Uint8Array<ArrayBuffer> | null>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "worksheets/print",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await worksheetsApi.print(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await worksheetsApi.print(uuid, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

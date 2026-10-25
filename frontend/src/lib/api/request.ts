@@ -60,24 +60,43 @@ function parseRetryAfter(header: string | null): number | undefined {
         : Math.max(0, Math.ceil((date - Date.now()) / 1000));
 }
 
+function classifyTransportError(
+    e: unknown,
+    timeoutSignal: AbortSignal,
+):
+    | { kind: "timeout" }
+    | { kind: "aborted" }
+    | { kind: "network_error"; offline: boolean } {
+    if (e instanceof DOMException) {
+        if (e.name === "TimeoutError") return { kind: "timeout" };
+        if (e.name === "AbortError") {
+            // AbortSignal.any forwards the reason, so check which signal fired
+            return timeoutSignal.aborted
+                ? { kind: "timeout" }
+                : { kind: "aborted" };
+        }
+    }
+    // TypeError on DNS, CORS, connection refused, offline, or a body stream cut mid-download
+    return { kind: "network_error", offline: !navigator.onLine };
+}
+
+const MALFORMED = Symbol("malformed");
+
+// Read errors (abort/timeout/network) propagate; only a JSON parse failure returns MALFORMED.
 async function processResponse(response: Response): Promise<unknown> {
     if (response.status === 204) return undefined;
     const type = response.headers.get("Content-Type") ?? "";
     if (type.includes("application/json")) {
+        const text = await response.text(); // transport errors propagate
+        if (text.length === 0) return undefined;
         try {
-            return await response.json();
-        } catch (e) {
-            console.log(e);
-            return undefined;
+            return JSON.parse(text);
+        } catch {
+            return MALFORMED;
         }
     }
     if (type.includes("application/pdf")) {
-        try {
-            return response.bytes();
-        } catch (e) {
-            console.log(e);
-            return undefined;
-        }
+        return await response.bytes(); // transport errors propagate
     }
     return undefined;
 }
@@ -114,17 +133,7 @@ export async function apiRequest<T, E = never>(
             signal: combined,
         });
     } catch (e) {
-        if (e instanceof DOMException) {
-            if (e.name === "TimeoutError") return { kind: "timeout" };
-            if (e.name === "AbortError") {
-                // AbortSignal.any forwards the reason, so check which signal fired
-                return timeoutSignal.aborted
-                    ? { kind: "timeout" }
-                    : { kind: "aborted" };
-            }
-        }
-        // fetch rejects with a TypeError on DNS, CORS, connection refused, offline
-        return { kind: "network_error", offline: !navigator.onLine };
+        return classifyTransportError(e, timeoutSignal);
     }
 
     // Check 429 before parsing, because the edge router's body is usually not our JSON
@@ -138,10 +147,15 @@ export async function apiRequest<T, E = never>(
         };
     }
 
-    const data = await processResponse(response);
+    let data: unknown;
+    try {
+        data = await processResponse(response);
+    } catch (e) {
+        return classifyTransportError(e, timeoutSignal);
+    }
 
     if (response.ok) {
-        return guard(data)
+        return data !== MALFORMED && guard(data)
             ? { kind: "success", status: response.status, data }
             : { kind: "invalid_response", status: response.status };
     }

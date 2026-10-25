@@ -40,10 +40,12 @@ export interface GetQuery {
 
 function parse_ordering(str: string): Ordering {
     const collection = str.replace("ordering:", "").split("-");
-    if (collection.length === 2) {
+
+    const order = collection[collection.length - 1];
+    if (order === "asc" || order === "desc") {
         return {
-            order_by: collection[0],
-            order: collection[1],
+            order_by: collection.slice(0, collection.length - 1).join("-"),
+            order,
         };
     }
     return {
@@ -70,10 +72,11 @@ function parse_paging(str: string): Paging {
 
 function parse_filtering(str: string): Filtering {
     const collection = str.replace("filtering:", "").split("-");
-    if (collection.length === 2) {
+
+    if (collection.length >= 2) {
         return {
             filter_by: collection[0],
-            value: collection[1].replaceAll("|", ""),
+            value: collection.slice(1).join("-").replaceAll("|", ""),
         };
     }
     return {
@@ -82,7 +85,7 @@ function parse_filtering(str: string): Filtering {
     };
 }
 
-export function parse_get_query(str: string): GetQuery {
+export function decode_get_query(str: string): GetQuery {
     return {
         ordering: parse_ordering(extract_field(str, "ordering:")),
         paging: parse_paging(extract_field(str, "paging:")),
@@ -139,4 +142,28 @@ export function encode_get_query(get_query: GetQuery): string {
         result += `filtering:${get_query.filtering.filter_by}-|${get_query.filtering.value}|`;
     }
     return result;
+}
+
+export function decode_url_encoded_get_query(encodedStr: unknown): GetQuery {
+    if (typeof encodedStr === "string") {
+        return decode_get_query(decodeURIComponent(encodedStr));
+    }
+    return {
+        ordering: {
+            order_by: null,
+            order: null,
+        },
+        paging: {
+            page: null,
+            limit: null,
+        },
+        filtering: {
+            filter_by: null,
+            value: null,
+        },
+    };
+}
+
+export function encode_url_encoded_get_query(params: GetQuery): string {
+    return encodeURIComponent(encode_get_query(params));
 }

@@ -19,35 +19,9 @@
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { encode_get_query, parse_get_query, type GetQuery } from "./get_query";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
-}
-
-export function query_parser(encodedStr: unknown): GetQuery {
-    const result: GetQuery = {
-        ordering: {
-            order_by: null,
-            order: null,
-        },
-        paging: {
-            page: null,
-            limit: null,
-        },
-        filtering: {
-            filter_by: null,
-            value: null,
-        },
-    };
-    if (typeof encodedStr === "string") {
-        return parse_get_query(decodeURIComponent(encodedStr));
-    }
-    return result;
-}
-
-export function query_encoder(params: GetQuery): string {
-    return encodeURIComponent(encode_get_query(params));
 }
 
 export function formatDateLocal(

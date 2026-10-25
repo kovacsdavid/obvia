@@ -18,7 +18,10 @@
  */
 
 import { useSearchParams } from "react-router";
-import { query_encoder, query_parser } from "@/lib/utils.ts";
+import {
+    encode_url_encoded_get_query,
+    decode_url_encoded_get_query,
+} from "@/lib/get_query";
 import React, { useEffect, useMemo, useCallback } from "react";
 import type { GetQuery } from "@/lib/get_query";
 
@@ -32,7 +35,10 @@ export function useDataDisplayCommon(
     const [orderBy, setOrderBy] = React.useState("created_at");
     const [order, setOrder] = React.useState("asc");
     const rawQuery = useMemo(() => searchParams.get("q"), [searchParams]);
-    const parsedQuery = useMemo(() => query_parser(rawQuery), [rawQuery]);
+    const parsedQuery = useMemo(
+        () => decode_url_encoded_get_query(rawQuery),
+        [rawQuery],
+    );
     const [filterBy, setFilterBy] = React.useState<string>("");
     const [filterValue, setFilterValue] = React.useState<string>("");
 
@@ -76,7 +82,9 @@ export function useDataDisplayCommon(
     }, [parsedQuery, updateSpecialQueryParams, updateCommonQueryParams]);
 
     const paginatorSelect = (pageNumber: number) => {
-        const currentQuery = query_parser(searchParams.get("q"));
+        const currentQuery = decode_url_encoded_get_query(
+            searchParams.get("q"),
+        );
         if (
             typeof currentQuery.paging?.page === "number" &&
             typeof currentQuery.paging?.limit === "number"
@@ -88,11 +96,13 @@ export function useDataDisplayCommon(
                 limit,
             };
         }
-        searchParams.set("q", query_encoder(currentQuery));
+        searchParams.set("q", encode_url_encoded_get_query(currentQuery));
         setSearchParams(searchParams);
     };
     const orderSelect = (orderBy: string) => {
-        const currentQuery = query_parser(searchParams.get("q"));
+        const currentQuery = decode_url_encoded_get_query(
+            searchParams.get("q"),
+        );
 
         if (
             typeof currentQuery.ordering?.order_by === "string" &&
@@ -108,22 +118,24 @@ export function useDataDisplayCommon(
                 order: "asc",
             };
         }
-        searchParams.set("q", query_encoder(currentQuery));
+        searchParams.set("q", encode_url_encoded_get_query(currentQuery));
         setSearchParams(searchParams);
     };
 
     const filterSelect = (field: string, value: string) => {
-        const currentQuery = query_parser(searchParams.get("q"));
+        const currentQuery = decode_url_encoded_get_query(
+            searchParams.get("q"),
+        );
         if (value.trim().length > 0) {
             currentQuery.filtering = {
                 filter_by: field,
                 value,
             };
-            searchParams.set("q", query_encoder(currentQuery));
+            searchParams.set("q", encode_url_encoded_get_query(currentQuery));
             setSearchParams(searchParams);
         } else {
             delete currentQuery.filtering;
-            searchParams.set("q", query_encoder(currentQuery));
+            searchParams.set("q", encode_url_encoded_get_query(currentQuery));
             setSearchParams(searchParams);
         }
     };

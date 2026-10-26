@@ -351,7 +351,7 @@ export default function List() {
                                             ? item.contact_name
                                             : "N/A"}
                                     </TableCell>
-                                    <TableCell>{item.email}</TableCell>
+                                    <TableCell>{item.email ?? "N/A"}</TableCell>
                                     <TableCell>
                                         {item.phone_number
                                             ? item.phone_number

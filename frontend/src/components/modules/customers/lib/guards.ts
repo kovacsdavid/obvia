@@ -74,7 +74,7 @@ export function isCustomerFull(data: unknown): data is CustomerFull {
         "contact_name" in data &&
         (data.contact_name === null || typeof data.contact_name === "string") &&
         "email" in data &&
-        typeof data.email === "string" &&
+        (data.email === null || typeof data.email === "string") &&
         "phone_number" in data &&
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "status" in data &&
@@ -127,7 +127,7 @@ export function isCustomer(data: unknown): data is Customer {
         "contact_name" in data &&
         (data.contact_name === null || typeof data.contact_name === "string") &&
         "email" in data &&
-        typeof data.email === "string" &&
+        (data.email === null || typeof data.email === "string") &&
         "phone_number" in data &&
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "status" in data &&

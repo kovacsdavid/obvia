@@ -115,7 +115,9 @@ export default function View() {
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>E-mail cím</TableCell>
-                                        <TableCell>{data.email}</TableCell>
+                                        <TableCell>
+                                            {data.email ?? "N/A"}
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Telefonszám</TableCell>

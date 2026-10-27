@@ -22,7 +22,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
-import { Button, GlobalError, Input, Label } from "@/components/ui";
+import { Button, Input, Label } from "@/components/ui";
 import {
     Eye,
     Funnel,
@@ -71,15 +71,14 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card.tsx";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import Type from "./Type";
 import { useAuth } from "@/hooks/use_auth";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 
 export default function List() {
     const dispatch = useAppDispatch();
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<CustomerResolvedList>([]);
     const { claims } = useAuth();
 
@@ -99,47 +98,30 @@ export default function List() {
         setFilterValue,
     } = useDataDisplayCommon(null);
 
-    const refresh = useCallback(() => {
-        dispatch(list(rawQuery)).then(async (response) => {
-            if (list.fulfilled.match(response)) {
-                if (
-                    response.payload.statusCode === 200 &&
-                    typeof response.payload.jsonData?.data !== "undefined" &&
-                    typeof response.payload.jsonData?.meta !== "undefined"
-                ) {
-                    setPage(response.payload.jsonData.meta.page);
-                    setLimit(response.payload.jsonData.meta.limit);
-                    setTotal(response.payload.jsonData.meta.total);
-                    setData(response.payload.jsonData.data);
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
-        });
-    }, [
-        dispatch,
-        rawQuery,
-        setLimit,
-        setPage,
-        setTotal,
-        setErrors,
-        unexpectedError,
-    ]);
+    const refresh = useCallback(async () => {
+        const result = await dispatch(list({ query: rawQuery })).unwrap();
 
-    const handleDelete = (id: string) => {
-        dispatch(deleteItem(id)).then(async (response) => {
-            if (
-                deleteItem.fulfilled.match(response) &&
-                response.payload.statusCode === 200
-            ) {
+        handleApiResult(result, {
+            onSuccess: ({ meta, data }) => {
+                if (typeof meta !== "undefined") {
+                    setPage(meta.page);
+                    setLimit(meta.limit);
+                    setTotal(meta.total);
+                }
+                if (typeof data !== "undefined") {
+                    setData(data);
+                }
+            },
+        });
+    }, [dispatch, rawQuery, setLimit, setPage, setTotal]);
+
+    const handleDelete = async (id: string) => {
+        const result = await dispatch(deleteItem({ uuid: id })).unwrap();
+
+        handleApiResult(result, {
+            onSuccess: () => {
                 refresh();
-            }
+            },
         });
     };
 
@@ -150,22 +132,28 @@ export default function List() {
             return;
         }
 
-        dispatch(print(id)).then((response: unknown) => {
-            if (!print.fulfilled.match(response)) {
+        dispatch(print({ uuid: id }))
+            .unwrap()
+            .then((result) => {
+                handleApiResult(result, {
+                    onSuccess: (data) => {
+                        if (data !== null) {
+                            updateWindowWithPdfData(handler, data);
+                        } else {
+                            handler.close();
+                            return;
+                        }
+                    },
+                    onError: () => {
+                        handler.close();
+                        return;
+                    },
+                });
+            })
+            .catch(() => {
                 handler.close();
                 return;
-            }
-
-            if (
-                response.payload.statusCode !== 200 ||
-                !response.payload?.data
-            ) {
-                handler.close();
-                return;
-            }
-
-            updateWindowWithPdfData(handler, response.payload.data);
-        });
+            });
     };
 
     useEffect(() => {
@@ -174,7 +162,6 @@ export default function List() {
 
     return (
         <>
-            <GlobalError error={errors} />
             <Card>
                 <CardHeader>
                     <CardTitle>Vevők</CardTitle>

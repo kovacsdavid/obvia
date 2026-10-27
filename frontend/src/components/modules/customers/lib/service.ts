@@ -18,12 +18,8 @@
  */
 
 import {
-    globalRequestTimeout,
-    unexpectedError,
-    unexpectedFormError,
-} from "@/services/utils/consts.ts";
-import {
     type CreateCustomerResponse,
+    type CustomerErrors,
     type CustomerFullResponse,
     type CustomerResponse,
     type CustomerUserInput,
@@ -32,19 +28,16 @@ import {
     type UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
 import {
-    type ProcessedJsonResponse,
-    ProcessJsonResponse,
-    type ProcessedBytesResponse,
-    ProcessBytesResponse,
-} from "@/lib/interface.ts";
-import {
     isCreateCustomerResponse,
+    isCustomerErrors,
     isCustomerFullResponse,
     isCustomerResponse,
     isDeleteCustomerResponse,
     isPaginatedCustomerResolvedListResponse,
     isUpdateCustomerResponse,
 } from "@/components/modules/customers/lib/guards.ts";
+import { apiRequest } from "@/lib/api/request";
+import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
     {
@@ -59,15 +52,15 @@ export async function create(
         mailingAddress,
     }: CustomerUserInput,
     token: string | null,
-): Promise<ProcessedJsonResponse<CreateCustomerResponse>> {
-    return await fetch(`/api/customers/create`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<CreateCustomerResponse, CustomerErrors>> {
+    return apiRequest(`/api/customers/create`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-        body: JSON.stringify({
+        token,
+        signal,
+        guard: isCreateCustomerResponse,
+        formErrorGuard: isCustomerErrors,
+        body: {
             id,
             name,
             contact_name: contactName,
@@ -78,13 +71,7 @@ export async function create(
                 typeof customerType === "undefined" ? null : customerType,
             billing_address: billingAddress ?? null,
             mailing_address: mailingAddress ?? null,
-        }),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, (data: unknown) =>
-                isCreateCustomerResponse(data),
-            )) ?? unexpectedFormError
-        );
+        },
     });
 }
 
@@ -101,15 +88,15 @@ export async function update(
         mailingAddress,
     }: CustomerUserInput,
     token: string | null,
-): Promise<ProcessedJsonResponse<UpdateCustomerResponse>> {
-    return await fetch(`/api/customers/update`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<UpdateCustomerResponse, CustomerErrors>> {
+    return apiRequest(`/api/customers/update`, {
         method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-        body: JSON.stringify({
+        token,
+        signal,
+        guard: isUpdateCustomerResponse,
+        formErrorGuard: isCustomerErrors,
+        body: {
             id,
             name,
             contact_name: contactName,
@@ -120,109 +107,76 @@ export async function update(
                 typeof customerType === "undefined" ? null : customerType,
             billing_address: billingAddress ?? null,
             mailing_address: mailingAddress ?? null,
-        }),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isUpdateCustomerResponse)) ??
-            unexpectedFormError
-        );
+        },
     });
 }
 
 export async function list(
     query: string | null,
     token: string | null,
-): Promise<ProcessedJsonResponse<PaginatedCustomerResolvedListResponse>> {
+    signal?: AbortSignal,
+): Promise<ApiResult<PaginatedCustomerResolvedListResponse>> {
     const uri =
         query === null
             ? `/api/customers/list`
             : `/api/customers/list?q=${query}`;
-    return await fetch(uri, {
+    return apiRequest(uri, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(
-                response,
-                isPaginatedCustomerResolvedListResponse,
-            )) ?? unexpectedError
-        );
+        token,
+        signal,
+        guard: isPaginatedCustomerResolvedListResponse,
     });
 }
 
 export async function get_full(
     uuid: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<CustomerFullResponse>> {
-    return await fetch(`/api/customers/get_full?uuid=${uuid}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<CustomerFullResponse>> {
+    return apiRequest(`/api/customers/get_full?uuid=${uuid}`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isCustomerFullResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        guard: isCustomerFullResponse,
     });
 }
 
 export async function get(
     uuid: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<CustomerResponse>> {
-    return await fetch(`/api/customers/get?uuid=${uuid}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<CustomerResponse>> {
+    return apiRequest(`/api/customers/get?uuid=${uuid}`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isCustomerResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        guard: isCustomerResponse,
     });
 }
 
 export async function deleteItem(
     uuid: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<DeleteCustomerResponse>> {
-    return await fetch(`/api/customers/delete?uuid=${uuid}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<DeleteCustomerResponse>> {
+    return apiRequest(`/api/customers/delete?uuid=${uuid}`, {
         method: "DELETE",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isDeleteCustomerResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        guard: isDeleteCustomerResponse,
     });
 }
 
 export async function print(
     uuid: string,
     token: string | null,
-): Promise<ProcessedBytesResponse> {
-    return await fetch(`/api/customers/print?uuid=${uuid}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<Uint8Array<ArrayBuffer> | null>> {
+    return apiRequest(`/api/customers/print?uuid=${uuid}`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return ProcessBytesResponse(response);
+        token,
+        signal,
+        guard: (data): data is Uint8Array<ArrayBuffer> =>
+            data instanceof Uint8Array,
     });
 }

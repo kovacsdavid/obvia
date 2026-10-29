@@ -46,7 +46,7 @@ export interface Customer {
     id: string;
     name: string;
     contact_name: string | null;
-    email: string;
+    email: string | null;
     phone_number: string | null;
     status: string;
     customer_type: string;
@@ -74,7 +74,7 @@ export interface CustomerFull {
     id: string;
     name: string;
     contact_name: string | null;
-    email: string;
+    email: string | null;
     phone_number: string | null;
     status: string;
     customer_type: string;

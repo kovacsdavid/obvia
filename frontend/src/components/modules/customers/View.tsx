@@ -34,19 +34,18 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card.tsx";
-import { GlobalError, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { formatDateLocal } from "@/lib/utils.ts";
 import { useNavigate } from "react-router";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import Status from "./Status";
 import Type from "./Type";
 import { useAuth } from "@/hooks/use_auth";
 import AddressView from "@/components/modules/address/AddressView";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 
 export default function View() {
     const [data, setData] = React.useState<CustomerFull | null>(null);
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
@@ -54,32 +53,22 @@ export default function View() {
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
-            dispatch(get_full(params["id"])).then(async (response) => {
-                if (get_full.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        if (
-                            typeof response.payload.jsonData?.data !==
-                            "undefined"
-                        ) {
-                            setData(response.payload.jsonData.data);
-                        }
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setErrors(response.payload.jsonData.error);
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            });
+            dispatch(get_full({ uuid: params["id"] }))
+                .unwrap()
+                .then(async (result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
+                                setData(data);
+                            }
+                        },
+                    });
+                });
         }
-    }, [dispatch, params, setErrors, unexpectedError]);
+    }, [dispatch, params]);
 
     return (
         <>
-            <GlobalError error={errors} />
             {data !== null ? (
                 <>
                     <Card className={"max-w-3xl mx-auto"}>
@@ -115,7 +104,9 @@ export default function View() {
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>E-mail cím</TableCell>
-                                        <TableCell>{data.email}</TableCell>
+                                        <TableCell>
+                                            {data.email ?? "N/A"}
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Telefonszám</TableCell>

@@ -30,7 +30,7 @@ pub struct Customer {
     pub id: Uuid,
     pub name: String,
     pub contact_name: Option<String>,
-    pub email: String,
+    pub email: Option<String>,
     pub phone_number: Option<String>,
     pub status: String,
     pub customer_type: String,
@@ -47,7 +47,7 @@ pub struct CustomerResolved {
     pub id: Uuid,
     pub name: String,
     pub contact_name: Option<String>,
-    pub email: String,
+    pub email: Option<String>,
     pub phone_number: Option<String>,
     pub status: String,
     pub customer_type: String,
@@ -91,7 +91,7 @@ pub struct CustomerFull {
     pub id: Uuid,
     pub name: String,
     pub contact_name: Option<String>,
-    pub email: String,
+    pub email: Option<String>,
     pub phone_number: Option<String>,
     pub status: String,
     pub customer_type: String,
@@ -116,7 +116,7 @@ pub mod tests {
             .id(Uuid::now_v7())
             .name("Test Customer".to_string())
             .contact_name(None)
-            .email("test.customer@example.com".to_string())
+            .email(Some("test.customer@example.com".to_string()))
             .phone_number(Some("+36301234567".to_string()))
             .status("active".to_string())
             .customer_type("natural".to_string())
@@ -136,7 +136,7 @@ pub mod tests {
             .id(Uuid::now_v7())
             .name("Test Customer".to_string())
             .contact_name(None)
-            .email("test.customer@example.com".to_string())
+            .email(Some("test.customer@example.com".to_string()))
             .phone_number(Some("+36301234567".to_string()))
             .status("active".to_string())
             .customer_type("natural".to_string())
@@ -157,7 +157,7 @@ pub mod tests {
             .id(Uuid::now_v7())
             .name("Test Customer".to_string())
             .contact_name(None)
-            .email("test.customer@example.com".to_string())
+            .email(Some("test.customer@example.com".to_string()))
             .phone_number(Some("+36301234567".to_string()))
             .status("active".to_string())
             .customer_type("natural".to_string())

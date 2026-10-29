@@ -179,7 +179,6 @@ export default function Edit({
                             setStatus(data.status ?? "");
                         }
                     },
-                    onFieldErrors: setErrors,
                 });
             }
         });

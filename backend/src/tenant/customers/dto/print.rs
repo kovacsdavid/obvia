@@ -32,7 +32,7 @@ pub struct CustomerFullPrint {
     id: Uuid,
     name: String,
     contact_name: Option<String>,
-    email: String,
+    email: Option<String>,
     phone_number: Option<String>,
     status: String,
     customer_type: String,
@@ -105,7 +105,7 @@ pub fn test_customer_full_print_builder() -> CustomerFullPrintBuilder {
         .id(Uuid::now_v7())
         .name("Test Customer".to_string())
         .contact_name(None)
-        .email("test.customer@example.com".to_string())
+        .email(Some("test.customer@example.com".to_string()))
         .phone_number(Some("+36301234567".to_string()))
         .status("Aktív".to_string())
         .customer_type("Természetes személy".to_string())
@@ -144,7 +144,7 @@ mod tests {
             id: customer_id,
             name: "Test Customer".to_string(),
             contact_name: None,
-            email: "test.customer@example.com".to_string(),
+            email: Some("test.customer@example.com".to_string()),
             phone_number: Some("+36301234567".to_string()),
             status: "Aktív".to_string(),
             customer_type: "Természetes személy".to_string(),

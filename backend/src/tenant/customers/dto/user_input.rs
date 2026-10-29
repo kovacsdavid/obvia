@@ -110,7 +110,7 @@ pub struct CustomerUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub name: ValueObjectRequired<CustomerName>,
     pub contact_name: Option<ValueObjectRequired<CustomerContactName>>,
-    pub email: ValueObjectRequired<Email>,
+    pub email: ValueObjectOptional<Email>,
     pub phone_number: ValueObjectOptional<CustomerPhoneNumber>,
     pub status: ValueObjectRequired<CustomerStatus>,
     pub customer_type: ValueObjectRequired<CustomerType>,
@@ -140,7 +140,7 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
 
         let email = value
             .email
-            .parse::<ValueObjectRequired<Email>>()
+            .parse::<ValueObjectOptional<Email>>()
             .inspect_err(|e| {
                 error.email = Some(e.to_string());
             });
@@ -151,6 +151,7 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
             .inspect_err(|e| {
                 error.phone_number = Some(e.to_string());
             });
+
         let status = value
             .status
             .parse::<ValueObjectRequired<CustomerStatus>>()
@@ -359,7 +360,7 @@ mod tests {
             id: None,
             name: String::from(""),
             contact_name: String::from(""),
-            email: String::from(""),
+            email: String::from("teszt.elekexample.com"),
             phone_number: String::from("+3630a234567"),
             status: String::from(""),
             customer_type: String::from("legal"),
@@ -376,7 +377,7 @@ mod tests {
             id: None,
             name: Some(ValueObjectError::REQUIRED.to_string()),
             contact_name: Some(ValueObjectError::REQUIRED.to_string()),
-            email: Some(ValueObjectError::REQUIRED.to_string()),
+            email: Some(Email::VALIDATION_ERROR.to_string()),
             phone_number: Some(CustomerPhoneNumber::VALIDATION_ERROR.to_string()),
             status: Some(ValueObjectError::REQUIRED.to_string()),
             customer_type: None,

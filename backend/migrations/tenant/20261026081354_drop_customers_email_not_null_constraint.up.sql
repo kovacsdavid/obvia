@@ -18,3 +18,8 @@
  */
 
 ALTER TABLE customers DROP CONSTRAINT customers_email_not_null;
+ALTER TABLE customers DROP CONSTRAINT customers_email_deleted_at_key;
+
+CREATE UNIQUE INDEX customers_email_deleted_at_key
+    ON customers (email, deleted_at) NULLS NOT DISTINCT
+    WHERE email IS NOT NULL;

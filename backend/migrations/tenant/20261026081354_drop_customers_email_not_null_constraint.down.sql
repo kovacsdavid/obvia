@@ -17,9 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+DROP INDEX customers_email_deleted_at_key;
+
 ALTER TABLE customers
     ADD CONSTRAINT customers_email_not_null CHECK (email IS NOT NULL) NOT VALID;
 
-UPDATE customers SET email = '<placeholder>' WHERE email IS NULL;
+UPDATE customers
+SET email = '<placeholder-' || id::text || '>'
+WHERE email IS NULL;
 
 ALTER TABLE customers VALIDATE CONSTRAINT customers_email_not_null;
+ALTER TABLE customers
+    ADD CONSTRAINT customers_email_deleted_at_key UNIQUE NULLS NOT DISTINCT (email, deleted_at);

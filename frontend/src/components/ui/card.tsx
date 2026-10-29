@@ -113,20 +113,24 @@ function ConditionalCard({
     children,
     className,
 }: ConditionalCardProps) {
-    if (showCard) {
+    if (!showCard) {
         return (
-            <Card className={className}>
-                {title && (
-                    <CardHeader>
-                        <CardTitle>{title}</CardTitle>
-                    </CardHeader>
-                )}
-                <CardContent>{children}</CardContent>
-            </Card>
+            <div className="p-5 max-h-[calc(100dvh-15rem)] overflow-y-auto overflow-x-hidden">
+                {children}
+            </div>
         );
     }
 
-    return <>{children}</>;
+    return (
+        <Card className={className}>
+            {title && (
+                <CardHeader>
+                    <CardTitle>{title}</CardTitle>
+                </CardHeader>
+            )}
+            <CardContent>{children}</CardContent>
+        </Card>
+    );
 }
 
 export {

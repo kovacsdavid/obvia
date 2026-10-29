@@ -29,3 +29,5 @@ WHERE email IS NULL;
 ALTER TABLE customers VALIDATE CONSTRAINT customers_email_not_null;
 ALTER TABLE customers
     ADD CONSTRAINT customers_email_deleted_at_key UNIQUE NULLS NOT DISTINCT (email, deleted_at);
+
+ALTER TABLE customers ALTER COLUMN email SET NOT NULL;

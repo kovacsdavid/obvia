@@ -57,6 +57,20 @@ export interface Task {
     description: string | null;
 }
 
+export interface TaskErrors {
+    id: string | null;
+    worksheet_id: string | null;
+    service_id: string | null;
+    currency_code: string | null;
+    quantity: string | null;
+    price: string | null;
+    tax_id: string | null;
+    status: string | null;
+    priority: string | null;
+    due_date: string | null;
+    description: string | null;
+}
+
 export interface TaskResolved {
     id: string;
     worksheet_id: string;

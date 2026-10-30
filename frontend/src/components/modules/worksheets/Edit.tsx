@@ -320,11 +320,11 @@ export default function Edit({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="active">
-                                            Aktív
+                                        <SelectItem value="open">
+                                            Nyitott
                                         </SelectItem>
-                                        <SelectItem value="inactive">
-                                            Inaktív
+                                        <SelectItem value="closed">
+                                            Lezárt
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

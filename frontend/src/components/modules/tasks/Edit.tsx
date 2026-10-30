@@ -611,11 +611,23 @@ export default function Edit({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="active">
-                                            Aktív
+                                        <SelectItem value="in_progress">
+                                            Folyamatban
                                         </SelectItem>
-                                        <SelectItem value="inactive">
-                                            Inaktív
+                                        <SelectItem value="waiting_for_check">
+                                            Bevizsgálásra vár
+                                        </SelectItem>
+                                        <SelectItem value="waiting_for_supply">
+                                            Beszerzésre vár
+                                        </SelectItem>
+                                        <SelectItem value="waiting_for_feedback">
+                                            Visszajelzésre vár
+                                        </SelectItem>
+                                        <SelectItem value="ready_for_customer_pickup">
+                                            Átvehető
+                                        </SelectItem>
+                                        <SelectItem value="closed">
+                                            Lezárt
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

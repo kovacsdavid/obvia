@@ -40,8 +40,12 @@ impl ValueObjectData for Status {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
-            "active" => Ok(()),
-            "inactive" => Ok(()),
+            "in_progress" => Ok(()),
+            "waiting_for_check" => Ok(()),
+            "waiting_for_supply" => Ok(()),
+            "waiting_for_feedback" => Ok(()),
+            "ready_for_customer_pickup" => Ok(()),
+            "closed" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }

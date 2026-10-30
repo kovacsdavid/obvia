@@ -25,14 +25,38 @@ interface StatusProps {
 
 export default function Status({ status }: StatusProps) {
     switch (status) {
-        case "active":
+        case "in_progress":
             return (
-                <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
-                    Aktív
+                <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                    Folyamatban
                 </Badge>
             );
-        case "inactive":
-            return <Badge variant="secondary">Inaktív</Badge>;
+        case "waiting_for_check":
+            return (
+                <Badge className="bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300">
+                    Bevizsgálásra vár
+                </Badge>
+            );
+        case "waiting_for_supply":
+            return (
+                <Badge className="bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300">
+                    Beszerzésre vár
+                </Badge>
+            );
+        case "waiting_for_feedback":
+            return (
+                <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                    Visszajelzésre vár
+                </Badge>
+            );
+        case "ready_for_customer_pickup":
+            return (
+                <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
+                    Átvehető
+                </Badge>
+            );
+        case "closed":
+            return <Badge variant="secondary">Lezárt</Badge>;
         default:
             return <Badge variant="destructive">Ismeretlen státusz</Badge>;
     }

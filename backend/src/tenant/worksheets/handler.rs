@@ -328,7 +328,7 @@ mod tests {
             customer_id,
             project_id: None,
             created_by_id,
-            status: "active".to_string(),
+            status: "open".to_string(),
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
@@ -565,7 +565,7 @@ mod tests {
             project: None,
             created_by_id,
             created_by: "Test user".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
@@ -811,7 +811,7 @@ mod tests {
             project: None,
             created_by_id,
             created_by: "Test user".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
@@ -1047,7 +1047,7 @@ mod tests {
             customer_id,
             project_id: None,
             created_by_id,
-            status: "active".to_string(),
+            status: "open".to_string(),
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
@@ -1058,7 +1058,7 @@ mod tests {
             description: "".to_string(),
             customer_id: customer_id.to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
         let user_input = WorksheetUserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -1189,7 +1189,7 @@ mod tests {
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
 
         let mut app_state = MockWorksheetsModule::new();
@@ -1236,7 +1236,7 @@ mod tests {
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
 
         let mut app_state = MockWorksheetsModule::new();
@@ -1283,7 +1283,7 @@ mod tests {
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
 
         let app_state = MockWorksheetsModule::new();
@@ -1324,7 +1324,7 @@ mod tests {
             customer_id,
             project_id: None,
             created_by_id,
-            status: "active".to_string(),
+            status: "open".to_string(),
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
@@ -1335,7 +1335,7 @@ mod tests {
             description: "".to_string(),
             customer_id: customer_id.to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
         let user_input = WorksheetUserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -1403,7 +1403,7 @@ mod tests {
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
 
         let mut app_state = MockWorksheetsModule::new();
@@ -1453,7 +1453,7 @@ mod tests {
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
 
         let mut app_state = MockWorksheetsModule::new();
@@ -1501,7 +1501,7 @@ mod tests {
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
 
         let mut app_state = MockWorksheetsModule::new();
@@ -1549,7 +1549,7 @@ mod tests {
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
-            status: "active".to_string(),
+            status: "open".to_string(),
         };
 
         let app_state = MockWorksheetsModule::new();

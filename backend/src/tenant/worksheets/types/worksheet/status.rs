@@ -62,9 +62,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_active_status() {
-        let status = "active".parse::<ValueObjectRequired<Status>>().unwrap();
-        assert_eq!(status.as_str().unwrap(), "active");
+    fn test_valid_open_status() {
+        let status = "open".parse::<ValueObjectRequired<Status>>().unwrap();
+        assert_eq!(status.as_str().unwrap(), "open");
     }
 
     #[test]

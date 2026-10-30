@@ -150,6 +150,7 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
     use uuid::Uuid;
 
     use super::*;
@@ -162,15 +163,19 @@ mod tests {
             description: String::from("description"),
             customer_id: customer_id.to_string(),
             project_id: String::from(""),
-            status: String::from("active"),
-        })
-        .unwrap();
+            status: String::from("open"),
+        });
 
-        assert!(!user_input.id.is_present());
-        assert_eq!(user_input.description.as_str().unwrap(), "description");
-        assert_eq!(user_input.customer_id.as_uuid().unwrap(), customer_id);
-        assert!(!user_input.project_id.is_present());
-        assert_eq!(user_input.status.as_str().unwrap(), "active");
+        let expected_user_input = WorksheetUserInput {
+            id: "".parse().unwrap(),
+            description: "description".parse().unwrap(),
+            customer_id: customer_id.to_string().parse().unwrap(),
+            project_id: "".parse().unwrap(),
+            status: "open".parse().unwrap(),
+        };
+
+        assert!(user_input.is_ok());
+        assert_eq!(user_input.unwrap(), expected_user_input);
     }
     #[test]
     fn invalid_user_input() {

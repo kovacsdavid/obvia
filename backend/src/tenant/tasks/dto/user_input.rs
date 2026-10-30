@@ -230,6 +230,7 @@ impl TryFrom<TaskUserInputHelper> for TaskUserInput {
 #[cfg(test)]
 mod tests {
     use chrono::{Days, Utc};
+    use pretty_assertions::assert_eq;
     use uuid::Uuid;
 
     use super::*;
@@ -251,24 +252,28 @@ mod tests {
             quantity: String::from("10"),
             price: String::from("1000"),
             tax_id: tax_id.to_string(),
-            status: String::from("active"),
+            status: String::from("in_progress"),
             priority: String::from("normal"),
             due_date: due_date.to_string(),
             description: String::from("description"),
-        })
-        .unwrap();
+        });
 
-        assert_eq!(user_input.id.as_uuid(), None);
-        assert_eq!(user_input.worksheet_id.as_uuid().unwrap(), worksheet_id);
-        assert_eq!(user_input.service_id.as_uuid().unwrap(), service_id);
-        assert_eq!(user_input.currency_code.as_str().unwrap(), "HUF");
-        assert_eq!(user_input.quantity.as_f64().unwrap(), 10_f64);
-        assert_eq!(user_input.price.as_f64().unwrap(), 1000_f64);
-        assert_eq!(user_input.tax_id.as_uuid().unwrap(), tax_id);
-        assert_eq!(user_input.status.as_str().unwrap(), "active");
-        assert_eq!(user_input.priority.as_str().unwrap(), "normal");
-        assert_eq!(user_input.due_date.as_date_naive().unwrap(), &due_date);
-        assert_eq!(user_input.description.as_str().unwrap(), "description");
+        let expected_user_input = TaskUserInput {
+            id: "".parse().unwrap(),
+            worksheet_id: worksheet_id.to_string().parse().unwrap(),
+            service_id: service_id.to_string().parse().unwrap(),
+            currency_code: "HUF".parse().unwrap(),
+            quantity: "10".parse().unwrap(),
+            price: "1000".parse().unwrap(),
+            tax_id: tax_id.to_string().parse().unwrap(),
+            status: "in_progress".parse().unwrap(),
+            priority: "normal".parse().unwrap(),
+            due_date: due_date.to_string().parse().unwrap(),
+            description: "description".parse().unwrap(),
+        };
+
+        assert!(user_input.is_ok());
+        assert_eq!(user_input.unwrap(), expected_user_input);
     }
 
     #[test]

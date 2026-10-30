@@ -188,6 +188,7 @@ export default function Edit({
                 });
                 navigate("/feladat/lista");
             },
+            onFieldErrors: setErrors,
         });
     };
 

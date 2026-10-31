@@ -74,7 +74,7 @@ export default function Edit({
     const [serviceId, setServiceId] = React.useState("");
     const [currencyCode, setCurrencyCode] = React.useState("HUF");
     const [taxId, setTaxId] = React.useState("");
-    const [status, setStatus] = React.useState("active");
+    const [status, setStatus] = React.useState("in_progress");
     const [priority, setPriority] = React.useState<string | null>("normal");
     const [dueDate, setDueDate] = React.useState<string | null>("");
     const [description, setDescription] = React.useState("");

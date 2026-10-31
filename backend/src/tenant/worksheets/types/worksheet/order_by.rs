@@ -42,6 +42,7 @@ impl ValueObjectData for OrderBy {
             | "gross_material_cost"
             | "net_work_cost"
             | "gross_work_cost"
+            | "status"
             | "created_at"
             | "updated_at" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),

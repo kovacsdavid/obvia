@@ -163,8 +163,8 @@ impl WorksheetResolvedPrint {
     }
     fn map_status(status: &str) -> String {
         match status {
-            "active" => "Aktív",
-            "inactive" => "Inaktív",
+            "open" => "Nyitott",
+            "closed" => "Lezárt",
             _ => "Ismeretlen státusz!",
         }
         .to_string()

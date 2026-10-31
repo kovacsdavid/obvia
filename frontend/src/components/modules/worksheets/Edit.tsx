@@ -66,7 +66,7 @@ export default function Edit({
 }: EditProps) {
     const [description, setDescription] = React.useState("");
     const [customerId, setCustomerId] = React.useState("");
-    const [status, setStatus] = React.useState("active");
+    const [status, setStatus] = React.useState("open");
     const [customersList, setCustomersList] = React.useState<SelectOptionList>(
         [],
     );
@@ -320,11 +320,11 @@ export default function Edit({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="active">
-                                            Aktív
+                                        <SelectItem value="open">
+                                            Nyitott
                                         </SelectItem>
-                                        <SelectItem value="inactive">
-                                            Inaktív
+                                        <SelectItem value="closed">
+                                            Lezárt
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

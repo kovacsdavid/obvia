@@ -33,21 +33,20 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card.tsx";
-import { GlobalError, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { formatDateLocal } from "@/lib/utils.ts";
 import type { TaskResolved } from "@/components/modules/tasks/lib/interface.ts";
 import { useNavigate } from "react-router";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Link } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
-import Status from "./Status";
-import Priority from "./Priority";
+import Status from "@/components/modules/tasks/Status";
+import Priority from "@/components/modules/tasks/Priority";
 import { useAuth } from "@/hooks/use_auth";
 import { Badge } from "@/components/ui/badge";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 
 export default function View() {
     const [data, setData] = React.useState<TaskResolved | null>(null);
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
@@ -55,32 +54,22 @@ export default function View() {
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
-            dispatch(get_resolved(params["id"])).then(async (response) => {
-                if (get_resolved.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        if (
-                            typeof response.payload.jsonData?.data !==
-                            "undefined"
-                        ) {
-                            setData(response.payload.jsonData.data);
-                        }
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setErrors(response.payload.jsonData.error);
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            });
+            dispatch(get_resolved({ uuid: params["id"] }))
+                .unwrap()
+                .then(async (result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
+                                setData(data);
+                            }
+                        },
+                    });
+                });
         }
-    }, [dispatch, params, setErrors, unexpectedError]);
+    }, [dispatch, params]);
 
     return (
         <>
-            <GlobalError error={errors} />
             {data !== null ? (
                 <>
                     <Card className={"max-w-3xl mx-auto"}>

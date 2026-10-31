@@ -29,6 +29,7 @@ import type {
     DeleteTaskResponse,
     PaginatedTaskResolvedListResponse,
     Task,
+    TaskErrors,
     TaskResolved,
     TaskResolvedList,
     TaskResolvedResponse,
@@ -135,6 +136,36 @@ export function isTask(data: unknown): data is Task {
         typeof data.updated_at === "string" &&
         "deleted_at" in data &&
         (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "description" in data &&
+        (data.description === null || typeof data.description === "string")
+    );
+}
+
+export function isTaskErrors(data: unknown): data is TaskErrors {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        (data.id === null || typeof data.id === "string") &&
+        "worksheet_id" in data &&
+        (data.worksheet_id === null || typeof data.worksheet_id === "string") &&
+        "service_id" in data &&
+        (data.service_id === null || typeof data.service_id === "string") &&
+        "currency_code" in data &&
+        (data.currency_code === null ||
+            typeof data.currency_code === "string") &&
+        "quantity" in data &&
+        (data.quantity === null || typeof data.quantity === "string") &&
+        "price" in data &&
+        (data.price === null || typeof data.price === "string") &&
+        "tax_id" in data &&
+        (data.tax_id === null || typeof data.tax_id === "string") &&
+        "status" in data &&
+        (data.status === null || typeof data.status === "string") &&
+        "priority" in data &&
+        (data.priority === null || typeof data.priority === "string") &&
+        "due_date" in data &&
+        (data.due_date === null || typeof data.due_date === "string") &&
         "description" in data &&
         (data.description === null || typeof data.description === "string")
     );

@@ -114,8 +114,12 @@ impl TaskResolvedPrint {
     }
     fn map_status(status: &str) -> String {
         match status {
-            "active" => "Aktív",
-            "inactive" => "Inaktív",
+            "in_progress" => "Folyamatban",
+            "waiting_for_check" => "Bevizsgálásra vár",
+            "waiting_for_supply" => "Beszerzésre vár",
+            "waiting_for_feedback" => "Visszajelzésre vár",
+            "ready_for_customer_pickup" => "Átvehető",
+            "closed" => "Lezárt",
             _ => "Ismeretlen státusz",
         }
         .to_string()

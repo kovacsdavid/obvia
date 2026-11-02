@@ -164,7 +164,13 @@ impl ProductsRepository for PgPool {
             query_params.ordering().order_by(), // Security: ValueObject
             query_params.ordering().order(),    // Security: enum
         ) {
-            (Some(order_by), Some(order)) => format!("ORDER BY products.{order_by} {order}"),
+            (Some(order_by), Some(order)) => {
+                let order_by = match order_by.as_str() {
+                    "unit_of_measure" => format!("units_of_measure.{order_by}"),
+                    _ => format!("products.{order_by}"),
+                };
+                format!("ORDER BY {order_by} {order}")
+            }
             (_, _) => "".to_string(),
         };
 

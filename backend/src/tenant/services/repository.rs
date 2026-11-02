@@ -398,7 +398,7 @@ impl ServicesRepository for PgPool {
                 default_tax_id = $4,
                 currency_code = $5,
                 status = $6,
-                unit_of_measure_id = $7,
+                unit_of_measure_id = $7
             WHERE id = $8 AND deleted_at IS NULL
             RETURNING *
             "#,

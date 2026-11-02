@@ -185,7 +185,13 @@ impl ServicesRepository for PgPool {
             query_params.ordering().order_by(), // Security: ValueObject
             query_params.ordering().order(),    // Security: enum
         ) {
-            (Some(order_by), Some(order)) => format!("ORDER BY services.{order_by} {order}"),
+            (Some(order_by), Some(order)) => {
+                let order_by = match order_by.as_str() {
+                    "unit_of_measure" => format!("units_of_measure.{order_by}"),
+                    _ => format!("services.{order_by}"),
+                };
+                format!("ORDER BY {order_by} {order}")
+            }
             (_, _) => "".to_string(),
         };
 

@@ -296,6 +296,7 @@ export default function Edit({
                                     }}
                                 >
                                     <SelectTrigger
+                                        id="unit_of_measure_id"
                                         className={"w-full"}
                                         aria-invalid={isInvalidField(
                                             "unit_of_measure_id",

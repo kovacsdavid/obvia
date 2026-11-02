@@ -21,6 +21,7 @@ use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::currencies::types::CurrencyCode;
+use crate::tenant::products::types::unit_of_measure::UnitsOfMeasure;
 use crate::tenant::services::types::service::default_price::DefaultPrice;
 use crate::tenant::services::types::service::{
     ServiceDefaultPrice, ServiceDescription, ServiceName, ServiceStatus,
@@ -40,9 +41,11 @@ pub struct ServiceUserInputHelper {
     pub default_tax_id: String,
     pub currency_code: String,
     pub status: String,
+    pub unit_of_measure_id: String,
+    pub new_unit_of_measure: String,
 }
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Default, PartialEq)]
 pub struct ServiceUserInputError {
     pub id: Option<String>,
     pub name: Option<String>,
@@ -51,6 +54,8 @@ pub struct ServiceUserInputError {
     pub default_tax_id: Option<String>,
     pub currency_code: Option<String>,
     pub status: Option<String>,
+    pub unit_of_measure_id: Option<String>,
+    pub new_unit_of_measure: Option<String>,
 }
 
 impl ServiceUserInputError {
@@ -62,6 +67,8 @@ impl ServiceUserInputError {
             && self.default_tax_id.is_none()
             && self.currency_code.is_none()
             && self.status.is_none()
+            && self.unit_of_measure_id.is_none()
+            && self.new_unit_of_measure.is_none()
     }
 }
 
@@ -103,6 +110,8 @@ pub struct ServiceUserInput {
     pub default_tax_id: ValueObjectOptional<UuidVO>,
     pub currency_code: ValueObjectOptional<CurrencyCode>,
     pub status: ValueObjectRequired<ServiceStatus>,
+    pub unit_of_measure_id: Option<ValueObjectRequired<UuidVO>>,
+    pub new_unit_of_measure: Option<ValueObjectRequired<UnitsOfMeasure>>,
 }
 
 impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
@@ -160,6 +169,30 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
                 error.status = Some(e.to_string());
             });
 
+        let unit_of_measure_id = if value.unit_of_measure_id.as_str() != "other" {
+            value
+                .unit_of_measure_id
+                .parse::<ValueObjectRequired<UuidVO>>()
+                .inspect_err(|e| {
+                    error.unit_of_measure_id = Some(e.to_string());
+                })
+                .map(Some)
+        } else {
+            Ok(None)
+        };
+
+        let new_unit_of_measure = if let Ok(unit_of_measure_id) = &unit_of_measure_id
+            && unit_of_measure_id.is_none()
+        {
+            value
+                .new_unit_of_measure
+                .parse::<ValueObjectRequired<UnitsOfMeasure>>()
+                .inspect_err(|e| error.new_unit_of_measure = Some(e.to_string()))
+                .map(Some)
+        } else {
+            Ok(None)
+        };
+
         if error.is_empty() {
             Ok(ServiceUserInput {
                 id: id?,
@@ -169,6 +202,8 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
                 default_tax_id: default_tax_id?,
                 currency_code: currency_code?,
                 status: status?,
+                unit_of_measure_id: unit_of_measure_id?,
+                new_unit_of_measure: new_unit_of_measure?,
             })
         } else {
             Err(error)
@@ -178,6 +213,7 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
     use uuid::Uuid;
 
     use super::*;
@@ -193,16 +229,24 @@ mod tests {
             default_tax_id: default_tax_id.to_string(),
             currency_code: String::from("HUF"),
             status: String::from("active"),
-        })
-        .unwrap();
+            unit_of_measure_id: String::from("other"),
+            new_unit_of_measure: String::from("óra"),
+        });
 
-        assert_eq!(user_input.id.as_uuid(), None);
-        assert_eq!(user_input.name.as_str().unwrap(), "Service Name");
-        assert_eq!(user_input.description.as_str().unwrap(), "description");
-        assert_eq!(user_input.default_price.as_f64().unwrap(), 1000_f64);
-        assert_eq!(user_input.default_tax_id.as_uuid().unwrap(), default_tax_id);
-        assert_eq!(user_input.currency_code.as_str().unwrap(), "HUF");
-        assert_eq!(user_input.status.as_str().unwrap(), "active");
+        let expected_user_input = ServiceUserInput {
+            id: "".parse().unwrap(),
+            name: "Service Name".parse().unwrap(),
+            description: "description".parse().unwrap(),
+            default_price: "1000".parse().unwrap(),
+            default_tax_id: default_tax_id.to_string().parse().unwrap(),
+            currency_code: "HUF".parse().unwrap(),
+            status: "active".parse().unwrap(),
+            unit_of_measure_id: None,
+            new_unit_of_measure: Some("óra".parse().unwrap()),
+        };
+
+        assert!(user_input.is_ok());
+        assert_eq!(user_input.unwrap(), expected_user_input);
     }
 
     #[test]
@@ -216,21 +260,23 @@ mod tests {
             default_tax_id: String::from("invalid"),
             currency_code: String::from("HUFF"),
             status: String::from("invalid"),
-        })
-        .unwrap_err();
+            unit_of_measure_id: String::from("other"),
+            new_unit_of_measure: String::from(""),
+        });
 
-        assert_eq!(user_input.id, None);
-        assert_eq!(user_input.name.unwrap(), ValueObjectError::REQUIRED);
-        assert_eq!(
-            user_input.description.unwrap(),
-            ServiceDescription::VALIDATION_ERROR
-        );
-        assert_eq!(user_input.default_price.unwrap(), DefaultPrice::PARSE_ERROR);
-        assert_eq!(user_input.default_tax_id.unwrap(), UuidVO::PARSE_ERROR);
-        assert_eq!(
-            user_input.currency_code.unwrap(),
-            CurrencyCode::VALIDATION_ERROR
-        );
-        assert_eq!(user_input.status.unwrap(), ServiceStatus::VALIDATION_ERROR);
+        let expected_user_input_error = ServiceUserInputError {
+            id: None,
+            name: Some(ValueObjectError::REQUIRED.to_string()),
+            description: Some(ServiceDescription::VALIDATION_ERROR.to_string()),
+            default_price: Some(DefaultPrice::PARSE_ERROR.to_string()),
+            default_tax_id: Some(UuidVO::PARSE_ERROR.to_string()),
+            currency_code: Some(CurrencyCode::VALIDATION_ERROR.to_string()),
+            status: Some(ServiceStatus::VALIDATION_ERROR.to_string()),
+            unit_of_measure_id: None,
+            new_unit_of_measure: Some(ValueObjectError::REQUIRED.to_string()),
+        };
+
+        assert!(user_input.is_err());
+        assert_eq!(user_input.unwrap_err(), expected_user_input_error);
     }
 }

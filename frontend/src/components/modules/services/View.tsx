@@ -150,6 +150,14 @@ export default function View() {
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
+                                        <TableCell>Mértékegység</TableCell>
+                                        <TableCell>
+                                            <Badge variant="secondary">
+                                                {data.unit_of_measure}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
                                         <TableCell>Státusz</TableCell>
                                         <TableCell>
                                             <Status status={data.status} />

@@ -36,7 +36,8 @@ impl ValueObjectData for OrderBy {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.trim() {
-            "name" | "default_price" | "status" | "created_at" | "updated_at" => Ok(()),
+            "name" | "default_price" | "unit_of_measure" | "status" | "created_at"
+            | "updated_at" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }

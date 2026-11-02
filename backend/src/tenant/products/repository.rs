@@ -249,6 +249,7 @@ impl ProductsRepository for PgPool {
             products,
         ))
     }
+
     async fn insert(
         &self,
         product_user_input: &ProductUserInput,
@@ -261,9 +262,14 @@ impl ProductsRepository for PgPool {
             None => {
                 if let Some(new_unit_of_measure) = &product_user_input.new_unit_of_measure {
                     Some(
-                        insert_unit_of_measure(&mut *tx, new_unit_of_measure.as_str()?, sub)
-                            .await?
-                            .id,
+                        insert_unit_of_measure(
+                            &mut *tx,
+                            new_unit_of_measure.as_str()?,
+                            "products",
+                            sub,
+                        )
+                        .await?
+                        .id,
                     )
                 } else {
                     return Err(RepositoryError::Custom(
@@ -274,8 +280,21 @@ impl ProductsRepository for PgPool {
         };
 
         let product = sqlx::query_as::<_, Product>(
-            "INSERT INTO products (name, description, unit_of_measure_id, status, created_by_id)
-                 VALUES ($1, $2, $3, $4, $5) RETURNING *",
+            "
+            INSERT INTO products (
+                name,
+                description,
+                unit_of_measure_id,
+                status,
+                created_by_id
+            )
+            VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5
+            ) RETURNING *",
         )
         .bind(product_user_input.name.as_str()?)
         .bind(product_user_input.description.as_str())
@@ -307,9 +326,14 @@ impl ProductsRepository for PgPool {
             None => {
                 if let Some(new_unit_of_measure) = &product_user_input.new_unit_of_measure {
                     Some(
-                        insert_unit_of_measure(&mut *tx, new_unit_of_measure.as_str()?, sub)
-                            .await?
-                            .id,
+                        insert_unit_of_measure(
+                            &mut *tx,
+                            new_unit_of_measure.as_str()?,
+                            "products",
+                            sub,
+                        )
+                        .await?
+                        .id,
                     )
                 } else {
                     return Err(RepositoryError::Custom(
@@ -349,12 +373,18 @@ impl ProductsRepository for PgPool {
         unit_of_measure: &str,
         sub: Uuid,
     ) -> RepositoryResult<UnitOfMeasure> {
-        insert_unit_of_measure(self, unit_of_measure, sub).await
+        insert_unit_of_measure(self, unit_of_measure, "products", sub).await
     }
 
     async fn get_units_of_measure_select_list(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
-            "SELECT units_of_measure.id::VARCHAR as value, units_of_measure.unit_of_measure as title FROM units_of_measure WHERE deleted_at IS NULL ORDER BY unit_of_measure",
+            "
+            SELECT units_of_measure.id::VARCHAR as value, units_of_measure.unit_of_measure as title
+            FROM units_of_measure
+            WHERE deleted_at IS NULL
+                AND module = 'products'
+            ORDER BY unit_of_measure
+            ",
         )
         .fetch_all(self)
         .await?)
@@ -380,16 +410,18 @@ impl ProductsRepository for PgPool {
 pub async fn insert_unit_of_measure<'e, E>(
     executor: E,
     unit_of_measure: &str,
+    module: &str,
     sub: Uuid,
 ) -> RepositoryResult<UnitOfMeasure>
 where
     E: sqlx::Executor<'e, Database = sqlx::Postgres>,
 {
     Ok(sqlx::query_as::<_, UnitOfMeasure>(
-        "INSERT INTO units_of_measure(unit_of_measure, created_by_id)
-             VALUES ($1, $2) RETURNING *",
+        "INSERT INTO units_of_measure(unit_of_measure, module, created_by_id)
+             VALUES ($1, $2, $3) RETURNING *",
     )
     .bind(unit_of_measure.trim())
+    .bind(module)
     .bind(sub)
     .fetch_one(executor)
     .await?)

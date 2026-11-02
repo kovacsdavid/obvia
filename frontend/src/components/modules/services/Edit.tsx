@@ -69,6 +69,10 @@ export default function Edit({
     const [defaultTaxId, setDefaultTaxId] = React.useState("");
     const [currencyCode, setCurrencyCode] = React.useState("HUF");
     const [status, setStatus] = React.useState("active");
+    const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("");
+    const [newUnitOfMeasure, setNewUnitOfMeasure] = React.useState("");
+    const [unitsOfMeasureList, setUnitsOfMeasureList] =
+        React.useState<SelectOptionList>([]);
     const [currencyList, setCurrencyList] = React.useState<SelectOptionList>(
         [],
     );
@@ -107,6 +111,8 @@ export default function Edit({
                 defaultTaxId,
                 currencyCode,
                 status,
+                unitOfMeasureId,
+                newUnitOfMeasure,
             }),
         ).then(async (response) => {
             if (create.fulfilled.match(response)) {
@@ -169,6 +175,8 @@ export default function Edit({
                 defaultTaxId,
                 currencyCode,
                 status,
+                unitOfMeasureId,
+                newUnitOfMeasure,
             }),
         ).then(async (response) => {
             if (update.fulfilled.match(response)) {
@@ -231,6 +239,21 @@ export default function Edit({
                     unexpectedError();
                 }
             }),
+            dispatch(select_list("units_of_measure")).then((response) => {
+                if (select_list.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        setListResponse(
+                            response.payload,
+                            setUnitsOfMeasureList,
+                            setErrors,
+                        );
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            }),
         ]);
     }, [dispatch, setErrors, unexpectedError, setListResponse]);
 
@@ -251,6 +274,7 @@ export default function Edit({
                                 setDefaultTaxId(data.default_tax_id ?? "");
                                 setCurrencyCode(data.currency_code ?? "");
                                 setStatus(data.status);
+                                setUnitOfMeasureId(data.unit_of_measure_id);
                             }
                         } else if (
                             typeof response.payload.jsonData?.error !==
@@ -466,6 +490,91 @@ export default function Edit({
                                     field={"currency_code"}
                                 />
                             </Field>
+
+                            <Field
+                                data-invalid={isInvalidField(
+                                    "unit_of_measure_id",
+                                )}
+                            >
+                                <FieldLabel htmlFor="unit_of_measure_id">
+                                    Mértékegység
+                                </FieldLabel>
+                                <Select
+                                    value={unitOfMeasureId}
+                                    onValueChange={(val) => {
+                                        resetError("unit_of_measure_id");
+                                        setUnitOfMeasureId(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField(
+                                            "unit_of_measure_id",
+                                        )}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {unitsOfMeasureList.map(
+                                            (unit_of_measure) => {
+                                                return (
+                                                    <SelectItem
+                                                        key={
+                                                            unit_of_measure.value
+                                                        }
+                                                        value={
+                                                            unit_of_measure.value
+                                                        }
+                                                    >
+                                                        {unit_of_measure.title}
+                                                    </SelectItem>
+                                                );
+                                            },
+                                        )}
+                                        <SelectItem value="other">
+                                            Egyéb
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FieldError
+                                    error={errors}
+                                    field={"unit_of_measure_id"}
+                                />
+                            </Field>
+
+                            {unitOfMeasureId === "other" ? (
+                                <>
+                                    <Field
+                                        data-invalid={isInvalidField(
+                                            "new_unit_of_measure",
+                                        )}
+                                    >
+                                        <FieldLabel htmlFor="new_unit_of_measure">
+                                            Egyéb mértékegység
+                                        </FieldLabel>
+                                        <Input
+                                            id="new_unit_of_measure"
+                                            type="text"
+                                            value={newUnitOfMeasure}
+                                            onChange={(e) => {
+                                                resetError(
+                                                    "new_unit_of_measure",
+                                                );
+                                                setNewUnitOfMeasure(
+                                                    e.target.value,
+                                                );
+                                            }}
+                                            aria-invalid={isInvalidField(
+                                                "new_unit_of_measure",
+                                            )}
+                                        />
+                                        <FieldError
+                                            error={errors}
+                                            field={"new_unit_of_measure"}
+                                        />
+                                    </Field>
+                                </>
+                            ) : null}
 
                             <Field data-invalid={isInvalidField("status")}>
                                 <FieldLabel htmlFor="status">

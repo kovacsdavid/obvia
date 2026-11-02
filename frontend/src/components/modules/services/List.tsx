@@ -260,6 +260,14 @@ export default function List() {
                                 <TableHead>Alapértelmezett adózás</TableHead>
                                 <TableHead>Alapértelmezett pénznem</TableHead>
                                 <SortableTableHead
+                                    field="unit_of_measure"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Mértékegység
+                                </SortableTableHead>
+                                <SortableTableHead
                                     field="status"
                                     orderBy={orderBy}
                                     order={order}
@@ -375,6 +383,11 @@ export default function List() {
                                         ) : (
                                             "N/A"
                                         )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary">
+                                            {item.unit_of_measure}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>
                                         <Status status={item.status} />

@@ -37,6 +37,7 @@ pub struct Service {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub unit_of_measure_id: Uuid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
@@ -54,6 +55,8 @@ pub struct ServiceResolved {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub unit_of_measure_id: Uuid,
+    pub unit_of_measure: String,
 }
 
 #[cfg(test)]
@@ -77,7 +80,9 @@ pub mod tests {
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
-            .deleted_at(None);
+            .deleted_at(None)
+            .unit_of_measure_id(Uuid::now_v7())
+            .unit_of_measure("óra".to_string());
 
         builder
     }

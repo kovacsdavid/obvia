@@ -86,7 +86,10 @@ export function isServiceResolved(data: unknown): data is ServiceResolved {
         "updated_at" in data &&
         typeof data.updated_at === "string" &&
         "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
+        (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "unit_of_measure_id" in data &&
+        typeof data.unit_of_measure_id === "string" &&
+        "unit_of_measure" in data
     );
 }
 
@@ -136,7 +139,9 @@ export function isService(data: unknown): data is Service {
         "updated_at" in data &&
         typeof data.updated_at === "string" &&
         "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
+        (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "unit_of_measure_id" in data &&
+        typeof data.unit_of_measure_id === "string"
     );
 }
 

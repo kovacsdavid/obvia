@@ -57,6 +57,8 @@ export async function create(
         defaultTaxId,
         currencyCode,
         status,
+        unitOfMeasureId,
+        newUnitOfMeasure,
     }: ServiceUserInput,
     token: string | null,
 ): Promise<ProcessedJsonResponse<CreateServiceResponse>> {
@@ -75,6 +77,8 @@ export async function create(
             default_tax_id: defaultTaxId,
             currency_code: currencyCode,
             status,
+            unit_of_measure_id: unitOfMeasureId,
+            new_unit_of_measure: newUnitOfMeasure,
         }),
     }).then(async (response: Response) => {
         return (
@@ -93,6 +97,8 @@ export async function update(
         defaultTaxId,
         currencyCode,
         status,
+        unitOfMeasureId,
+        newUnitOfMeasure,
     }: ServiceUserInput,
     token: string | null,
 ): Promise<ProcessedJsonResponse<UpdateServiceResponse>> {
@@ -111,6 +117,8 @@ export async function update(
             default_tax_id: defaultTaxId,
             currency_code: currencyCode,
             status,
+            unit_of_measure_id: unitOfMeasureId,
+            new_unit_of_measure: newUnitOfMeasure,
         }),
     }).then(async (response: Response) => {
         return (

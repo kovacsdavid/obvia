@@ -17,7 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-FROM --platform=$BUILDPLATFORM node:24-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:26-alpine AS builder
 ARG VITE_GIT_COMMIT_HASH
 ENV VITE_GIT_COMMIT_HASH=$VITE_GIT_COMMIT_HASH
 WORKDIR /app

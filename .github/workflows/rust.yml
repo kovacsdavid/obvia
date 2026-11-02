@@ -28,15 +28,15 @@ jobs:
     - name: Build
       run: |
         cd backend
-        cargo build --verbose
+        cargo build
     - name: Run fmt
       run: |
         cd backend
-        cargo fmt --check --verbose
+        cargo fmt --check
     - name: Run clippy
       run: |
         cd backend
-        cargo clippy -- -D warnings --verbose
+        cargo clippy -- -D warnings
     - name: Install Typst
       run: |
         set -euo pipefail
@@ -56,4 +56,4 @@ jobs:
     - name: Run tests
       run: |
         cd backend
-        cargo test -r --verbose
+        cargo test -r

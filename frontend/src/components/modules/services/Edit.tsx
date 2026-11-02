@@ -99,7 +99,7 @@ export default function Edit({
         });
     };
 
-    const handleCreate = useCallback(() => {
+    const handleCreate = () => {
         dispatch(
             create({
                 id,
@@ -136,20 +136,7 @@ export default function Edit({
                 unexpectedError();
             }
         });
-    }, [
-        currencyCode,
-        defaultPrice,
-        defaultTaxId,
-        description,
-        dispatch,
-        id,
-        name,
-        navigate,
-        onSuccess,
-        setErrors,
-        status,
-        unexpectedError,
-    ]);
+    };
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -163,7 +150,7 @@ export default function Edit({
         [navigate, onCancel],
     );
 
-    const handleUpdate = useCallback(() => {
+    const handleUpdate = () => {
         dispatch(
             update({
                 id,
@@ -193,19 +180,7 @@ export default function Edit({
                 unexpectedError();
             }
         });
-    }, [
-        currencyCode,
-        defaultPrice,
-        defaultTaxId,
-        description,
-        dispatch,
-        id,
-        name,
-        navigate,
-        setErrors,
-        status,
-        unexpectedError,
-    ]);
+    };
 
     const loadLists = useCallback(async () => {
         return Promise.all([

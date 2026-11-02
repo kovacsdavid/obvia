@@ -34,7 +34,6 @@ import {
     SelectValue,
 } from "@/components/ui/select.tsx";
 import { useNavigate } from "react-router";
-import { useSelectList } from "@/hooks/use_select_list.ts";
 import type { SelectOptionList } from "@/lib/interface.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
@@ -88,7 +87,6 @@ export default function Edit({
     );
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { setListResponse } = useSelectList();
     const [errors, setErrors] = React.useState<TaskErrors | null>(null);
     const id = React.useMemo(() => params["id"] ?? null, [params]);
     const [openNewWorksheetDialog, setOpenNewWorksheetDialog] =
@@ -247,7 +245,7 @@ export default function Edit({
                     });
                 }),
         ]);
-    }, [dispatch, setErrors, setListResponse]);
+    }, [dispatch]);
 
     useEffect(() => {
         loadLists().then(async () => {

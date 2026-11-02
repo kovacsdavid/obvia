@@ -43,6 +43,7 @@ import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import { useAuth } from "@/hooks/use_auth";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { handleApiResult } from "@/lib/api/handleApiResult";
+import Status from "@/components/modules/worksheets/Status";
 
 export default function View() {
     const [data, setData] = React.useState<WorksheetResolved | null>(null);
@@ -136,7 +137,9 @@ export default function View() {
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Státusz</TableCell>
-                                        <TableCell>{data.status}</TableCell>
+                                        <TableCell>
+                                            <Status status={data.status} />
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Létrehozta</TableCell>

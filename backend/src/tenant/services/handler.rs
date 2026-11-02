@@ -289,6 +289,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let service_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let service = Service {
             id: service_id,
@@ -302,6 +303,7 @@ mod tests {
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
+            unit_of_measure_id,
         };
 
         let mut repo = MockServicesRepository::new();
@@ -523,6 +525,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let service_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let service_resolved = ServiceResolved {
             id: service_id,
@@ -538,6 +541,8 @@ mod tests {
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
         };
 
         let mut repo = MockServicesRepository::new();
@@ -759,6 +764,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let service_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let paginator_meta = PaginatorMeta {
             page: 1,
@@ -779,6 +785,8 @@ mod tests {
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
         };
 
         let mut repo = MockServicesRepository::new();
@@ -999,6 +1007,7 @@ mod tests {
         let user_id = Uuid::now_v7();
         let service_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let service = Service {
             id: service_id,
@@ -1012,6 +1021,7 @@ mod tests {
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
+            unit_of_measure_id,
         };
 
         let user_input_helper = ServiceUserInputHelper {
@@ -1022,6 +1032,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
         let user_input = ServiceUserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -1037,6 +1049,8 @@ mod tests {
                         && user_input.default_tax_id == user_input_expected.default_tax_id
                         && user_input.currency_code == user_input_expected.currency_code
                         && user_input.status == user_input_expected.status
+                        && user_input.unit_of_measure_id == user_input_expected.unit_of_measure_id
+                        && user_input.new_unit_of_measure == user_input_expected.new_unit_of_measure
                         && user_id == *user_id_inner
                 }
             })
@@ -1094,6 +1108,7 @@ mod tests {
     async fn test_create_unique_violation() {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
 
         let user_input_helper = ServiceUserInputHelper {
             id: None,
@@ -1103,6 +1118,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
         let user_input = ServiceUserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -1118,6 +1135,8 @@ mod tests {
                         && user_input.default_tax_id == user_input_expected.default_tax_id
                         && user_input.currency_code == user_input_expected.currency_code
                         && user_input.status == user_input_expected.status
+                        && user_input.unit_of_measure_id == user_input_expected.unit_of_measure_id
+                        && user_input.new_unit_of_measure == user_input_expected.new_unit_of_measure
                         && user_id == *user_id_inner
                 }
             })
@@ -1176,6 +1195,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_invalid_user_input() {
         let active_tenant_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
         let user_input_helper = ServiceUserInputHelper {
@@ -1186,6 +1206,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "activee".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
 
         let mut app_state = MockServicesModule::new();
@@ -1233,6 +1255,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
+        let unit_of_measure_id = Uuid::now_v7();
         let user_input_helper = ServiceUserInputHelper {
             id: None,
             name: "Test service".to_string(),
@@ -1241,6 +1264,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
 
         let mut app_state = MockServicesModule::new();
@@ -1282,6 +1307,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_invalid_signature() {
+        let unit_of_measure_id = Uuid::now_v7();
         let user_input_helper = ServiceUserInputHelper {
             id: None,
             name: "Test service".to_string(),
@@ -1290,6 +1316,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
 
         let mut app_state = MockServicesModule::new();
@@ -1331,6 +1359,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
+        let unit_of_measure_id = Uuid::now_v7();
         let user_input_helper = ServiceUserInputHelper {
             id: None,
             name: "Test service".to_string(),
@@ -1339,6 +1368,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
 
         let app_state = MockServicesModule::new();
@@ -1370,6 +1401,7 @@ mod tests {
         let user_id = Uuid::now_v7();
         let service_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let service = Service {
             id: service_id,
@@ -1383,6 +1415,7 @@ mod tests {
             created_at: utc_now,
             updated_at: utc_now,
             deleted_at: None,
+            unit_of_measure_id,
         };
 
         let user_input_helper = ServiceUserInputHelper {
@@ -1393,16 +1426,18 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
         let user_input = ServiceUserInput::try_from(user_input_helper.clone()).unwrap();
 
         let mut repo = MockServicesRepository::new();
         repo.expect_update()
             .times(1)
-            .with(eq(user_input))
+            .with(eq(user_input), eq(user_id))
             .returning({
                 let service = service.clone();
-                move |_| Ok(service.clone())
+                move |_, _| Ok(service.clone())
             });
 
         let mut app_state = MockServicesModule::new();
@@ -1453,6 +1488,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_invalid_user_input() {
         let active_tenant_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
         let user_input_helper = ServiceUserInputHelper {
@@ -1463,6 +1499,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
 
         let mut app_state = MockServicesModule::new();
@@ -1508,6 +1546,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
         let service_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
 
         let user_input_helper = ServiceUserInputHelper {
             id: Some(service_id.to_string()),
@@ -1517,6 +1556,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
 
         let mut app_state = MockServicesModule::new();
@@ -1559,6 +1600,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_unauthorized_invalid_signature() {
         let service_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
 
         let user_input_helper = ServiceUserInputHelper {
             id: Some(service_id.to_string()),
@@ -1568,6 +1610,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
 
         let mut app_state = MockServicesModule::new();
@@ -1610,6 +1654,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
         let service_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
 
         let user_input_helper = ServiceUserInputHelper {
             id: Some(service_id.to_string()),
@@ -1619,6 +1664,8 @@ mod tests {
             default_tax_id: "".to_string(),
             currency_code: "HUF".to_string(),
             status: "active".to_string(),
+            unit_of_measure_id: unit_of_measure_id.to_string(),
+            new_unit_of_measure: "".to_string(),
         };
 
         let app_state = MockServicesModule::new();
@@ -1854,15 +1901,16 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let service_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
+        let unit_of_measure_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse().unwrap();
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
 
         let service_resolved = ServiceResolved {
             id: service_id,
-            name: "Test Service".to_string(),
+            name: "Test service".to_string(),
             description: Some("Test description".to_string()),
-            default_price: None,
-            default_tax_id: None,
-            default_tax: None,
+            default_price: Some("10".parse().unwrap()),
+            default_tax_id: Some(Uuid::now_v7()),
+            default_tax: Some("Test tax".to_string()),
             currency_code: Some("HUF".to_string()),
             status: "active".to_string(),
             created_by_id,
@@ -1870,6 +1918,8 @@ mod tests {
             created_at: test_time,
             updated_at: test_time,
             deleted_at: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
         };
 
         let mut repo = MockServicesRepository::new();

@@ -89,7 +89,7 @@ pub mod tests {
             .tax("Test tax".to_string())
             .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
-            .status("active".to_string())
+            .status("in_progress".to_string())
             .priority(Some("normal".to_string()))
             .due_date(Some(*TEST_TIME))
             .created_at(*TEST_TIME)

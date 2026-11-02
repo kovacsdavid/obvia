@@ -75,6 +75,7 @@ import {
 import { useAuth } from "@/hooks/use_auth";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { handleApiResult } from "@/lib/api/handleApiResult";
+import Status from "@/components/modules/worksheets/Status";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -276,6 +277,14 @@ export default function List() {
                                 >
                                     Bruttó munkadíj
                                 </SortableTableHead>
+                                <SortableTableHead
+                                    field="status"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Státusz
+                                </SortableTableHead>
                                 <TableHead>Létrehozta</TableHead>
                                 <SortableTableHead
                                     field="created_at"
@@ -370,6 +379,9 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>
                                         {formatNumber(item.gross_work_cost)}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Status status={item.status} />
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>

@@ -20,8 +20,20 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as tasksApi from "@/components/modules/tasks/lib/service.ts";
 import type { RootState } from "@/store";
-import type { TaskUserInput } from "@/components/modules/tasks/lib/interface.ts";
+import type {
+    CreateTaskResponse,
+    DeleteTaskResponse,
+    PaginatedTaskResolvedListResponse,
+    TaskErrors,
+    TaskResolvedResponse,
+    TaskResponse,
+    TaskUserInput,
+    UpdateTaskResponse,
+} from "@/components/modules/tasks/lib/interface.ts";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { SelectOptionListResponse } from "@/lib/interface";
 
 interface TasksState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,83 +43,123 @@ const initialState: TasksState = {
     status: "idle",
 };
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<CreateTaskResponse, TaskErrors>,
+    { input: TaskUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "tasks/create",
-    async (requestData: TaskUserInput, { getState, dispatch }) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return tasksApi.create(requestData, token);
+        const token = getState().auth.login.token;
+        const result = await tasksApi.create(input, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedTaskResolvedListResponse>,
+    { query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "tasks/list",
-    async (query: string | null, { getState, dispatch }) => {
+    async ({ query, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return tasksApi.list(query, token);
+        const token = getState().auth.login.token;
+        const result = await tasksApi.list(query, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const select_list = createAsyncThunk(
+export const select_list = createAsyncThunk<
+    ApiResult<SelectOptionListResponse>,
+    { list: string; silent?: boolean },
+    { state: RootState }
+>(
     "tasks/select_list",
-    async (list: string, { getState, dispatch }) => {
+    async ({ list, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await tasksApi.select_list(list, token);
+        const token = getState().auth.login.token;
+        const result = await tasksApi.select_list(list, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get_resolved = createAsyncThunk(
+export const get_resolved = createAsyncThunk<
+    ApiResult<TaskResolvedResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "tasks/get_resolved",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await tasksApi.get_resolved(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await tasksApi.get_resolved(uuid, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get = createAsyncThunk(
+export const get = createAsyncThunk<
+    ApiResult<TaskResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "tasks/get",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await tasksApi.get(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await tasksApi.get(uuid, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const update = createAsyncThunk(
+export const update = createAsyncThunk<
+    ApiResult<UpdateTaskResponse, TaskErrors>,
+    { input: TaskUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "tasks/update",
-    async (requestData: TaskUserInput, { getState, dispatch }) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await tasksApi.update(requestData, token);
+        const token = getState().auth.login.token;
+        const result = await tasksApi.update(input, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteItem = createAsyncThunk(
+export const deleteItem = createAsyncThunk<
+    ApiResult<DeleteTaskResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "tasks/deleteItem",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await tasksApi.deleteItem(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await tasksApi.deleteItem(uuid, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const print = createAsyncThunk(
+export const print = createAsyncThunk<
+    ApiResult<Uint8Array<ArrayBuffer> | null>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "tasks/print",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await tasksApi.print(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await tasksApi.print(uuid, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

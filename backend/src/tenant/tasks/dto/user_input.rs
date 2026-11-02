@@ -49,7 +49,7 @@ pub struct TaskUserInputHelper {
     pub description: String,
 }
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Default, PartialEq)]
 pub struct TaskUserInputError {
     pub id: Option<String>,
     pub worksheet_id: Option<String>,
@@ -230,6 +230,7 @@ impl TryFrom<TaskUserInputHelper> for TaskUserInput {
 #[cfg(test)]
 mod tests {
     use chrono::{Days, Utc};
+    use pretty_assertions::assert_eq;
     use uuid::Uuid;
 
     use super::*;
@@ -251,24 +252,28 @@ mod tests {
             quantity: String::from("10"),
             price: String::from("1000"),
             tax_id: tax_id.to_string(),
-            status: String::from("active"),
+            status: String::from("in_progress"),
             priority: String::from("normal"),
             due_date: due_date.to_string(),
             description: String::from("description"),
-        })
-        .unwrap();
+        });
 
-        assert_eq!(user_input.id.as_uuid(), None);
-        assert_eq!(user_input.worksheet_id.as_uuid().unwrap(), worksheet_id);
-        assert_eq!(user_input.service_id.as_uuid().unwrap(), service_id);
-        assert_eq!(user_input.currency_code.as_str().unwrap(), "HUF");
-        assert_eq!(user_input.quantity.as_f64().unwrap(), 10_f64);
-        assert_eq!(user_input.price.as_f64().unwrap(), 1000_f64);
-        assert_eq!(user_input.tax_id.as_uuid().unwrap(), tax_id);
-        assert_eq!(user_input.status.as_str().unwrap(), "active");
-        assert_eq!(user_input.priority.as_str().unwrap(), "normal");
-        assert_eq!(user_input.due_date.as_date_naive().unwrap(), &due_date);
-        assert_eq!(user_input.description.as_str().unwrap(), "description");
+        let expected_user_input = TaskUserInput {
+            id: "".parse().unwrap(),
+            worksheet_id: worksheet_id.to_string().parse().unwrap(),
+            service_id: service_id.to_string().parse().unwrap(),
+            currency_code: "HUF".parse().unwrap(),
+            quantity: "10".parse().unwrap(),
+            price: "1000".parse().unwrap(),
+            tax_id: tax_id.to_string().parse().unwrap(),
+            status: "in_progress".parse().unwrap(),
+            priority: "normal".parse().unwrap(),
+            due_date: due_date.to_string().parse().unwrap(),
+            description: "description".parse().unwrap(),
+        };
+
+        assert!(user_input.is_ok());
+        assert_eq!(user_input.unwrap(), expected_user_input);
     }
 
     #[test]
@@ -286,25 +291,23 @@ mod tests {
             priority: String::from("invalid"),
             due_date: String::from("invalid"),
             description: invalid_description,
-        })
-        .unwrap_err();
+        });
 
-        assert_eq!(user_input.id, None);
-        assert_eq!(user_input.worksheet_id.unwrap(), UuidVO::PARSE_ERROR);
-        assert_eq!(user_input.service_id.unwrap(), ValueObjectError::REQUIRED);
-        assert_eq!(
-            user_input.currency_code.unwrap(),
-            CurrencyCode::VALIDATION_ERROR
-        );
-        assert_eq!(user_input.quantity.unwrap(), Quantity::PARSE_ERROR);
-        assert_eq!(user_input.price.unwrap(), TaskPrice::PARSE_ERROR);
-        assert_eq!(user_input.tax_id.unwrap(), UuidVO::PARSE_ERROR);
-        assert_eq!(user_input.status.unwrap(), TaskStatus::VALIDATION_ERROR);
-        assert_eq!(user_input.priority.unwrap(), TaskPriority::VALIDATION_ERROR);
-        assert_eq!(user_input.due_date.unwrap(), TaskDueDate::PARSE_ERROR);
-        assert_eq!(
-            user_input.description.unwrap(),
-            TaskDescription::VALIDATION_ERROR
-        );
+        let expected_user_input_error = TaskUserInputError {
+            id: None,
+            worksheet_id: Some(UuidVO::PARSE_ERROR.to_string()),
+            service_id: Some(ValueObjectError::REQUIRED.to_string()),
+            currency_code: Some(CurrencyCode::VALIDATION_ERROR.to_string()),
+            quantity: Some(Quantity::PARSE_ERROR.to_string()),
+            price: Some(TaskPrice::PARSE_ERROR.to_string()),
+            tax_id: Some(UuidVO::PARSE_ERROR.to_string()),
+            status: Some(TaskStatus::VALIDATION_ERROR.to_string()),
+            priority: Some(TaskPriority::VALIDATION_ERROR.to_string()),
+            due_date: Some(TaskDueDate::PARSE_ERROR.to_string()),
+            description: Some(TaskDescription::VALIDATION_ERROR.to_string()),
+        };
+
+        assert!(user_input.is_err());
+        assert_eq!(expected_user_input_error, user_input.unwrap_err());
     }
 }

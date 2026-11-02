@@ -42,6 +42,8 @@ pub struct ServicesResolvedPrint {
     pub created_at: String,
     pub updated_at: String,
     pub deleted_at: Option<String>,
+    pub unit_of_measure_id: Uuid,
+    pub unit_of_measure: String,
 }
 
 impl ServicesResolvedPrint {
@@ -71,6 +73,8 @@ impl ServicesResolvedPrint {
             deleted_at: service_resolved
                 .deleted_at
                 .map(|v| v.with_timezone(&tz).format(&date_format_string).to_string()),
+            unit_of_measure_id: service_resolved.unit_of_measure_id,
+            unit_of_measure: service_resolved.unit_of_measure,
         }
     }
     fn map_status(status: &str) -> String {
@@ -93,12 +97,14 @@ pub fn test_service_resolved_print_builder() -> ServicesResolvedPrintBuilder {
         .default_tax_id(Some(Uuid::now_v7()))
         .default_tax(Some("Test tax".to_string()))
         .currency_code(Some("HUF".to_string()))
-        .status("active".to_string())
+        .status("Aktív".to_string())
         .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
-        .deleted_at(None);
+        .deleted_at(None)
+        .unit_of_measure_id(Uuid::now_v7())
+        .unit_of_measure("cm".to_string());
 
     builder
 }
@@ -114,6 +120,7 @@ mod tests {
         let service_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
         let default_tax_id = Some(Uuid::now_v7());
+        let unit_of_measure_id = Uuid::now_v7();
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();
@@ -131,6 +138,8 @@ mod tests {
             created_at: input_date,
             updated_at: input_date,
             deleted_at: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
         };
         let service_resolved_print = ServicesResolvedPrint::new(service_resolved, tz);
         let service_resolved_print_expected = ServicesResolvedPrint {
@@ -147,6 +156,8 @@ mod tests {
             created_at: output_date.clone(),
             updated_at: output_date,
             deleted_at: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
         };
         assert_eq!(service_resolved_print, service_resolved_print_expected);
     }

@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -27,13 +28,13 @@ use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::services::ServicesModule;
-use crate::tenant::services::dto::print::ServicesResolvedPrint;
+use crate::tenant::services::dto::print::{
+    ServicesResolvedPrint, test_service_resolved_print_builder,
+};
 use crate::tenant::services::dto::user_input::ServiceUserInput;
 use crate::tenant::services::model::{Service as ServiceModel, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
 use std::fs::File;
@@ -69,6 +70,9 @@ pub enum ServicesServiceError {
 
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
+
+    #[error("BuilderError: {0}")]
+    BuilderError(#[from] CommonBuilderError),
 }
 
 impl From<ServiceError> for ServicesServiceError {
@@ -121,6 +125,7 @@ impl From<ServicesServiceError> for AppError {
 pub enum ServicesSelectLists {
     Currencies,
     Taxes,
+    UnitsOfMeasure,
 }
 
 impl FromStr for ServicesSelectLists {
@@ -130,6 +135,7 @@ impl FromStr for ServicesSelectLists {
         match s {
             "currencies" => Ok(Self::Currencies),
             "taxes" => Ok(Self::Taxes),
+            "units_of_measure" => Ok(Self::UnitsOfMeasure),
             _ => Err(ServicesServiceError::InvalidSelectList),
         }
     }
@@ -230,7 +236,7 @@ where
                     .active_tenant()
                     .ok_or(ServicesServiceError::Unauthorized)?,
             )?
-            .update(payload)
+            .update(payload, self.claims()?.sub())
             .await?)
     }
     async fn delete(&self, payload: Uuid) -> ServicesServiceResult<()> {
@@ -279,6 +285,11 @@ where
                 .taxes_repo(active_tenant)?
                 .get_select_list_items()
                 .await?),
+            ServicesSelectLists::UnitsOfMeasure => Ok(self
+                .module()
+                .services_repo(self.active_tenant()?)?
+                .get_units_of_measure_select_list()
+                .await?),
         }
     }
 
@@ -289,34 +300,12 @@ where
         )?)
     }
     async fn print_snapshot(&self, path: &Path) -> ServicesServiceResult<()> {
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
-            .parse()
-            .map_err(|e: chrono::ParseError| ServicesServiceError::ParseError(e.to_string()))?;
-        let tz: Tz = "Europe/Budapest"
-            .parse()
-            .map_err(|e: chrono_tz::ParseError| ServicesServiceError::ParseError(e.to_string()))?;
         let service_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
             .map_err(|e: uuid::Error| ServicesServiceError::ParseError(e.to_string()))?;
-        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
-            .parse()
-            .map_err(|e: uuid::Error| ServicesServiceError::ParseError(e.to_string()))?;
-        let service_resolved = ServiceResolved {
-            id: service_id,
-            name: "Test Service".to_string(),
-            description: Some("Test description".to_string()),
-            default_price: None,
-            default_tax_id: None,
-            default_tax: None,
-            currency_code: Some("HUF".to_string()),
-            status: "active".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-            deleted_at: None,
-        };
-        let service_resolved_print = ServicesResolvedPrint::new(service_resolved, tz);
+        let service_resolved_print = test_service_resolved_print_builder()
+            .id(service_id)
+            .build()?;
         let pdf = self.print(&[service_resolved_print]).await?;
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;

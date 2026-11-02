@@ -33,6 +33,8 @@ export interface ServiceUserInput {
     defaultTaxId: string | null;
     currencyCode: string | null;
     status: string;
+    unitOfMeasureId: string;
+    newUnitOfMeasure: string;
 }
 
 export interface Service {
@@ -47,6 +49,7 @@ export interface Service {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    unit_of_measure_id: string;
 }
 
 export interface ServiceResolved {
@@ -63,6 +66,8 @@ export interface ServiceResolved {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    unit_of_measure_id: string;
+    unit_of_measure: string;
 }
 
 export type CreateServiceResponse = CommonResponse<Service, FormError>;

@@ -21,6 +21,8 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
+use crate::tenant::products::model::UnitOfMeasure;
+use crate::tenant::products::repository::insert_unit_of_measure;
 use crate::tenant::services::dto::user_input::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
@@ -46,7 +48,17 @@ pub trait ServicesRepository: Send + Sync + 'static {
         service_user_input: &ServiceUserInput,
         sub: Uuid,
     ) -> RepositoryResult<Service>;
-    async fn update(&self, service_user_input: &ServiceUserInput) -> RepositoryResult<Service>;
+    async fn update(
+        &self,
+        service_user_input: &ServiceUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Service>;
+    async fn insert_unit_of_measure(
+        &self,
+        unit_of_measure: &str,
+        sub: Uuid,
+    ) -> RepositoryResult<UnitOfMeasure>;
+    async fn get_units_of_measure_select_list(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -79,11 +91,14 @@ impl ServicesRepository for PgPool {
                 users.last_name || ' ' || users.first_name as created_by,
                 services.created_at,
                 services.updated_at,
-                services.deleted_at
+                services.deleted_at,
+                services.unit_of_measure_id,
+                units_of_measure.unit_of_measure as unit_of_measure
             FROM services
             LEFT JOIN users ON services.created_by_id = users.id
             LEFT JOIN taxes ON services.default_tax_id = taxes.id
             LEFT JOIN currencies ON services.currency_code = currencies.code
+            LEFT JOIN units_of_measure ON services.unit_of_measure_id = units_of_measure.id
             WHERE services.id = $1 AND services.deleted_at IS NULL
             "#,
         )
@@ -109,11 +124,14 @@ impl ServicesRepository for PgPool {
                 users.last_name || ' ' || users.first_name as created_by,
                 services.created_at,
                 services.updated_at,
-                services.deleted_at
+                services.deleted_at,
+                services.unit_of_measure_id,
+                units_of_measure.unit_of_measure as unit_of_measure
             FROM services
             LEFT JOIN users ON services.created_by_id = users.id
             LEFT JOIN taxes ON services.default_tax_id = taxes.id
             LEFT JOIN currencies ON services.currency_code = currencies.code
+            LEFT JOIN units_of_measure ON services.unit_of_measure_id = units_of_measure.id
             WHERE services.id = ANY($1) AND services.deleted_at IS NULL
             "#,
         )
@@ -167,7 +185,13 @@ impl ServicesRepository for PgPool {
             query_params.ordering().order_by(), // Security: ValueObject
             query_params.ordering().order(),    // Security: enum
         ) {
-            (Some(order_by), Some(order)) => format!("ORDER BY services.{order_by} {order}"),
+            (Some(order_by), Some(order)) => {
+                let order_by = match order_by.as_str() {
+                    "unit_of_measure" => format!("units_of_measure.{order_by}"),
+                    _ => format!("services.{order_by}"),
+                };
+                format!("ORDER BY {order_by} {order}")
+            }
             (_, _) => "".to_string(),
         };
 
@@ -194,11 +218,14 @@ impl ServicesRepository for PgPool {
                         users.last_name || ' ' || users.first_name as created_by,
                         services.created_at,
                         services.updated_at,
-                        services.deleted_at
+                        services.deleted_at,
+                        services.unit_of_measure_id,
+                        units_of_measure.unit_of_measure as unit_of_measure
                     FROM services 
                     LEFT JOIN users ON services.created_by_id = users.id
                     LEFT JOIN taxes ON services.default_tax_id = taxes.id
                     LEFT JOIN currencies ON services.currency_code = currencies.code
+                    LEFT JOIN units_of_measure ON services.unit_of_measure_id = units_of_measure.id
                     WHERE services.deleted_at IS NULL
                         AND ($1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE '%' || $1 || '%')
                     {order_by_clause}
@@ -231,11 +258,14 @@ impl ServicesRepository for PgPool {
                         users.last_name || ' ' || users.first_name as created_by,
                         services.created_at,
                         services.updated_at,
-                        services.deleted_at
+                        services.deleted_at,
+                        services.unit_of_measure_id,
+                        units_of_measure.unit_of_measure as unit_of_measure
                     FROM services 
                     LEFT JOIN users ON services.created_by_id = users.id
                     LEFT JOIN taxes ON services.default_tax_id = taxes.id
                     LEFT JOIN currencies ON services.currency_code = currencies.code
+                    LEFT JOIN units_of_measure ON services.unit_of_measure_id = units_of_measure.id
                     WHERE services.deleted_at IS NULL
                     {order_by_clause}
                     LIMIT $1
@@ -266,39 +296,52 @@ impl ServicesRepository for PgPool {
         service_user_input: &ServiceUserInput,
         sub: Uuid,
     ) -> RepositoryResult<Service> {
-        Ok(sqlx::query_as::<_, Service>(
-            r#"
-            INSERT INTO services (name, description, default_price, default_tax_id, currency_code, status, created_by_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *
-            "#,
-        )
-            .bind(service_user_input.name.as_str()?)
-            .bind(service_user_input.description.as_str())
-            .bind(service_user_input.default_price.as_f64())
-            .bind(service_user_input.default_tax_id.as_uuid())
-            .bind(service_user_input.currency_code.as_str())
-            .bind(service_user_input.status.as_str()?)
-            .bind(sub)
-            .fetch_one(self)
-            .await?)
-    }
+        let mut tx = self.begin().await?;
 
-    async fn update(&self, service_user_input: &ServiceUserInput) -> RepositoryResult<Service> {
-        let id = service_user_input
-            .id
-            .as_uuid()
-            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
-        Ok(sqlx::query_as::<_, Service>(
+        let unit_of_measure_id = match &service_user_input.unit_of_measure_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => {
+                if let Some(new_unit_of_measure) = &service_user_input.new_unit_of_measure {
+                    Some(
+                        insert_unit_of_measure(
+                            &mut *tx,
+                            new_unit_of_measure.as_str()?,
+                            "services",
+                            sub,
+                        )
+                        .await?
+                        .id,
+                    )
+                } else {
+                    return Err(RepositoryError::Custom(
+                        "unit_of_measure can not be null".to_string(),
+                    ));
+                }
+            }
+        };
+
+        let service = sqlx::query_as::<_, Service>(
             r#"
-            UPDATE services
-            SET name = $1,
-                description = $2,
-                default_price = $3,
-                default_tax_id = $4,
-                currency_code = $5,
-                status = $6
-            WHERE id = $7 AND deleted_at IS NULL
+            INSERT INTO services (
+                name,
+                description,
+                default_price,
+                default_tax_id,
+                currency_code,
+                status,
+                created_by_id,
+                unit_of_measure_id
+            )
+            VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                $8
+            )
             RETURNING *
             "#,
         )
@@ -308,8 +351,99 @@ impl ServicesRepository for PgPool {
         .bind(service_user_input.default_tax_id.as_uuid())
         .bind(service_user_input.currency_code.as_str())
         .bind(service_user_input.status.as_str()?)
+        .bind(sub)
+        .bind(unit_of_measure_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(service)
+    }
+
+    async fn update(
+        &self,
+        service_user_input: &ServiceUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Service> {
+        let id = service_user_input
+            .id
+            .as_uuid()
+            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+
+        let mut tx = self.begin().await?;
+
+        let unit_of_measure_id = match &service_user_input.unit_of_measure_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => {
+                if let Some(new_unit_of_measure) = &service_user_input.new_unit_of_measure {
+                    Some(
+                        insert_unit_of_measure(
+                            &mut *tx,
+                            new_unit_of_measure.as_str()?,
+                            "services",
+                            sub,
+                        )
+                        .await?
+                        .id,
+                    )
+                } else {
+                    return Err(RepositoryError::Custom(
+                        "unit_of_measure can not be null".to_string(),
+                    ));
+                }
+            }
+        };
+
+        let service = sqlx::query_as::<_, Service>(
+            r#"
+            UPDATE services
+            SET name = $1,
+                description = $2,
+                default_price = $3,
+                default_tax_id = $4,
+                currency_code = $5,
+                status = $6,
+                unit_of_measure_id = $7
+            WHERE id = $8 AND deleted_at IS NULL
+            RETURNING *
+            "#,
+        )
+        .bind(service_user_input.name.as_str()?)
+        .bind(service_user_input.description.as_str())
+        .bind(service_user_input.default_price.as_f64())
+        .bind(service_user_input.default_tax_id.as_uuid())
+        .bind(service_user_input.currency_code.as_str())
+        .bind(service_user_input.status.as_str()?)
+        .bind(unit_of_measure_id)
         .bind(id)
-        .fetch_one(self)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(service)
+    }
+
+    async fn insert_unit_of_measure(
+        &self,
+        unit_of_measure: &str,
+        sub: Uuid,
+    ) -> RepositoryResult<UnitOfMeasure> {
+        insert_unit_of_measure(self, unit_of_measure, "tasks", sub).await
+    }
+
+    async fn get_units_of_measure_select_list(&self) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            "
+            SELECT units_of_measure.id::VARCHAR as value, units_of_measure.unit_of_measure as title
+            FROM units_of_measure
+            WHERE deleted_at IS NULL
+                AND module = 'services'
+            ORDER BY unit_of_measure
+            ",
+        )
+        .fetch_all(self)
         .await?)
     }
 

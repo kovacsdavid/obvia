@@ -63,9 +63,13 @@ impl TaskResolvedPrint {
         let currency_code = task_resolved.currency_code;
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
 
-        let quantity = task_resolved
-            .quantity
-            .map(|v| format!("{} óra", thousand_separated_number_bigdecimal(&v, 2)));
+        let quantity = task_resolved.quantity.map(|v| {
+            format!(
+                "{} {}",
+                thousand_separated_number_bigdecimal(&v, 2),
+                service_resolved_print.unit_of_measure
+            )
+        });
 
         let price = task_resolved.price.map(|v| {
             format!(
@@ -114,8 +118,12 @@ impl TaskResolvedPrint {
     }
     fn map_status(status: &str) -> String {
         match status {
-            "active" => "Aktív",
-            "inactive" => "Inaktív",
+            "in_progress" => "Folyamatban",
+            "waiting_for_check" => "Bevizsgálásra vár",
+            "waiting_for_supply" => "Beszerzésre vár",
+            "waiting_for_feedback" => "Visszajelzésre vár",
+            "ready_for_customer_pickup" => "Átvehető",
+            "closed" => "Lezárt",
             _ => "Ismeretlen státusz",
         }
         .to_string()
@@ -146,7 +154,7 @@ pub fn test_task_resolved_print_builder(
         .tax("Test tax".to_string())
         .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
-        .status("Aktív".to_string())
+        .status("Folyamatban".to_string())
         .priority(Some("Normál".to_string()))
         .due_date(Some(TEST_TIME_TZ.clone()))
         .created_at(TEST_TIME_TZ.clone())
@@ -196,7 +204,7 @@ mod tests {
             tax: "Test tax".to_string(),
             created_by_id,
             created_by: "Test User".to_string(),
-            status: "Aktív".to_string(),
+            status: "Folyamatban".to_string(),
             priority: Some("Normál".to_string()),
             due_date: Some(TEST_TIME_TZ.clone()),
             created_at: TEST_TIME_TZ.clone(),

@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
@@ -35,19 +35,18 @@ import {
 } from "@/components/ui/select.tsx";
 import { useNavigate } from "react-router";
 import { useSelectList } from "@/hooks/use_select_list.ts";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import type { SelectOptionList } from "@/lib/interface.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { formatDateToYMD } from "@/lib/utils.ts";
-import type { Task, TaskUserInput } from "./lib/interface";
+import type { Task, TaskErrors, TaskUserInput } from "./lib/interface";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import WorksheetsEdit from "@/components/modules/worksheets/Edit.tsx";
 import ServicesEdit from "@/components/modules/services/Edit.tsx";
 import TaxesEdit from "@/components/modules/taxes/Edit.tsx";
-import type { Worksheet } from "../worksheets/lib/interface";
-import type { Service } from "../services/lib/interface";
-import type { Tax } from "../taxes/lib/interface";
+import type { Worksheet } from "@/components/modules/worksheets/lib/interface";
+import type { Service } from "@/components/modules/services/lib/interface";
+import type { Tax } from "@/components/modules/taxes/lib/interface";
 import { Plus } from "lucide-react";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
 import {
@@ -57,6 +56,8 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { toast } from "@/components/ui/toast-lib";
 
 interface EditProps {
     showCard?: boolean;
@@ -73,7 +74,7 @@ export default function Edit({
     const [serviceId, setServiceId] = React.useState("");
     const [currencyCode, setCurrencyCode] = React.useState("HUF");
     const [taxId, setTaxId] = React.useState("");
-    const [status, setStatus] = React.useState("active");
+    const [status, setStatus] = React.useState("in_progress");
     const [priority, setPriority] = React.useState<string | null>("normal");
     const [dueDate, setDueDate] = React.useState<string | null>("");
     const [description, setDescription] = React.useState("");
@@ -88,8 +89,7 @@ export default function Edit({
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const { setListResponse } = useSelectList();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = React.useState<TaskErrors | null>(null);
     const id = React.useMemo(() => params["id"] ?? null, [params]);
     const [openNewWorksheetDialog, setOpenNewWorksheetDialog] =
         React.useState(false);
@@ -133,208 +133,157 @@ export default function Edit({
         });
     };
 
-    const prepareTaskInput = useCallback(
-        (): TaskUserInput => ({
-            id,
-            worksheetId,
-            serviceId,
-            currencyCode,
-            quantity: !isNaN(quantity.getNumericValue())
-                ? quantity.getNumericValue().toString()
-                : "",
-            price: !isNaN(price.getNumericValue())
-                ? price.getNumericValue().toString()
-                : "",
-            taxId,
-            status,
-            priority,
-            dueDate,
-            description,
-        }),
-        [
-            id,
-            worksheetId,
-            serviceId,
-            currencyCode,
-            quantity,
-            price,
-            taxId,
-            status,
-            priority,
-            dueDate,
-            description,
-        ],
-    );
+    const prepareTaskInput = (): TaskUserInput => ({
+        id,
+        worksheetId,
+        serviceId,
+        currencyCode,
+        quantity: !isNaN(quantity.getNumericValue())
+            ? quantity.getNumericValue().toString()
+            : "",
+        price: !isNaN(price.getNumericValue())
+            ? price.getNumericValue().toString()
+            : "",
+        taxId,
+        status,
+        priority,
+        dueDate,
+        description,
+    });
 
-    const handleCreate = useCallback(() => {
-        dispatch(create(prepareTaskInput())).then(async (response) => {
-            if (create.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    if (
-                        typeof onSuccess === "function" &&
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        onSuccess(response.payload.jsonData.data);
-                    } else {
-                        navigate("/feladat/lista");
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
+    const handleCreate = async () => {
+        const result = await dispatch(
+            create({ input: prepareTaskInput() }),
+        ).unwrap();
+
+        handleApiResult(result, {
+            onSuccess: ({ data }) => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                if (
+                    typeof onSuccess === "function" &&
+                    typeof data !== "undefined"
                 ) {
-                    setErrors(response.payload.jsonData.error);
+                    onSuccess(data);
                 } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
-        });
-    }, [
-        dispatch,
-        navigate,
-        onSuccess,
-        prepareTaskInput,
-        setErrors,
-        unexpectedError,
-    ]);
-
-    const handleUpdate = useCallback(() => {
-        dispatch(update(prepareTaskInput())).then(async (response) => {
-            if (update.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
                     navigate("/feladat/lista");
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
                 }
-            } else {
-                unexpectedError();
-            }
+            },
+            onFieldErrors: setErrors,
         });
-    }, [dispatch, navigate, prepareTaskInput, setErrors, unexpectedError]);
+    };
+
+    const handleUpdate = async () => {
+        const result = await dispatch(
+            update({ input: prepareTaskInput() }),
+        ).unwrap();
+
+        handleApiResult(result, {
+            onSuccess: () => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                navigate("/feladat/lista");
+            },
+            onFieldErrors: setErrors,
+        });
+    };
 
     const loadLists = useCallback(async () => {
         return Promise.all([
-            dispatch(select_list("worksheets")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setWorksheetList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            }),
-            dispatch(select_list("services")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setServiceList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            }),
-            dispatch(select_list("taxes")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setTaxList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            }),
-            dispatch(select_list("currencies")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setCurrencyList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            }),
+            dispatch(select_list({ list: "worksheets" }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
+                                setWorksheetList(data);
+                            } else {
+                                setWorksheetList([]);
+                            }
+                        },
+                    });
+                }),
+            dispatch(select_list({ list: "services" }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
+                                setServiceList(data);
+                            } else {
+                                setServiceList([]);
+                            }
+                        },
+                    });
+                }),
+            dispatch(select_list({ list: "taxes" }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
+                                setTaxList(data);
+                            } else {
+                                setTaxList([]);
+                            }
+                        },
+                    });
+                }),
+            dispatch(select_list({ list: "currencies" }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
+                                setCurrencyList(data);
+                            } else {
+                                setCurrencyList([]);
+                            }
+                        },
+                    });
+                }),
         ]);
-    }, [dispatch, setErrors, setListResponse, unexpectedError]);
+    }, [dispatch, setErrors, setListResponse]);
 
     useEffect(() => {
-        loadLists().then(() => {
+        loadLists().then(async () => {
             if (typeof id === "string") {
-                dispatch(get(id)).then(async (response) => {
-                    if (get.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            if (
-                                typeof response.payload.jsonData?.data !==
-                                "undefined"
-                            ) {
-                                const data = response.payload.jsonData.data;
-                                setWorksheetId(data.worksheet_id);
-                                setServiceId(data.service_id);
-                                setCurrencyCode(data.currency_code);
-                                setDescription(data.description ?? "");
-                                quantity.setValue(
-                                    data.quantity
-                                        ? data.quantity.toString()
-                                        : "",
-                                );
-                                price.setValue(
-                                    data.price ? data.price.toString() : "",
-                                );
-                                setTaxId(data.tax_id);
-                                setStatus(data.status);
-                                setPriority(data.priority);
-                                setDueDate(
-                                    data.due_date
-                                        ? formatDateToYMD(data.due_date)
-                                        : "",
-                                );
-                            }
-                        } else if (
-                            typeof response.payload.jsonData?.error !==
-                            "undefined"
-                        ) {
-                            setErrors({
-                                message:
-                                    response.payload.jsonData.error.message,
-                                fields: {},
-                            });
-                        } else {
-                            unexpectedError(response.payload.statusCode);
+                const result = await dispatch(get({ uuid: id })).unwrap();
+
+                handleApiResult(result, {
+                    onSuccess: ({ data }) => {
+                        if (typeof data !== "undefined") {
+                            setWorksheetId(data.worksheet_id);
+                            setServiceId(data.service_id);
+                            setCurrencyCode(data.currency_code);
+                            setDescription(data.description ?? "");
+                            quantity.setValue(
+                                data.quantity ? data.quantity.toString() : "",
+                            );
+                            price.setValue(
+                                data.price ? data.price.toString() : "",
+                            );
+                            setTaxId(data.tax_id);
+                            setStatus(data.status);
+                            setPriority(data.priority);
+                            setDueDate(
+                                data.due_date
+                                    ? formatDateToYMD(data.due_date)
+                                    : "",
+                            );
                         }
-                    } else {
-                        unexpectedError();
-                    }
+                    },
                 });
             }
         });
         // quantity and price are intentionally omitted to avoid infinite loops
         // They are only used to set initial values and don't need to trigger re-runs
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dispatch, id, loadLists, setErrors, unexpectedError]);
+    }, [dispatch, id, loadLists, setErrors]);
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -345,9 +294,17 @@ export default function Edit({
         }
     };
 
+    const clearError = (field: keyof TaskErrors) => {
+        setErrors((prev) =>
+            prev && prev[field] != null ? { ...prev, [field]: null } : prev,
+        );
+    };
+
+    const isInvalidField = (field: keyof TaskErrors) =>
+        typeof errors?.[field] === "string";
+
     return (
         <>
-            <GlobalError error={errors} />
             <Dialog
                 open={openNewWorksheetDialog}
                 onOpenChange={setOpenNewWorksheetDialog}
@@ -424,7 +381,7 @@ export default function Edit({
                                     <Select
                                         value={worksheetId}
                                         onValueChange={(val) => {
-                                            resetError("worksheet_id");
+                                            clearError("worksheet_id");
                                             setWorksheetId(val);
                                         }}
                                     >
@@ -447,9 +404,8 @@ export default function Edit({
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <FieldError
-                                        error={errors}
-                                        field={"worksheet_id"}
+                                    <FieldErrorV2
+                                        error={errors?.worksheet_id}
                                     />
                                 </Field>
                             ) : null}
@@ -475,7 +431,7 @@ export default function Edit({
                                 <Select
                                     value={serviceId}
                                     onValueChange={(val) => {
-                                        resetError("service_id");
+                                        clearError("service_id");
                                         setServiceId(val);
                                     }}
                                 >
@@ -498,10 +454,7 @@ export default function Edit({
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"service_id"}
-                                />
+                                <FieldErrorV2 error={errors?.service_id} />
                             </Field>
 
                             <Field data-invalid={isInvalidField("description")}>
@@ -513,15 +466,12 @@ export default function Edit({
                                     type="text"
                                     value={description}
                                     onChange={(e) => {
-                                        resetError("description");
+                                        clearError("description");
                                         setDescription(e.target.value);
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"description"}
-                                />
+                                <FieldErrorV2 error={errors?.description} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("currency_code")}
@@ -532,7 +482,7 @@ export default function Edit({
                                 <Select
                                     value={currencyCode}
                                     onValueChange={(val) => {
-                                        resetError("currency_code");
+                                        clearError("currency_code");
                                         setCurrencyCode(val);
                                     }}
                                 >
@@ -557,10 +507,7 @@ export default function Edit({
                                         })}
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"currency_code"}
-                                />
+                                <FieldErrorV2 error={errors?.currency_code} />
                             </Field>
                             <Field data-invalid={isInvalidField("quantity")}>
                                 <FieldLabel htmlFor="quantity">
@@ -572,7 +519,7 @@ export default function Edit({
                                     placeholder="10"
                                     value={quantity.displayValue}
                                     onChange={(e) => {
-                                        resetError("quantity");
+                                        clearError("quantity");
                                         quantity.handleInputChangeWithCursor(
                                             e.target.value,
                                             e.target,
@@ -580,7 +527,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("quantity")}
                                 />
-                                <FieldError error={errors} field={"quantity"} />
+                                <FieldErrorV2 error={errors?.quantity} />
                             </Field>
                             <Field data-invalid={isInvalidField("price")}>
                                 <FieldLabel htmlFor="price">
@@ -592,7 +539,7 @@ export default function Edit({
                                     placeholder="1 000"
                                     value={price.displayValue}
                                     onChange={(e) => {
-                                        resetError("price");
+                                        clearError("price");
                                         price.handleInputChangeWithCursor(
                                             e.target.value,
                                             e.target,
@@ -600,7 +547,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("price")}
                                 />
-                                <FieldError error={errors} field={"price"} />
+                                <FieldErrorV2 error={errors?.price} />
                             </Field>
                             <Field data-invalid={isInvalidField("tax_id")}>
                                 <div className="flex items-center w-full">
@@ -624,7 +571,7 @@ export default function Edit({
                                 <Select
                                     value={taxId}
                                     onValueChange={(val) => {
-                                        resetError("tax_id");
+                                        clearError("tax_id");
                                         setTaxId(val);
                                     }}
                                 >
@@ -645,7 +592,7 @@ export default function Edit({
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"tax_id"} />
+                                <FieldErrorV2 error={errors?.tax_id} />
                             </Field>
                             <Field data-invalid={isInvalidField("status")}>
                                 <FieldLabel htmlFor="status">
@@ -654,7 +601,7 @@ export default function Edit({
                                 <Select
                                     value={status}
                                     onValueChange={(val) => {
-                                        resetError("status");
+                                        clearError("status");
                                         setStatus(val);
                                     }}
                                 >
@@ -665,15 +612,27 @@ export default function Edit({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="active">
-                                            Aktív
+                                        <SelectItem value="in_progress">
+                                            Folyamatban
                                         </SelectItem>
-                                        <SelectItem value="inactive">
-                                            Inaktív
+                                        <SelectItem value="waiting_for_check">
+                                            Bevizsgálásra vár
+                                        </SelectItem>
+                                        <SelectItem value="waiting_for_supply">
+                                            Beszerzésre vár
+                                        </SelectItem>
+                                        <SelectItem value="waiting_for_feedback">
+                                            Visszajelzésre vár
+                                        </SelectItem>
+                                        <SelectItem value="ready_for_customer_pickup">
+                                            Átvehető
+                                        </SelectItem>
+                                        <SelectItem value="closed">
+                                            Lezárt
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"status"} />
+                                <FieldErrorV2 error={errors?.status} />
                             </Field>
                             <Field data-invalid={isInvalidField("priority")}>
                                 <FieldLabel htmlFor="priority">
@@ -682,7 +641,7 @@ export default function Edit({
                                 <Select
                                     value={priority ?? ""}
                                     onValueChange={(val) => {
-                                        resetError("priority");
+                                        clearError("priority");
                                         setPriority(val);
                                     }}
                                 >
@@ -706,7 +665,7 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"priority"} />
+                                <FieldErrorV2 error={errors?.priority} />
                             </Field>
                             <Field data-invalid={isInvalidField("due_date")}>
                                 <FieldLabel htmlFor="due_date">
@@ -717,12 +676,12 @@ export default function Edit({
                                     type="date"
                                     value={dueDate ?? ""}
                                     onChange={(e) => {
-                                        resetError("due_date");
+                                        clearError("due_date");
                                         setDueDate(e.target.value);
                                     }}
                                     aria-invalid={isInvalidField("due_date")}
                                 />
-                                <FieldError error={errors} field={"due_date"} />
+                                <FieldErrorV2 error={errors?.due_date} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

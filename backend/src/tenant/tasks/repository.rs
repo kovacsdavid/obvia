@@ -130,7 +130,7 @@ impl TasksRepository for PgPool {
             LEFT JOIN taxes ON tasks.tax_id = taxes.id
             LEFT JOIN users ON tasks.created_by_id = users.id
             WHERE tasks.deleted_at IS NULL
-                AND tasks.status = 'active'
+                AND tasks.status != 'closed'
                 AND worksheets.id = $1
             "#,
         )

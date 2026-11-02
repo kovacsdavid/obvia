@@ -63,9 +63,13 @@ impl TaskResolvedPrint {
         let currency_code = task_resolved.currency_code;
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
 
-        let quantity = task_resolved
-            .quantity
-            .map(|v| format!("{} óra", thousand_separated_number_bigdecimal(&v, 2)));
+        let quantity = task_resolved.quantity.map(|v| {
+            format!(
+                "{} {}",
+                thousand_separated_number_bigdecimal(&v, 2),
+                service_resolved_print.unit_of_measure
+            )
+        });
 
         let price = task_resolved.price.map(|v| {
             format!(

@@ -23,9 +23,10 @@ REFERENCES units_of_measure(id);
 
 WITH new_unit AS (
     INSERT INTO units_of_measure(unit_of_measure, module, created_by_id)
-    VALUES (
-        'óra', 'services', (SELECT id FROM users ORDER BY created_at ASC LIMIT 1 )
-    ) RETURNING id
+    SELECT 'óra', 'services', id FROM users
+    ORDER BY created_at ASC
+    LIMIT 1
+    RETURNING id
 )
 UPDATE services SET unit_of_measure_id = new_unit.id
 FROM new_unit

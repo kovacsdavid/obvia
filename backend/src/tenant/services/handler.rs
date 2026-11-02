@@ -1906,11 +1906,11 @@ mod tests {
 
         let service_resolved = ServiceResolved {
             id: service_id,
-            name: "Test Service".to_string(),
+            name: "Test service".to_string(),
             description: Some("Test description".to_string()),
-            default_price: None,
-            default_tax_id: None,
-            default_tax: None,
+            default_price: Some("10".parse().unwrap()),
+            default_tax_id: Some(Uuid::now_v7()),
+            default_tax: Some("Test tax".to_string()),
             currency_code: Some("HUF".to_string()),
             status: "active".to_string(),
             created_by_id,

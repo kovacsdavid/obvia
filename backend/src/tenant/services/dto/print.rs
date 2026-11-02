@@ -97,7 +97,7 @@ pub fn test_service_resolved_print_builder() -> ServicesResolvedPrintBuilder {
         .default_tax_id(Some(Uuid::now_v7()))
         .default_tax(Some("Test tax".to_string()))
         .currency_code(Some("HUF".to_string()))
-        .status("active".to_string())
+        .status("Aktív".to_string())
         .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(TEST_TIME_TZ.clone())

@@ -77,7 +77,7 @@ pub mod tests {
             .project(None)
             .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
-            .status("active".to_string())
+            .status("open".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)

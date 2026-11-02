@@ -188,7 +188,7 @@ pub fn test_worksheet_resolved_print_builder(
         .project(Some("Test project".to_string()))
         .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
-        .status("Aktív".to_string())
+        .status("Nyitott".to_string())
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
         .deleted_at(None)
@@ -329,7 +329,7 @@ mod tests {
             project: None,
             created_by_id,
             created_by: "Test User".to_string(),
-            status: "Aktív".to_string(),
+            status: "Nyitott".to_string(),
             created_at: TEST_TIME_TZ.clone(),
             updated_at: TEST_TIME_TZ.clone(),
             deleted_at: None,

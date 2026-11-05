@@ -53,6 +53,7 @@ pub enum PdfTemplates {
     ServiceView,
     TaskView,
     WorksheetView,
+    HandoverAndAcceptance,
 }
 
 impl Display for PdfTemplates {
@@ -69,6 +70,7 @@ impl Display for PdfTemplates {
             Self::ServiceView => "service_view",
             Self::TaskView => "task_view",
             Self::WorksheetView => "worksheet_view",
+            Self::HandoverAndAcceptance => "handover_and_acceptance",
         };
         write!(f, "templates/{template}.typ")
     }

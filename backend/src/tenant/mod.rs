@@ -25,6 +25,7 @@ pub mod address;
 pub mod comments;
 pub mod currencies;
 pub mod customers;
+pub mod handover_and_acceptance;
 pub mod inventory;
 pub mod inventory_movements;
 pub mod inventory_reservations;

@@ -19,15 +19,19 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Query, State};
+use axum::{
+    extract::{Query, State},
+    http::{HeaderMap, StatusCode, header},
+};
 use tracing::instrument;
 
 use crate::{
     common::{
-        dto::UuidParam,
+        dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam},
         extractors::{ClientContext, UserInput},
-        handler::HandlerResult,
-        query_parser::CommonRawQuery,
+        handler::{HandlerResult, map_handler_err},
+        query_parser::{CommonRawQuery, ResourceQuery},
+        service::Service,
     },
     manager::auth::middleware::AuthenticatedUser,
     tenant::handover_and_acceptance::HandoverAndAcceptanceModuleInterface,
@@ -43,7 +47,21 @@ pub async fn get_full<M: HandoverAndAcceptanceModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    todo!();
+    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let result = map_handler_err(
+        service.get_full(payload.uuid).await,
+        handover_and_acceptance_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        handover_and_acceptance_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[instrument(
@@ -56,7 +74,30 @@ pub async fn list<M: HandoverAndAcceptanceModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    todo!();
+    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let resource_query = map_handler_err(
+        ResourceQuery::<HandoverAndAcceptanceOrderBy, HandoverAndAcceptanceFilterBy>::from_str(
+            payload.q(),
+        ),
+        handover_and_acceptance_module.clone(),
+    )
+    .await?;
+    let (meta, data) = map_handler_err(
+        service.get_paged(&resource_query).await,
+        handover_and_acceptance_module.clone(),
+    )
+    .await?;
+
+    Ok(map_handler_err(
+        SuccessResponseBuilder::new()
+            .status_code(StatusCode::OK)
+            .meta(meta)
+            .data(data)
+            .build(),
+        handover_and_acceptance_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[instrument(
@@ -72,7 +113,21 @@ pub async fn create<M: HandoverAndAcceptanceModuleInterface>(
         HandoverAndAcceptanceUserInputHelper,
     >,
 ) -> HandlerResult {
-    todo!();
+    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let result = map_handler_err(
+        service.insert(&user_input).await,
+        handover_and_acceptance_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(result)
+            .build(),
+        handover_and_acceptance_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[instrument(
@@ -88,7 +143,21 @@ pub async fn update<M: HandoverAndAcceptanceModuleInterface>(
         HandoverAndAcceptanceUserInputHelper,
     >,
 ) -> HandlerResult {
-    todo!();
+    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let result = map_handler_err(
+        service.update(&user_input).await,
+        handover_and_acceptance_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        handover_and_acceptance_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[instrument(
@@ -101,7 +170,23 @@ pub async fn delete<M: HandoverAndAcceptanceModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    todo!();
+    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    map_handler_err(
+        service.delete(payload.uuid).await,
+        handover_and_acceptance_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A vevő törlése sikeresen megtörtént",
+            ))
+            .build(),
+        handover_and_acceptance_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[instrument(
@@ -114,7 +199,32 @@ pub async fn print<M: HandoverAndAcceptanceModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    todo!();
+    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let handover_and_acceptance_resolved_print = HandoverAndAcceptanceFullPrint::new(
+        map_handler_err(
+            service.get_full(payload.uuid).await,
+            handover_and_acceptance_module.clone(),
+        )
+        .await?,
+        map_handler_err(claims.tz(), handover_and_acceptance_module.clone()).await?,
+    );
+    let handover_and_acceptance_id = handover_and_acceptance_resolved_print.id();
+    let pdf = map_handler_err(
+        service
+            .print(&[handover_and_acceptance_resolved_print])
+            .await,
+        handover_and_acceptance_module,
+    )
+    .await?;
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        format!(r#"inline; filename="vevo_{handover_and_acceptance_id}.pdf""#)
+            .parse()
+            .unwrap(),
+    );
+    Ok((StatusCode::OK, headers, pdf).into_response())
 }
 
 #[cfg(test)]

@@ -26,7 +26,7 @@ pub struct Name(String);
 
 impl Name {
     pub const VALIDATION_ERROR: &'static str =
-        "Az azonosító érték nem lehet 100 karakternél hosszabb";
+        "Az azonosító típus nem lehet 100 karakternél hosszabb";
 }
 
 impl ValueObjectData for Name {

@@ -70,8 +70,8 @@ pub struct WorksheetResolvedPrint {
 impl WorksheetResolvedPrint {
     pub fn new(
         worksheet_resolved: WorksheetResolved,
-        customer_resolved_print: CustomerFullPrint,
-        owner_profile_print: OwnerProfileFullPrint,
+        customer_full_print: CustomerFullPrint,
+        owner_profile_full_print: OwnerProfileFullPrint,
         tasks: Vec<TaskResolvedPrint>,
         materials: Vec<InventoryMovementsResolvedPrint>,
         tz: Tz,
@@ -131,8 +131,8 @@ impl WorksheetResolvedPrint {
             id: worksheet_resolved.id,
             display_id: worksheet_resolved.display_id,
             description: worksheet_resolved.description,
-            customer: customer_resolved_print,
-            owner_profile: owner_profile_print,
+            customer: customer_full_print,
+            owner_profile: owner_profile_full_print,
             project_id: worksheet_resolved.project_id,
             project: worksheet_resolved.project,
             created_by_id: worksheet_resolved.created_by_id,

@@ -21,7 +21,7 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, PartialEq)]
 pub struct Currency {
     pub code: String,
     pub number: String,

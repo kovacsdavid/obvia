@@ -19,8 +19,10 @@
 
 pub mod authorized_work;
 pub mod condition_at_receipt;
+pub mod filter_by;
 pub mod included_accessory;
 pub mod item_identifier_value;
+pub mod order_by;
 pub mod received_at;
 pub mod repair_limit;
 pub mod reported_issue;

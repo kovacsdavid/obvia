@@ -23,6 +23,7 @@ use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
@@ -60,4 +61,21 @@ impl UsersRepository for PgPool {
         .fetch_one(self)
         .await?)
     }
+}
+
+pub async fn get<'e, E>(executor: E, id: Uuid) -> RepositoryResult<User>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
+{
+    Ok(sqlx::query_as::<_, User>(
+        r#"
+            SELECT *
+            FROM users
+            WHERE users.deleted_at IS NULL
+                AND users.id = $1
+        "#,
+    )
+    .bind(id)
+    .fetch_one(executor)
+    .await?)
 }

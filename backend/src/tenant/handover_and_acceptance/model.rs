@@ -78,6 +78,51 @@ pub struct HandoverAndAcceptanceFull {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+impl
+    From<(
+        HandoverAndAcceptance,
+        CustomerFull,
+        Option<ItemMake>,
+        Option<ItemModelFull>,
+        ItemIdentifierType,
+        Option<Currency>,
+        User,
+    )> for HandoverAndAcceptanceFull
+{
+    fn from(
+        value: (
+            HandoverAndAcceptance,
+            CustomerFull,
+            Option<ItemMake>,
+            Option<ItemModelFull>,
+            ItemIdentifierType,
+            Option<Currency>,
+            User,
+        ),
+    ) -> Self {
+        Self {
+            id: value.0.id,
+            customer: value.1,
+            item_make: value.2,
+            item_model: value.3,
+            item_identifier_type: value.4,
+            item_identifier_value: value.0.item_identifier_value,
+            reported_issue: value.0.reported_issue,
+            condition_at_receipt: value.0.condition_at_receipt,
+            included_accessories: value.0.included_accessories,
+            authorized_work: value.0.authorized_work,
+            repair_limit: value.0.repair_limit,
+            currency_code: value.5,
+            terms_version: value.0.terms_version,
+            accepted_by: value.6,
+            received_at: value.0.received_at,
+            created_at: value.0.created_at,
+            updated_at: value.0.updated_at,
+            deleted_at: value.0.deleted_at,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, PartialEq)]
 pub struct ItemIdentifierType {
     pub id: Uuid,
@@ -110,6 +155,18 @@ pub struct ItemModelFull {
     pub name: String,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
+}
+
+impl From<(ItemModel, ItemMake)> for ItemModelFull {
+    fn from(value: (ItemModel, ItemMake)) -> Self {
+        Self {
+            id: value.0.id,
+            make: value.1,
+            name: value.0.name,
+            is_active: value.0.is_active,
+            created_at: value.0.created_at,
+        }
+    }
 }
 
 #[cfg(test)]

@@ -77,48 +77,11 @@ impl CustomersRepository for PgPool {
     }
 
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<CustomerResolved> {
-        get_resolved_customer_by_id(self, id, false).await
+        get_resolved_by_id(self, id, false).await
     }
 
     async fn get_full(&self, id: Uuid) -> RepositoryResult<CustomerFull> {
-        let customer_resolved = self.get_resolved_by_id(id).await?;
-
-        let mut address_ids = vec![];
-        if let Some(billing_address) = customer_resolved.billing_address {
-            address_ids.push(billing_address);
-        }
-        if let Some(mailing_address) = customer_resolved.mailing_address {
-            address_ids.push(mailing_address);
-        }
-
-        let mut addresses = if !address_ids.is_empty() {
-            let mut map = HashMap::new();
-            for address in get_resolved_addresses_by_ids(self, address_ids).await? {
-                map.insert(address.id, address);
-            }
-            map
-        } else {
-            HashMap::new()
-        };
-
-        Ok(
-            match (
-                customer_resolved.billing_address,
-                customer_resolved.mailing_address,
-            ) {
-                (None, None) => customer_resolved.into_full(None, None),
-                (None, Some(mailing_address)) => {
-                    customer_resolved.into_full(None, addresses.remove(&mailing_address))
-                }
-                (Some(billing_address), None) => {
-                    customer_resolved.into_full(addresses.remove(&billing_address), None)
-                }
-                (Some(billing_address), Some(mailing_address)) => customer_resolved.into_full(
-                    addresses.remove(&billing_address),
-                    addresses.remove(&mailing_address),
-                ),
-            },
-        )
+        get_full(self, id, false).await
     }
 
     async fn get_paged(
@@ -329,7 +292,7 @@ impl CustomersRepository for PgPool {
 
         let mut tx = self.begin().await?;
 
-        let customer_resolved = get_resolved_customer_by_id(&mut *tx, id, true).await?;
+        let customer_resolved = get_resolved_by_id(&mut *tx, id, true).await?;
 
         let billing_address = match (
             customer_resolved.billing_address,
@@ -431,7 +394,7 @@ impl CustomersRepository for PgPool {
     }
 }
 
-pub async fn get_resolved_customer_by_id<'e, E>(
+pub async fn get_resolved_by_id<'e, E>(
     executor: E,
     id: Uuid,
     for_update: bool,
@@ -471,4 +434,52 @@ where
     .bind(id)
     .fetch_one(executor)
     .await?)
+}
+
+pub async fn get_full<'e, E>(
+    executor: E,
+    id: Uuid,
+    for_update: bool,
+) -> RepositoryResult<CustomerFull>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
+{
+    let customer_resolved = get_resolved_by_id(executor.clone(), id, for_update).await?;
+
+    let mut address_ids = vec![];
+    if let Some(billing_address) = customer_resolved.billing_address {
+        address_ids.push(billing_address);
+    }
+    if let Some(mailing_address) = customer_resolved.mailing_address {
+        address_ids.push(mailing_address);
+    }
+
+    let mut addresses = if !address_ids.is_empty() {
+        let mut map = HashMap::new();
+        for address in get_resolved_addresses_by_ids(executor, address_ids).await? {
+            map.insert(address.id, address);
+        }
+        map
+    } else {
+        HashMap::new()
+    };
+
+    Ok(
+        match (
+            customer_resolved.billing_address,
+            customer_resolved.mailing_address,
+        ) {
+            (None, None) => customer_resolved.into_full(None, None),
+            (None, Some(mailing_address)) => {
+                customer_resolved.into_full(None, addresses.remove(&mailing_address))
+            }
+            (Some(billing_address), None) => {
+                customer_resolved.into_full(addresses.remove(&billing_address), None)
+            }
+            (Some(billing_address), Some(mailing_address)) => customer_resolved.into_full(
+                addresses.remove(&billing_address),
+                addresses.remove(&mailing_address),
+            ),
+        },
+    )
 }

@@ -26,7 +26,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::services::dto::print::{
     ServicesResolvedPrint, test_service_resolved_print_builder,
@@ -77,10 +77,10 @@ pub enum TasksServiceError {
     BuilderError(#[from] CommonBuilderError),
 }
 
-impl From<ServiceError> for TasksServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for TasksServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => TasksServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => TasksServiceError::Unauthorized,
         }
     }
 }
@@ -168,7 +168,7 @@ pub trait TaskService {
     fn print_snapshot(&self, path: &Path) -> impl Future<Output = TasksServiceResult<()>> + Sync;
 }
 
-impl<'a, T> TaskService for Service<'a, T>
+impl<'a, T> TaskService for BaseService<'a, T>
 where
     T: TasksModule,
 {

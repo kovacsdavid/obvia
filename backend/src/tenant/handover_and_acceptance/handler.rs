@@ -28,26 +28,29 @@ use tracing::instrument;
 use crate::{
     common::{
         dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam},
-        extractors::{ClientContext, UserInput},
+        extractors,
         handler::{HandlerResult, map_handler_err},
         query_parser::{CommonRawQuery, ResourceQuery},
-        service::Service,
+        service::BaseService,
     },
     manager::auth::middleware::AuthenticatedUser,
-    tenant::handover_and_acceptance::HandoverAndAcceptanceModuleInterface,
+    tenant::handover_and_acceptance::{
+        ModuleInterface, Print, UserInput, UserInputHelper,
+        types::{FilterBy, OrderBy},
+    },
 };
 
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::get_full",
     skip(handover_and_acceptance_module)
 )]
-pub async fn get_full<M: HandoverAndAcceptanceModuleInterface>(
+pub async fn get_full<M: ModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(handover_and_acceptance_module): State<Arc<M>>,
-    _client_context: ClientContext,
+    _client_context: extractors::ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
     let result = map_handler_err(
         service.get_full(payload.uuid).await,
         handover_and_acceptance_module.clone(),
@@ -68,17 +71,15 @@ pub async fn get_full<M: HandoverAndAcceptanceModuleInterface>(
     name = "obvia::tenant::handover_and_acceptance::handler::list",
     skip(handover_and_acceptance_module)
 )]
-pub async fn list<M: HandoverAndAcceptanceModuleInterface>(
+pub async fn list<M: ModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(handover_and_acceptance_module): State<Arc<M>>,
-    _client_context: ClientContext,
+    _client_context: extractors::ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
     let resource_query = map_handler_err(
-        ResourceQuery::<HandoverAndAcceptanceOrderBy, HandoverAndAcceptanceFilterBy>::from_str(
-            payload.q(),
-        ),
+        ResourceQuery::<OrderBy, FilterBy>::from_str(payload.q()),
         handover_and_acceptance_module.clone(),
     )
     .await?;
@@ -104,16 +105,13 @@ pub async fn list<M: HandoverAndAcceptanceModuleInterface>(
     name = "obvia::tenant::handover_and_acceptance::handler::create",
     skip(handover_and_acceptance_module)
 )]
-pub async fn create<M: HandoverAndAcceptanceModuleInterface>(
+pub async fn create<M: ModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(handover_and_acceptance_module): State<Arc<M>>,
-    _client_context: ClientContext,
-    UserInput(user_input, _): UserInput<
-        HandoverAndAcceptanceUserInput,
-        HandoverAndAcceptanceUserInputHelper,
-    >,
+    _client_context: extractors::ClientContext,
+    extractors::UserInput(user_input, _): extractors::UserInput<UserInput, UserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
     let result = map_handler_err(
         service.insert(&user_input).await,
         handover_and_acceptance_module.clone(),
@@ -134,16 +132,13 @@ pub async fn create<M: HandoverAndAcceptanceModuleInterface>(
     name = "obvia::tenant::handover_and_acceptance::handler::update",
     skip(handover_and_acceptance_module)
 )]
-pub async fn update<M: HandoverAndAcceptanceModuleInterface>(
+pub async fn update<M: ModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(handover_and_acceptance_module): State<Arc<M>>,
-    _client_context: ClientContext,
-    UserInput(user_input, _): UserInput<
-        HandoverAndAcceptanceUserInput,
-        HandoverAndAcceptanceUserInputHelper,
-    >,
+    _client_context: extractors::ClientContext,
+    extractors::UserInput(user_input, _): extractors::UserInput<UserInput, UserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
     let result = map_handler_err(
         service.update(&user_input).await,
         handover_and_acceptance_module.clone(),
@@ -164,13 +159,13 @@ pub async fn update<M: HandoverAndAcceptanceModuleInterface>(
     name = "obvia::tenant::handover_and_acceptance::handler::delete",
     skip(handover_and_acceptance_module)
 )]
-pub async fn delete<M: HandoverAndAcceptanceModuleInterface>(
+pub async fn delete<M: ModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(handover_and_acceptance_module): State<Arc<M>>,
-    _client_context: ClientContext,
+    _client_context: extractors::ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
+    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
     map_handler_err(
         service.delete(payload.uuid).await,
         handover_and_acceptance_module.clone(),
@@ -193,14 +188,14 @@ pub async fn delete<M: HandoverAndAcceptanceModuleInterface>(
     name = "obvia::tenant::handover_and_acceptance::handler::print",
     skip(handover_and_acceptance_module)
 )]
-pub async fn print<M: HandoverAndAcceptanceModuleInterface>(
+pub async fn print<M: ModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(handover_and_acceptance_module): State<Arc<M>>,
-    _client_context: ClientContext,
+    _client_context: extractors::ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), handover_and_acceptance_module.clone());
-    let handover_and_acceptance_resolved_print = HandoverAndAcceptanceFullPrint::new(
+    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
+    let handover_and_acceptance_resolved_print = Print::new(
         map_handler_err(
             service.get_full(payload.uuid).await,
             handover_and_acceptance_module.clone(),
@@ -251,12 +246,15 @@ mod tests {
                 generate_valid_jwt,
             },
             pdf::{
-                MockPdfGenerator, PdfTemplates,
+                MockPdfGenerator, PdfGenerator, PdfTemplates,
                 tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text},
             },
             query_parser::ResourceQuery,
         },
-        tenant::handover_and_acceptance::tests::MockHandoverAndAcceptanceModule,
+        tenant::handover_and_acceptance::{
+            self, MockRepository, UserInput, UserInputHelper,
+            model::tests::test_handover_and_acceptance_full_builder, tests::MockModule,
+        },
     };
 
     use super::*;
@@ -272,7 +270,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let mut handover_and_acceptance_repo = MockHandoverAndAcceptanceRepository::new();
+        let mut handover_and_acceptance_repo = MockRepository::new();
         handover_and_acceptance_repo
             .expect_get_full()
             .times(1)
@@ -282,7 +280,7 @@ mod tests {
                 move |_| Ok(handover_and_acceptance_full.clone())
             });
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let handover_and_acceptance_repo = Arc::new(handover_and_acceptance_repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -312,7 +310,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -332,7 +330,7 @@ mod tests {
     async fn test_get_full_unauthorized_expired() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -353,7 +351,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -374,7 +372,7 @@ mod tests {
     async fn test_get_full_unauthorized_invalid_signature() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -395,7 +393,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -415,7 +413,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_full_unauthorized_missing() {
         let handover_and_acceptance_id = Uuid::now_v7();
-        let app_state = MockHandoverAndAcceptanceModule::new();
+        let app_state = MockModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -427,7 +425,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -444,13 +442,13 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut repo = MockHandoverAndAcceptanceModule::new();
+        let mut repo = MockModule::new();
         repo.expect_get_full()
             .times(1)
             .with(eq(handover_and_acceptance_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -480,7 +478,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -513,19 +511,27 @@ mod tests {
             .build()
             .unwrap();
 
-        let mut handover_and_acceptance_repo = MockHandoverAndAcceptanceRepository::new();
+        let mut handover_and_acceptance_repo = MockRepository::new();
         handover_and_acceptance_repo
             .expect_get_paged()
             .times(1)
             .with(eq(""
-                .parse::<ResourceQuery<HandoverAndAcceptanceOrderBy, HandoverAndAcceptanceFilterBy>>()
+                .parse::<ResourceQuery<
+                    handover_and_acceptance::types::OrderBy,
+                    handover_and_acceptance::types::FilterBy,
+                >>()
                 .unwrap()))
             .returning({
                 let handover_and_acceptance_resolved = handover_and_acceptance_resolved.clone();
-                move |_| Ok((paginator_meta, vec![handover_and_acceptance_resolved.clone()]))
+                move |_| {
+                    Ok((
+                        paginator_meta,
+                        vec![handover_and_acceptance_resolved.clone()],
+                    ))
+                }
             });
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let handover_and_acceptance_repo = Arc::new(handover_and_acceptance_repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -553,7 +559,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -573,7 +579,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -592,7 +598,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -611,7 +617,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -630,7 +636,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -649,7 +655,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let app_state = MockHandoverAndAcceptanceModule::new();
+        let app_state = MockModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -659,7 +665,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -675,15 +681,18 @@ mod tests {
     async fn test_list_not_found() {
         let active_tenant_id = Uuid::now_v7();
 
-        let mut repo = MockHandoverAndAcceptanceRepository::new();
+        let mut repo = MockRepository::new();
         repo.expect_get_paged()
             .times(1)
             .with(eq(""
-                .parse::<ResourceQuery<HandoverAndAcceptanceOrderBy, HandoverAndAcceptanceFilterBy>>()
+                .parse::<ResourceQuery<
+                    handover_and_acceptance::types::OrderBy,
+                    handover_and_acceptance::types::FilterBy,
+                >>()
                 .unwrap()))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -711,7 +720,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -734,16 +743,15 @@ mod tests {
         let user_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
-        let user_input =
-            HandoverAndAcceptanceUserInput::try_from(user_input_helper.clone()).unwrap();
+        let user_input_helper = UserInputHelper {};
+        let user_input = UserInput::try_from(user_input_helper.clone()).unwrap();
 
         let handover_and_acceptance = test_handover_and_acceptance_builder()
             .id(handover_and_acceptance_id)
             .build()
             .unwrap();
 
-        let mut repo = MockHandoverAndAcceptanceRepository::new();
+        let mut repo = MockRepository::new();
         repo.expect_insert()
             .times(1)
             .withf({
@@ -765,7 +773,7 @@ mod tests {
                 move |_, _| Ok(handover_and_acceptance.clone())
             });
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -794,7 +802,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -815,9 +823,9 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
+        let user_input_helper = UserInputHelper {};
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -840,14 +848,14 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
-        let field_errors = HandoverAndAcceptanceUserInput::try_from(user_input_helper).unwrap_err();
+        let field_errors = UserInput::try_from(user_input_helper).unwrap_err();
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
@@ -862,9 +870,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
+        let user_input_helper = UserInputHelper {};
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -884,7 +892,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -903,9 +911,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_invalid_signature() {
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
+        let user_input_helper = UserInputHelper {};
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -925,7 +933,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -944,9 +952,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
+        let user_input_helper = UserInputHelper {};
 
-        let app_state = MockHandoverAndAcceptanceModule::new();
+        let app_state = MockModule::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -957,7 +965,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -976,16 +984,15 @@ mod tests {
         let user_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
-        let user_input =
-            HandoverAndAcceptanceUserInput::try_from(user_input_helper.clone()).unwrap();
+        let user_input_helper = UserInputHelper {};
+        let user_input = UserInput::try_from(user_input_helper.clone()).unwrap();
 
         let handover_and_acceptance = test_handover_and_acceptance_builder()
             .id(handover_and_acceptance_id)
             .build()
             .unwrap();
 
-        let mut repo = MockHandoverAndAcceptanceRepository::new();
+        let mut repo = MockRepository::new();
         repo.expect_update()
             .times(1)
             .with(eq(user_input), eq(user_id))
@@ -994,7 +1001,7 @@ mod tests {
                 move |_, _| Ok(handover_and_acceptance.clone())
             });
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1023,7 +1030,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1044,9 +1051,9 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
+        let user_input_helper = UserInputHelper {};
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1069,7 +1076,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1087,9 +1094,9 @@ mod tests {
     }
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
+        let user_input_helper = UserInputHelper {};
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1109,7 +1116,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1128,9 +1135,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_invalid_signature() {
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
+        let user_input_helper = UserInputHelper {};
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1150,7 +1157,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1169,9 +1176,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
-        let user_input_helper = HandoverAndAcceptanceUserInputHelper {};
+        let user_input_helper = UserInputHelper {};
 
-        let app_state = MockHandoverAndAcceptanceModule::new();
+        let app_state = MockModule::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1182,7 +1189,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1199,14 +1206,14 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
-        let mut repo = MockHandoverAndAcceptanceRepository::new();
+        let mut repo = MockRepository::new();
 
         repo.expect_delete_by_id()
             .times(1)
             .with(eq(handover_and_acceptance_id))
             .returning(move |_| Ok(()));
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1236,7 +1243,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1257,7 +1264,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1279,7 +1286,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1296,7 +1303,7 @@ mod tests {
     async fn test_delete_unauthorized_expired() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1317,7 +1324,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1338,7 +1345,7 @@ mod tests {
     async fn test_delete_unauthorized_invalid_signature() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1359,7 +1366,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1380,7 +1387,7 @@ mod tests {
     async fn test_delete_unauthorized_missing() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let app_state = MockHandoverAndAcceptanceModule::new();
+        let app_state = MockModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1392,7 +1399,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1415,7 +1422,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let mut repo = MockHandoverAndAcceptanceRepository::new();
+        let mut repo = MockRepository::new();
         repo.expect_get_full()
             .times(1)
             .with(eq(handover_and_acceptance_id))
@@ -1424,7 +1431,7 @@ mod tests {
                 move |_| Ok(handover_and_acceptance_resolved.clone())
             });
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1437,7 +1444,7 @@ mod tests {
             .times(1)
             .return_const(test_config.clone());
 
-        let pdf_gen_payload_expected = vec![HandoverAndAcceptanceFullPrint::new(
+        let pdf_gen_payload_expected = vec![Print::new(
             handover_and_acceptance_full,
             "Europe/Budapest".parse().unwrap(),
         )];
@@ -1445,7 +1452,7 @@ mod tests {
         let _m = PDF_GENERATOR_TEST_SYNC.lock();
         let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();
         pdf_gen
-            .expect::<Vec<HandoverAndAcceptanceFullPrint>>()
+            .expect::<Vec<Print>>()
             .times(1)
             .with(
                 eq(PdfTemplates::HandoverAndAcceptanceView),
@@ -1473,7 +1480,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1504,7 +1511,7 @@ mod tests {
     async fn test_print_unauthorized_expired() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1526,7 +1533,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1547,7 +1554,7 @@ mod tests {
     async fn test_print_unauthorized_invalid_signature() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockHandoverAndAcceptanceModule::new();
+        let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1569,7 +1576,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(app_state))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1601,9 +1608,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes::routes(Arc::new(
-                MockHandoverAndAcceptanceModule::new(),
-            ))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(MockModule::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();

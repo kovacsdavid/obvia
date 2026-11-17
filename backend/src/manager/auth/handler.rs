@@ -21,7 +21,7 @@ use super::AuthModuleInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::dto::login::LoginResponse;
 use crate::manager::auth::dto::register::{
     ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
@@ -44,7 +44,7 @@ pub async fn login<M: AuthModuleInterface>(
     client_context: ClientContext,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
-    let service = Service::new(None, auth_module.clone());
+    let service = BaseService::new(None, auth_module.clone());
     let (access_token, access_claims, refresh_token, _, user_public) = map_handler_err(
         service.try_login(&payload, &client_context).await,
         auth_module.clone(),
@@ -85,7 +85,7 @@ pub async fn refresh<M: AuthModuleInterface>(
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let service = Service::new(None, auth_module.clone());
+    let service = BaseService::new(None, auth_module.clone());
     let (access_token, access_claims, refresh_token, _, user_public) = map_handler_err(
         service.refresh(jar.clone(), &client_context).await,
         auth_module.clone(),
@@ -123,7 +123,7 @@ pub async fn logout<M: AuthModuleInterface>(
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let service = Service::new(None, auth_module.clone());
+    let service = BaseService::new(None, auth_module.clone());
     map_handler_err(
         service.logout(jar.clone(), &client_context).await,
         auth_module.clone(),
@@ -141,7 +141,7 @@ pub async fn register<M: AuthModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    let service = Service::new(None, auth_module.clone());
+    let service = BaseService::new(None, auth_module.clone());
     map_handler_err(service.try_register(&user_input).await, auth_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -165,7 +165,7 @@ pub async fn verify_email<M: AuthModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = Service::new(None, auth_module.clone());
+    let service = BaseService::new(None, auth_module.clone());
     let token = payload
         .get("id")
         .cloned()
@@ -196,7 +196,7 @@ pub async fn resend_email_verification<M: AuthModuleInterface>(
         ResendEmailValidationRequestHelper,
     >,
 ) -> HandlerResult {
-    let service = Service::new(None, auth_module.clone());
+    let service = BaseService::new(None, auth_module.clone());
     map_handler_err(
         service.resend_email_verification(user_input).await,
         auth_module.clone(),
@@ -225,7 +225,7 @@ pub async fn forgotten_password<M: AuthModuleInterface>(
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
 ) -> HandlerResult {
-    let service = Service::new(None, auth_module.clone());
+    let service = BaseService::new(None, auth_module.clone());
     map_handler_err(
         service
             .forgotten_password(user_input, &client_context)
@@ -253,7 +253,7 @@ pub async fn new_password<M: AuthModuleInterface>(
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
 ) -> HandlerResult {
-    let service = Service::new(None, auth_module.clone());
+    let service = BaseService::new(None, auth_module.clone());
     map_handler_err(
         service.new_password(user_input, &client_context).await,
         auth_module.clone(),

@@ -221,7 +221,7 @@ pub mod tests {
         builder
     }
 
-    pub fn test_handover_and_acceptande_full_builder() -> HandoverAndAcceptanceFullBuilder {
+    pub fn test_handover_and_acceptance_full_builder() -> HandoverAndAcceptanceFullBuilder {
         let mut builder = HandoverAndAcceptanceFullBuilder::default();
         let item_make = test_item_make_builder();
 

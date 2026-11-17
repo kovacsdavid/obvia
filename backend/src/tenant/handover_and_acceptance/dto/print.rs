@@ -30,7 +30,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Serialize, PartialEq, Debug, Builder)]
 #[builder(build_fn(error = "CommonBuilderError"))]
-pub struct HandoverAndAcceptanceFullPrint {
+pub struct Print {
     id: Uuid,
     customer: CustomerFullPrint,
     item_make: Option<String>,
@@ -50,7 +50,7 @@ pub struct HandoverAndAcceptanceFullPrint {
     deleted_at: Option<String>,
 }
 
-impl HandoverAndAcceptanceFullPrint {
+impl Print {
     pub fn new(handover_and_acceptance_full: HandoverAndAcceptanceFull, tz: Tz) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         // NOTE: on user_input validation if repair_limit is set currency_code should be required.
@@ -113,8 +113,8 @@ impl HandoverAndAcceptanceFullPrint {
     }
 }
 
-pub fn test_handover_and_acceptance_full_print_builder() -> HandoverAndAcceptanceFullPrintBuilder {
-    let mut builder = HandoverAndAcceptanceFullPrintBuilder::default();
+pub fn test_handover_and_acceptance_full_print_builder() -> PrintBuilder {
+    let mut builder = PrintBuilder::default();
     builder
         .id(Uuid::now_v7())
         .customer(test_customer_full_print_builder().build().unwrap())
@@ -145,7 +145,7 @@ mod tests {
 
     use crate::{
         common::TEST_TZ,
-        tenant::handover_and_acceptance::model::tests::test_handover_and_acceptande_full_builder,
+        tenant::handover_and_acceptance::model::tests::test_handover_and_acceptance_full_builder,
     };
 
     use super::*;
@@ -162,10 +162,10 @@ mod tests {
             .build()
             .unwrap();
         let handover_and_acceptance_full =
-            test_handover_and_acceptande_full_builder().build().unwrap();
+            test_handover_and_acceptance_full_builder().build().unwrap();
         let handover_and_acceptance_resolved_print =
-            HandoverAndAcceptanceFullPrint::new(handover_and_acceptance_full, *TEST_TZ);
-        let handover_and_acceptance_resolved_print_expected = HandoverAndAcceptanceFullPrint {
+            Print::new(handover_and_acceptance_full, *TEST_TZ);
+        let handover_and_acceptance_resolved_print_expected = Print {
             id: handover_and_acceptance_id,
             customer: customer_full,
             item_make: Some("TestMake".to_string()),

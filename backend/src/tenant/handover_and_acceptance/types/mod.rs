@@ -21,3 +21,13 @@ pub mod handover_and_acceptance;
 pub mod item_identifier_types;
 pub mod item_makes;
 pub mod item_models;
+
+pub use handover_and_acceptance::{
+    authorized_work::AuthorizedWork, condition_at_receipt::ConditionAtReceipt, filter_by::FilterBy,
+    included_accessory::IncludedAccessory, item_identifier_value::ItemIdentifierValue,
+    order_by::OrderBy, received_at::ReceivedAt, repair_limit::RepairLimit,
+    reported_issue::ReportedIssue, terms_version::TermsVersion,
+};
+pub use item_identifier_types::name::Name as ItemIdentifierType;
+pub use item_makes::name::Name as ItemMake;
+pub use item_models::name::Name as ItemModel;

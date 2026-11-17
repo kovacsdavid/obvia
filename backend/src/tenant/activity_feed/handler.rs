@@ -21,7 +21,7 @@ use crate::common::dto::SuccessResponseBuilder;
 use crate::common::extractors::ClientContext;
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::common::types::Empty;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::activity_feed::ActivityFeedModuleInterface;
@@ -44,7 +44,7 @@ pub async fn list<M: ActivityFeedModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), activity_feed_module.clone());
+    let service = BaseService::new(Some(&claims), activity_feed_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<Empty, Empty>::from_str(payload.q()),
         activity_feed_module.clone(),

@@ -21,9 +21,10 @@ use lettre::{
     AsyncTransport,
     transport::smtp::{Error, response::Response},
 };
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
+use uuid::Uuid;
 
-use crate::common::{AppState, BaseModule, database::PoolManager};
+use crate::common::{AppState, BaseModule, database::PoolManager, error::RepositoryResult};
 
 pub mod dto;
 mod handler;
@@ -33,16 +34,35 @@ pub mod routes;
 pub mod service;
 pub mod types;
 
+pub use dto::{
+    print::{Print, test_handover_and_acceptance_full_print_builder},
+    user_input::{UserInput, UserInputError, UserInputHelper},
+};
+pub use repository::Repository;
+pub use routes::routes;
+pub use service::{Service, ServiceError};
+
 // TODO: define this interface
-pub trait HandoverAndAcceptanceModuleInterface: BaseModule {}
+pub trait ModuleInterface: BaseModule {
+    fn handover_and_acceptance_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn Repository>>;
+}
 
 // TODO: implement the interface
-impl<P, T> HandoverAndAcceptanceModuleInterface for AppState<P, T>
+impl<P, T> ModuleInterface for AppState<P, T>
 where
     P: PoolManager + Debug,
     T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
     T::Error: Debug,
 {
+    fn handover_and_acceptance_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn Repository>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 #[cfg(test)]
@@ -55,18 +75,23 @@ pub mod tests {
     use mockall::mock;
 
     mock!(
-        pub HandoverAndAcceptanceModule {}
-        impl Debug for HandoverAndAcceptanceModule {
+        pub Module {}
+        impl Debug for Module {
             fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
         }
-        impl ConfigProvider for HandoverAndAcceptanceModule {
+        impl ConfigProvider for Module {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        impl MailTransporter for HandoverAndAcceptanceModule {
+        impl MailTransporter for Module {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl BaseModule for HandoverAndAcceptanceModule {}
-        impl HandoverAndAcceptanceModuleInterface for HandoverAndAcceptanceModule {}
+        impl BaseModule for Module {}
+        impl ModuleInterface for Module {
+            fn handover_and_acceptance_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn Repository>>;
+        }
     );
 }

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::HandoverAndAcceptanceModuleInterface;
+use super::ModuleInterface;
 use super::handler;
 use crate::manager::auth::middleware::require_auth;
 use axum::Router;
@@ -25,9 +25,7 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes<M: HandoverAndAcceptanceModuleInterface>(
-    handover_and_acceptance_module: Arc<M>,
-) -> Router {
+pub fn routes<M: ModuleInterface>(handover_and_acceptance_module: Arc<M>) -> Router {
     Router::new().nest(
         "/handover_and_acceptance",
         Router::new()

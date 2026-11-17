@@ -24,12 +24,11 @@ use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::query_parser::ResourceQuery;
 use crate::tenant::currencies::repository as currencies_repository;
 use crate::tenant::customers::repository as customers_repository;
-use crate::tenant::handover_and_acceptance::dto::user_input::HandoverAndAcceptanceUserInput;
-use crate::tenant::handover_and_acceptance::model::{
-    HandoverAndAcceptance, HandoverAndAcceptanceFull, ItemIdentifierType, ItemMake, ItemModel,
-    ItemModelFull,
+use crate::tenant::handover_and_acceptance::{
+    self, UserInput,
+    model::HandoverAndAcceptance,
+    model::{HandoverAndAcceptanceFull, ItemIdentifierType, ItemMake, ItemModel, ItemModelFull},
 };
-use crate::tenant::handover_and_acceptance::types::handover_and_acceptance;
 use crate::tenant::users::repository as users_repository;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -39,31 +38,31 @@ use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait HandoverAndAcceptancesRepository: Send + Sync {
+pub trait Repository: Send + Sync {
     async fn get(&self, id: Uuid) -> RepositoryResult<HandoverAndAcceptance>;
     async fn get_full(&self, id: Uuid) -> RepositoryResult<HandoverAndAcceptanceFull>;
     async fn get_paged(
         &self,
         query_params: &ResourceQuery<
-            handover_and_acceptance::order_by::OrderBy,
-            handover_and_acceptance::filter_by::FilterBy,
+            handover_and_acceptance::types::OrderBy,
+            handover_and_acceptance::types::FilterBy,
         >,
     ) -> RepositoryResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)>;
     async fn insert(
         &self,
-        handover_and_acceptance_user_input: &HandoverAndAcceptanceUserInput,
+        handover_and_acceptance_user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance>;
     async fn update(
         &self,
-        handover_and_acceptance_user_input: &HandoverAndAcceptanceUserInput,
+        handover_and_acceptance_user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
-impl HandoverAndAcceptancesRepository for PgPool {
+impl Repository for PgPool {
     async fn get(&self, id: Uuid) -> RepositoryResult<HandoverAndAcceptance> {
         get(self, id).await
     }
@@ -73,22 +72,22 @@ impl HandoverAndAcceptancesRepository for PgPool {
     async fn get_paged(
         &self,
         query_params: &ResourceQuery<
-            handover_and_acceptance::order_by::OrderBy,
-            handover_and_acceptance::filter_by::FilterBy,
+            handover_and_acceptance::types::OrderBy,
+            handover_and_acceptance::types::FilterBy,
         >,
     ) -> RepositoryResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)> {
         get_paged(self, query_params).await
     }
     async fn insert(
         &self,
-        handover_and_acceptance_user_input: &HandoverAndAcceptanceUserInput,
+        handover_and_acceptance_user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance> {
         todo!();
     }
     async fn update(
         &self,
-        handover_and_acceptance_user_input: &HandoverAndAcceptanceUserInput,
+        handover_and_acceptance_user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance> {
         todo!();
@@ -287,8 +286,8 @@ where
 pub async fn get_paged<'e, E>(
     executor: E,
     query_params: &ResourceQuery<
-        handover_and_acceptance::order_by::OrderBy,
-        handover_and_acceptance::filter_by::FilterBy,
+        handover_and_acceptance::types::OrderBy,
+        handover_and_acceptance::types::FilterBy,
     >,
 ) -> RepositoryResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)>
 where

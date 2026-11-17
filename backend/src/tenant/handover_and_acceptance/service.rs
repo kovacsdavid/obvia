@@ -34,15 +34,13 @@ use crate::{
         },
         pdf::{PdfGenError, PdfGenerator, PdfTemplates},
         query_parser::ResourceQuery,
-        service::ServiceError,
+        service::{BaseService, BaseServiceError},
     },
-    tenant::{
-        handover_and_acceptance::HandoverAndAcceptanceModuleInterface, services::model::Service,
-    },
+    tenant::handover_and_acceptance::{ModuleInterface, UserInput, model::HandoverAndAcceptance},
 };
 
 #[derive(Debug, Error)]
-pub enum HandoverAndAcceptanceServiceError {
+pub enum ServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
 
@@ -68,37 +66,37 @@ pub enum HandoverAndAcceptanceServiceError {
     UuidError(#[from] uuid::Error),
 }
 
-impl From<ServiceError> for HandoverAndAcceptanceServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for ServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => HandoverAndAcceptanceServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => ServiceError::Unauthorized,
         }
     }
 }
 
-impl From<HandoverAndAcceptanceServiceError> for AppError {
-    fn from(value: HandoverAndAcceptanceServiceError) -> Self {
+impl From<ServiceError> for AppError {
+    fn from(value: ServiceError) -> Self {
         match value {
-            HandoverAndAcceptanceServiceError::Unauthorized => Self::new(
+            ServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
-            HandoverAndAcceptanceServiceError::UnprocessableEntry(_) => Self::new(
+            ServiceError::UnprocessableEntry(_) => Self::new(
                 Level::DEBUG,
                 StatusCode::UNPROCESSABLE_ENTITY,
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
-            HandoverAndAcceptanceServiceError::Repository(RepositoryError::Database(
-                sqlx::Error::RowNotFound,
-            )) => Self::new(
-                Level::DEBUG,
-                StatusCode::NOT_FOUND,
-                AppErrorVisibility::UserFacing,
-                json!({"message": "Nem található"}),
-            ),
+            ServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)) => {
+                Self::new(
+                    Level::DEBUG,
+                    StatusCode::NOT_FOUND,
+                    AppErrorVisibility::UserFacing,
+                    json!({"message": "Nem található"}),
+                )
+            }
             _ => Self::new(
                 Level::ERROR,
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -109,9 +107,9 @@ impl From<HandoverAndAcceptanceServiceError> for AppError {
     }
 }
 
-type HandoverAndAcceptanceServiceResult<T> = Result<T, HandoverAndAcceptanceServiceError>;
+type HandoverAndAcceptanceServiceResult<T> = Result<T, ServiceError>;
 
-pub trait HandoverAndAcceptanceService {
+pub trait Service {
     fn insert(
         &self,
         payload: &HandoverAndAcceptanceUserInput,
@@ -145,18 +143,18 @@ pub trait HandoverAndAcceptanceService {
     ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<()>> + Sync;
 }
 
-impl<'a, T> HandoverAndAcceptanceService for Service<'a, T>
+impl<'a, T> Service for BaseService<'a, T>
 where
-    T: HandoverAndAcceptanceModuleInterface,
+    T: ModuleInterface,
 {
     async fn insert(
         &self,
-        payload: &HandoverAndAcceptanceUserInput,
+        payload: &UserInput,
     ) -> HandoverAndAcceptanceServiceResult<HandoverAndAcceptance> {
         self.module()
             .handover_and_acceptance_repo(self.active_tenant()?)
             .insert(payload, self.claims()?.sub())
-            .await?;
+            .await?
     }
 
     async fn get_full(
@@ -175,7 +173,7 @@ where
         payload: &HandoverAndAcceptanceUserInput,
     ) -> HandoverAndAcceptanceServiceResult<HandoverAndAcceptance> {
         if !payload.id.is_present() {
-            return Err(HandoverAndAcceptanceServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }

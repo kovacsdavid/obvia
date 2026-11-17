@@ -21,7 +21,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::activity_feed::ActivityFeedModuleInterface;
@@ -42,10 +42,10 @@ pub enum ActivityFeedServiceError {
     Unauthorized,
 }
 
-impl From<ServiceError> for ActivityFeedServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for ActivityFeedServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => ActivityFeedServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => ActivityFeedServiceError::Unauthorized,
         }
     }
 }
@@ -88,7 +88,7 @@ pub trait ActivityFeedService {
     ) -> impl Future<Output = ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>> + Send;
 }
 
-impl<'a, T> ActivityFeedService for Service<'a, T>
+impl<'a, T> ActivityFeedService for BaseService<'a, T>
 where
     T: ActivityFeedModuleInterface,
 {

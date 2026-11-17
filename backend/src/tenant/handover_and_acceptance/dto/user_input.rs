@@ -30,7 +30,7 @@ use std::fmt::{Display, Formatter};
 use tracing::Level;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct HandoverAndAcceptanceUserInputHelper {
+pub struct UserInputHelper {
     pub id: Option<String>,
     pub customer_id: String,
     pub item_make_id: String,
@@ -51,7 +51,7 @@ pub struct HandoverAndAcceptanceUserInputHelper {
 }
 
 #[derive(Debug, Serialize, Default, PartialEq)]
-pub struct HandoverAndAcceptanceUserInputError {
+pub struct UserInputError {
     pub id: Option<String>,
     pub customer_id: Option<String>,
     pub item_make_id: Option<String>,
@@ -71,7 +71,7 @@ pub struct HandoverAndAcceptanceUserInputError {
     pub received_at: Option<String>,
 }
 
-impl HandoverAndAcceptanceUserInputError {
+impl UserInputError {
     pub fn is_empty(&self) -> bool {
         let all_incluced_accessories_valid = || -> bool {
             for included_accessory in &self.included_accessories {
@@ -102,7 +102,7 @@ impl HandoverAndAcceptanceUserInputError {
     }
 }
 
-impl Display for HandoverAndAcceptanceUserInputError {
+impl Display for UserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateHandoverAndAcceptanceError: {}", json),
@@ -111,8 +111,8 @@ impl Display for HandoverAndAcceptanceUserInputError {
     }
 }
 
-impl From<HandoverAndAcceptanceUserInputError> for AppError {
-    fn from(value: HandoverAndAcceptanceUserInputError) -> Self {
+impl From<UserInputError> for AppError {
+    fn from(value: UserInputError) -> Self {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -125,20 +125,20 @@ impl From<HandoverAndAcceptanceUserInputError> for AppError {
     }
 }
 
-impl From<ValueObjectError> for HandoverAndAcceptanceUserInputError {
+impl From<ValueObjectError> for UserInputError {
     fn from(_: ValueObjectError) -> Self {
-        HandoverAndAcceptanceUserInputError::default()
+        UserInputError::default()
     }
 }
 
-impl From<AddressUserInputError> for HandoverAndAcceptanceUserInputError {
+impl From<AddressUserInputError> for UserInputError {
     fn from(_: AddressUserInputError) -> Self {
-        HandoverAndAcceptanceUserInputError::default()
+        UserInputError::default()
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct HandoverAndAcceptanceUserInput {
+pub struct UserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub customer_id: ValueObjectRequired<UuidVO>,
     pub item_make_id: ValueObjectOptional<UuidVO>,
@@ -169,10 +169,10 @@ pub struct HandoverAndAcceptanceUserInput {
     pub received_at: ValueObjectRequired<types::handover_and_acceptance::received_at::ReceivedAt>,
 }
 
-impl TryFrom<HandoverAndAcceptanceUserInputHelper> for HandoverAndAcceptanceUserInput {
-    type Error = HandoverAndAcceptanceUserInputError;
-    fn try_from(value: HandoverAndAcceptanceUserInputHelper) -> Result<Self, Self::Error> {
-        let mut error = HandoverAndAcceptanceUserInputError::default();
+impl TryFrom<UserInputHelper> for UserInput {
+    type Error = UserInputError;
+    fn try_from(value: UserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = UserInputError::default();
 
         let id = value
             .id
@@ -375,7 +375,7 @@ impl TryFrom<HandoverAndAcceptanceUserInputHelper> for HandoverAndAcceptanceUser
                 included_accessories_final.push(included_accessory?);
             }
 
-            Ok(HandoverAndAcceptanceUserInput {
+            Ok(UserInput {
                 id: id?,
                 customer_id: customer_id?,
                 item_make_id: item_make_id?,

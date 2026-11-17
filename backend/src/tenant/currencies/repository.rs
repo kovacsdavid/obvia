@@ -57,3 +57,22 @@ where
     .fetch_one(executor)
     .await?)
 }
+
+pub async fn get_vec<'e, E>(executor: E, codes: &[&str]) -> RepositoryResult<Vec<Currency>>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
+{
+    if codes.is_empty() {
+        return Ok(vec![]);
+    }
+    Ok(sqlx::query_as::<_, Currency>(
+        r#"
+            SELECT *
+            FROM currencies
+            WHERE code = ANY($1)
+        "#,
+    )
+    .bind(codes)
+    .fetch_all(executor)
+    .await?)
+}

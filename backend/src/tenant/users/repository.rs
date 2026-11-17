@@ -79,3 +79,23 @@ where
     .fetch_one(executor)
     .await?)
 }
+
+pub async fn get_vec<'e, E>(executor: E, ids: &[Uuid]) -> RepositoryResult<Vec<User>>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
+{
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+    Ok(sqlx::query_as::<_, User>(
+        r#"
+            SELECT *
+            FROM users
+            WHERE users.deleted_at IS NULL
+                AND users.id = ANY($1)
+        "#,
+    )
+    .bind(ids)
+    .fetch_all(executor)
+    .await?)
+}

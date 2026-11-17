@@ -17,8 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::collections::HashMap;
+
 use crate::common::dto::PaginatorMeta;
-use crate::common::error::RepositoryResult;
+use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::query_parser::ResourceQuery;
 use crate::tenant::currencies::repository as currencies_repository;
 use crate::tenant::customers::repository as customers_repository;
@@ -32,7 +34,7 @@ use crate::tenant::users::repository as users_repository;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -75,7 +77,7 @@ impl HandoverAndAcceptancesRepository for PgPool {
             handover_and_acceptance::filter_by::FilterBy,
         >,
     ) -> RepositoryResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)> {
-        todo!();
+        get_paged(self, query_params).await
     }
     async fn insert(
         &self,
@@ -129,6 +131,25 @@ where
     .await?)
 }
 
+pub async fn get_item_make_vec<'e, E>(executor: E, ids: &[Uuid]) -> RepositoryResult<Vec<ItemMake>>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
+{
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+    Ok(sqlx::query_as::<_, ItemMake>(
+        r#"
+            SELECT *
+            FROM item_makes
+            WHERE item_makes.id = ANY($1)
+        "#,
+    )
+    .bind(ids)
+    .fetch_all(executor)
+    .await?)
+}
+
 pub async fn get_item_model<'e, E>(executor: E, id: Uuid) -> RepositoryResult<ItemModel>
 where
     E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
@@ -142,6 +163,28 @@ where
     )
     .bind(id)
     .fetch_one(executor)
+    .await?)
+}
+
+pub async fn get_item_model_vec<'e, E>(
+    executor: E,
+    ids: &[Uuid],
+) -> RepositoryResult<Vec<ItemModel>>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
+{
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+    Ok(sqlx::query_as::<_, ItemModel>(
+        r#"
+            SELECT *
+            FROM item_models
+            WHERE item_models.id = ANY($1)
+        "#,
+    )
+    .bind(ids)
+    .fetch_all(executor)
     .await?)
 }
 
@@ -161,6 +204,28 @@ where
     )
     .bind(id)
     .fetch_one(executor)
+    .await?)
+}
+
+async fn get_item_identifier_type_vec<'e, E>(
+    executor: E,
+    ids: &[Uuid],
+) -> RepositoryResult<Vec<ItemIdentifierType>>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
+{
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+    Ok(sqlx::query_as::<_, ItemIdentifierType>(
+        r#"
+            SELECT *
+            FROM item_identifier_types
+            WHERE item_identifier_types.id = ANY($1)
+        "#,
+    )
+    .bind(ids)
+    .fetch_all(executor)
     .await?)
 }
 
@@ -217,4 +282,252 @@ where
         currency,
         user,
     )))
+}
+
+pub async fn get_paged<'e, E>(
+    executor: E,
+    query_params: &ResourceQuery<
+        handover_and_acceptance::order_by::OrderBy,
+        handover_and_acceptance::filter_by::FilterBy,
+    >,
+) -> RepositoryResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
+{
+    let total: (i64,) = match (
+        query_params.filtering().filter_by(), // Security: ValueObject
+        query_params.filtering().value_unchecked(), // Security: bind
+    ) {
+        (Some(filter_by), Some(value_unchecked)) => {
+            // TODO: check pg_trgm
+            sqlx::query_as(AssertSqlSafe(format!(
+                    r#"SELECT COUNT(*) FROM handover_and_acceptance
+                           WHERE deleted_at IS NULL
+                               AND ($1::TEXT IS NULL OR handover_and_acceptance.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
+                )))
+                .bind(value_unchecked)
+                .fetch_one(executor.clone())
+                .await?
+        }
+        (_, _) => {
+            sqlx::query_as("SELECT COUNT(*) FROM handover_and_acceptance WHERE deleted_at IS NULL")
+                .fetch_one(executor.clone())
+                .await?
+        }
+    };
+
+    let order_by_clause = match (
+        query_params.ordering().order_by(), // Security: ValueObject
+        query_params.ordering().order(),    // Security: enum
+    ) {
+        (Some(order_by), Some(order)) => {
+            format!("ORDER BY handover_and_acceptance.{order_by} {order}")
+        }
+        (_, _) => "".to_string(),
+    };
+
+    let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
+
+    let handover_and_acceptance_vec = match (
+        query_params.filtering().filter_by(), // Security: ValueObject
+        query_params.filtering().value_unchecked(), // Security: bind
+    ) {
+        (Some(filter_by), Some(value_unchecked)) => {
+            let sql = format!(
+                r#"
+                        SELECT *
+                        FROM handover_and_acceptance
+                        WHERE handover_and_acceptance.deleted_at IS NULL
+                            AND (
+                                    $1::TEXT IS NULL 
+                                    OR handover_and_acceptance.{filter_by}::TEXT ILIKE '%' || $1 || '%'
+                                )
+                        {order_by_clause}
+                        LIMIT $2
+                        OFFSET $3
+                    "#
+            );
+
+            sqlx::query_as::<_, HandoverAndAcceptance>(AssertSqlSafe(sql))
+                .bind(value_unchecked)
+                .bind(limit)
+                .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                .fetch_all(executor.clone())
+                .await?
+        }
+        (_, _) => {
+            let sql = format!(
+                r#"
+                    SELECT *
+                    FROM handover_and_acceptance
+                    WHERE handover_and_acceptance.deleted_at IS NULL
+                    {order_by_clause}
+                    LIMIT $1
+                    OFFSET $2
+                "#
+            );
+
+            sqlx::query_as::<_, HandoverAndAcceptance>(AssertSqlSafe(sql))
+                .bind(limit)
+                .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                .fetch_all(executor.clone())
+                .await?
+        }
+    };
+
+    let customer_full_map: HashMap<_, _> = customers_repository::get_full_by_ids(
+        executor.clone(),
+        &handover_and_acceptance_vec
+            .iter()
+            .map(|v| v.customer_id)
+            .collect::<Vec<Uuid>>(),
+    )
+    .await?
+    .into_iter()
+    .map(|v| (v.id, v))
+    .collect();
+
+    let item_make_map: HashMap<_, _> = get_item_make_vec(
+        executor.clone(),
+        &handover_and_acceptance_vec
+            .iter()
+            .filter_map(|v| v.item_make_id)
+            .collect::<Vec<Uuid>>(),
+    )
+    .await?
+    .into_iter()
+    .map(|v| (v.id, v))
+    .collect();
+
+    let item_model_map: HashMap<_, _> = get_item_model_vec(
+        executor.clone(),
+        &handover_and_acceptance_vec
+            .iter()
+            .filter_map(|v| v.item_model_id)
+            .collect::<Vec<Uuid>>(),
+    )
+    .await?
+    .into_iter()
+    .map(|v| (v.id, v))
+    .collect();
+
+    let item_identifier_type_map: HashMap<_, _> = get_item_identifier_type_vec(
+        executor.clone(),
+        &handover_and_acceptance_vec
+            .iter()
+            .map(|v| v.item_identifier_type_id)
+            .collect::<Vec<Uuid>>(),
+    )
+    .await?
+    .into_iter()
+    .map(|v| (v.id, v))
+    .collect();
+
+    let currency_code_map: HashMap<_, _> = currencies_repository::get_vec(
+        executor.clone(),
+        &handover_and_acceptance_vec
+            .iter()
+            .filter_map(|v| match &v.currency_code {
+                Some(v) => Some(v.as_str()),
+                None => None,
+            })
+            .collect::<Vec<&str>>(),
+    )
+    .await?
+    .into_iter()
+    .map(|v| (v.code.clone(), v))
+    .collect();
+
+    let accepted_by_map: HashMap<_, _> = users_repository::get_vec(
+        executor,
+        &handover_and_acceptance_vec
+            .iter()
+            .map(|v| v.accepted_by)
+            .collect::<Vec<Uuid>>(),
+    )
+    .await?
+    .into_iter()
+    .map(|v| (v.id, v))
+    .collect();
+
+    let mut handover_and_acceptance_full_vec = vec![];
+
+    for handover_and_acceptance in handover_and_acceptance_vec {
+        let customer = customer_full_map
+            .get(&handover_and_acceptance.customer_id)
+            .ok_or(RepositoryError::InvalidState(
+                "customer with given key was not loaded",
+            ))?
+            .clone();
+        let item_make = if let Some(item_make_id) = handover_and_acceptance.item_make_id {
+            Some(
+                item_make_map
+                    .get(&item_make_id)
+                    .ok_or(RepositoryError::InvalidState(
+                        "item_make with given key was not loaded",
+                    ))?
+                    .clone(),
+            )
+        } else {
+            None
+        };
+        let item_model_full = if let Some(item_model_id) = handover_and_acceptance.item_model_id
+            && let Some(item_make) = &item_make
+        {
+            Some(ItemModelFull::from((
+                item_model_map
+                    .get(&item_model_id)
+                    .ok_or(RepositoryError::InvalidState(
+                        "item_model with given key was not loaded",
+                    ))?
+                    .clone(),
+                item_make.clone(),
+            )))
+        } else {
+            None
+        };
+        let item_identifier_type = item_identifier_type_map
+            .get(&handover_and_acceptance.item_identifier_type_id)
+            .ok_or(RepositoryError::InvalidState(
+                "item_identifier_type with given key was not loaded",
+            ))?
+            .clone();
+        let currency = if let Some(currency_code) = &handover_and_acceptance.currency_code {
+            Some(
+                currency_code_map
+                    .get(currency_code)
+                    .ok_or(RepositoryError::InvalidState(
+                        "currency with given key was not loaded",
+                    ))?
+                    .clone(),
+            )
+        } else {
+            None
+        };
+        let accepted_by = accepted_by_map
+            .get(&handover_and_acceptance.accepted_by)
+            .ok_or(RepositoryError::InvalidState(
+                "accepted_by with given key was not loaded",
+            ))?
+            .clone();
+
+        handover_and_acceptance_full_vec.push(HandoverAndAcceptanceFull::from((
+            handover_and_acceptance,
+            customer,
+            item_make,
+            item_model_full,
+            item_identifier_type,
+            currency,
+            accepted_by,
+        )));
+    }
+
+    Ok((
+        PaginatorMeta {
+            page: query_params.paging().page().unwrap_or(1).try_into()?,
+            limit,
+            total: total.0,
+        },
+        handover_and_acceptance_full_vec,
+    ))
 }

@@ -50,12 +50,12 @@ pub trait Repository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)>;
     async fn insert(
         &self,
-        handover_and_acceptance_user_input: &UserInput,
+        user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance>;
     async fn update(
         &self,
-        handover_and_acceptance_user_input: &UserInput,
+        user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
@@ -80,14 +80,62 @@ impl Repository for PgPool {
     }
     async fn insert(
         &self,
-        handover_and_acceptance_user_input: &UserInput,
+        user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance> {
-        todo!();
+        let mut tx = self.begin().await?;
+        let item_make_id = if let Some(new_item_make) = &user_input.new_item_make {
+            Some(
+                insert_item_make(&mut *tx, new_item_make.as_str()?)
+                    .await?
+                    .id,
+            )
+        } else {
+            user_input.item_make_id.as_uuid()
+        };
+
+        let item_model_id = if let Some(new_item_model) = &user_input.new_item_model {
+            if let Some(item_make_id) = item_make_id {
+                Some(
+                    insert_item_model(&mut *tx, new_item_model.as_str()?, item_make_id)
+                        .await?
+                        .id,
+                )
+            } else {
+                return Err(RepositoryError::InvalidState(
+                    "item make required if model present",
+                ));
+            }
+        } else {
+            None
+        };
+
+        let item_identifier_type_id =
+            if let Some(new_item_identifier_type) = &user_input.new_item_identifier_type {
+                insert_item_identifier_type(&mut *tx, new_item_identifier_type.as_str()?)
+                    .await?
+                    .id
+            } else if let Some(item_identifier_type_id) = &user_input.item_identifier_type_id {
+                item_identifier_type_id.as_uuid()?
+            } else {
+                return Err(RepositoryError::InvalidState(
+                    "item_identifier_type is required",
+                ));
+            };
+
+        insert(
+            &mut *tx,
+            user_input,
+            sub,
+            item_make_id,
+            item_model_id,
+            item_identifier_type_id,
+        )
+        .await
     }
     async fn update(
         &self,
-        handover_and_acceptance_user_input: &UserInput,
+        user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance> {
         todo!();
@@ -529,4 +577,129 @@ where
         },
         handover_and_acceptance_full_vec,
     ))
+}
+
+pub async fn insert(
+    executor: &mut sqlx::PgConnection,
+    user_input: &UserInput,
+    sub: Uuid,
+    item_make_id: Option<Uuid>,
+    item_model_id: Option<Uuid>,
+    item_identifier_type_id: Uuid,
+) -> RepositoryResult<HandoverAndAcceptance> {
+    Ok(sqlx::query_as::<_, HandoverAndAcceptance>(
+        r#"
+        INSERT INTO handover_and_acceptance (
+            customer_id
+            item_make_id
+            item_model_id
+            item_identifier_type_id
+            item_identifier_value
+            reported_issue
+            condition_at_receipt
+            included_accessories
+            authorized_work
+            repair_limit
+            currency_code
+            terms_version
+            accepted_by
+            received_at
+        ) VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9,
+            $10,
+            $11,
+            $12,
+            $13,
+            $14
+        ) RETURNING *
+    "#,
+    )
+    .bind(user_input.customer_id.as_uuid()?)
+    .bind(item_make_id)
+    .bind(item_model_id)
+    .bind(item_identifier_type_id)
+    .bind(user_input.item_identifier_value.as_str()?)
+    .bind(user_input.reported_issue.as_str())
+    .bind(user_input.condition_at_receipt.as_str())
+    .bind(
+        user_input
+            .included_accessories
+            .iter()
+            .map(|v| v.as_str().unwrap_or("uxpected state"))
+            .collect::<Vec<&str>>(),
+    )
+    .bind(user_input.authorized_work.as_str())
+    .bind(user_input.repair_limit.as_f64())
+    .bind(user_input.currency_code.as_str())
+    .bind(user_input.terms_version.as_str())
+    .bind(sub)
+    .bind(user_input.received_at.as_date_naive()?)
+    .fetch_one(executor)
+    .await?)
+}
+
+pub async fn insert_item_identifier_type(
+    executor: &mut sqlx::PgConnection,
+    name: &str,
+) -> RepositoryResult<ItemIdentifierType> {
+    Ok(sqlx::query_as::<_, ItemIdentifierType>(
+        r#"
+            INSERT INTO item_identifier_types (
+                name
+            ) VALUES (
+                $1
+            ) RETURNING *
+        "#,
+    )
+    .bind(name)
+    .fetch_one(executor)
+    .await?)
+}
+
+pub async fn insert_item_make(
+    executor: &mut sqlx::PgConnection,
+    name: &str,
+) -> RepositoryResult<ItemMake> {
+    Ok(sqlx::query_as::<_, ItemMake>(
+        r#"
+            INSERT INTO item_makes (
+                name
+            ) VALUES (
+                $1
+            ) RETURNING *
+        "#,
+    )
+    .bind(name)
+    .fetch_one(executor)
+    .await?)
+}
+
+pub async fn insert_item_model(
+    executor: &mut sqlx::PgConnection,
+    name: &str,
+    item_make_id: Uuid,
+) -> RepositoryResult<ItemModel> {
+    Ok(sqlx::query_as::<_, ItemModel>(
+        r#"
+            INSERT INTO item_models (
+                make_id
+                name
+            ) VALUES (
+                $1,
+                $2
+            ) RETURNING *
+        "#,
+    )
+    .bind(item_make_id)
+    .bind(name)
+    .fetch_one(executor)
+    .await?)
 }

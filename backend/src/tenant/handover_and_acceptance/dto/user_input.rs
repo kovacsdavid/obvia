@@ -239,6 +239,16 @@ impl TryFrom<UserInputHelper> for UserInput {
             None
         };
 
+        let is_item_make_set =
+            !value.item_make_id.trim().is_empty() || !value.new_item_make.trim().is_empty();
+        let is_item_model_set =
+            !value.item_model_id.trim().is_empty() || !value.new_item_model.trim().is_empty();
+
+        if is_item_model_set && !is_item_make_set {
+            error.item_model_id = Some("Nincs megadva gyártó".to_string());
+            error.new_item_model = Some("Nincs megadva gyártó".to_string());
+        }
+
         let item_identifier_type_id = if value.item_identifier_type_id == "other" {
             None
         } else {

@@ -27,3 +27,19 @@ pub struct Currency {
     pub number: String,
     pub name: String,
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    pub fn test_currency_builder() -> CurrencyBuilder {
+        let mut builder = CurrencyBuilder::default();
+
+        builder
+            .code("HUF".to_string())
+            .number(348.to_string())
+            .name("Forint".to_string());
+
+        builder
+    }
+}

@@ -60,7 +60,7 @@ impl Print {
             Some(format!(
                 "{} {}",
                 thousand_separated_number_bigdecimal(repair_limit, 2),
-                currency_code.name
+                currency_code.code
             ))
         } else {
             None
@@ -129,7 +129,7 @@ pub fn test_handover_and_acceptance_full_print_builder() -> PrintBuilder {
             "laptop bag".to_string(),
         ]))
         .authorized_work(Some("Some work to do.".to_string()))
-        .repair_limit(Some("1000 HUF".to_string()))
+        .repair_limit(Some("1 000.00 HUF".to_string()))
         .terms_version(Some("v1".to_string()))
         .accepted_by("Test User".to_string())
         .received_at(TEST_TIME_TZ.clone())
@@ -145,7 +145,11 @@ mod tests {
 
     use crate::{
         common::TEST_TZ,
-        tenant::handover_and_acceptance::model::tests::test_handover_and_acceptance_full_builder,
+        tenant::{
+            address::model::test_address_resolved_builder,
+            customers::model::tests::test_customer_full_builder,
+            handover_and_acceptance::model::tests::test_handover_and_acceptance_full_builder,
+        },
     };
 
     use super::*;
@@ -156,18 +160,27 @@ mod tests {
         let handover_and_acceptance_id = Uuid::now_v7();
         let customer_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
-        let customer_full = test_customer_full_print_builder()
+        let customer_full_print = test_customer_full_print_builder()
             .id(customer_id)
             .created_by_id(created_by_id)
             .build()
             .unwrap();
-        let handover_and_acceptance_full =
-            test_handover_and_acceptance_full_builder().build().unwrap();
+        let handover_and_acceptance_full = test_handover_and_acceptance_full_builder(
+            test_customer_full_builder()
+                .id(customer_id)
+                .created_by_id(created_by_id)
+                .billing_address(Some(test_address_resolved_builder().build().unwrap()))
+                .build()
+                .unwrap(),
+        )
+        .id(handover_and_acceptance_id)
+        .build()
+        .unwrap();
         let handover_and_acceptance_resolved_print =
             Print::new(handover_and_acceptance_full, *TEST_TZ);
         let handover_and_acceptance_resolved_print_expected = Print {
             id: handover_and_acceptance_id,
-            customer: customer_full,
+            customer: customer_full_print,
             item_make: Some("TestMake".to_string()),
             item_model: Some("TestModel".to_string()),
             item_identifier_type: "serial number".to_string(),
@@ -179,7 +192,7 @@ mod tests {
                 "laptop bag".to_string(),
             ]),
             authorized_work: Some("Some work to do.".to_string()),
-            repair_limit: Some("1000 HUF".to_string()),
+            repair_limit: Some("1 000.00 HUF".to_string()),
             terms_version: Some("v1".to_string()),
             accepted_by: "Test User".to_string(),
             received_at: TEST_TIME_TZ.clone(),

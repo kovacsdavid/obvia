@@ -174,8 +174,7 @@ pub mod tests {
     use crate::{
         common::TEST_TIME,
         tenant::{
-            customers::model::tests::test_customer_full_builder,
-            users::model::tests::test_user_builder,
+            currencies::model::tests::test_currency_builder, users::model::tests::test_user_builder,
         },
     };
 
@@ -250,13 +249,15 @@ pub mod tests {
         builder
     }
 
-    pub fn test_handover_and_acceptance_full_builder() -> HandoverAndAcceptanceFullBuilder {
+    pub fn test_handover_and_acceptance_full_builder(
+        customer_full: CustomerFull,
+    ) -> HandoverAndAcceptanceFullBuilder {
         let mut builder = HandoverAndAcceptanceFullBuilder::default();
         let item_make = test_item_make_builder();
 
         builder
             .id(Uuid::now_v7())
-            .customer(test_customer_full_builder().build().unwrap())
+            .customer(customer_full)
             .item_make(Some(item_make.build().unwrap()))
             .item_model(Some(
                 test_item_model_full_builder(item_make).build().unwrap(),
@@ -271,6 +272,7 @@ pub mod tests {
             ]))
             .authorized_work(Some("Some work to do.".to_string()))
             .repair_limit(Some("1000".parse().unwrap()))
+            .currency_code(Some(test_currency_builder().build().unwrap()))
             .terms_version(Some("v1".to_string()))
             .accepted_by(test_user_builder().build().unwrap())
             .received_at(*TEST_TIME)

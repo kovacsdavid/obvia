@@ -237,6 +237,7 @@ mod tests {
         http::{Request, StatusCode},
     };
     use mockall::predicate::eq;
+    use pretty_assertions::assert_eq;
     use serde_json::json;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -257,13 +258,16 @@ mod tests {
             },
             query_parser::ResourceQuery,
         },
-        tenant::handover_and_acceptance::{
-            self, UserInput, UserInputHelper,
-            model::tests::{
-                test_handover_and_acceptance_builder, test_handover_and_acceptance_full_builder,
+        tenant::{
+            customers::model::tests::test_customer_full_builder,
+            handover_and_acceptance::{
+                self, UserInput, UserInputHelper,
+                model::tests::{
+                    test_handover_and_acceptance_builder, test_handover_and_acceptance_full_builder,
+                },
+                repository::MockRepository,
+                tests::MockModule,
             },
-            repository::MockRepository,
-            tests::MockModule,
         },
     };
 
@@ -274,10 +278,12 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let handover_and_acceptance_full = test_handover_and_acceptance_full_builder()
-            .id(handover_and_acceptance_id)
-            .build()
-            .unwrap();
+        let handover_and_acceptance_full = test_handover_and_acceptance_full_builder(
+            test_customer_full_builder().build().unwrap(),
+        )
+        .id(handover_and_acceptance_id)
+        .build()
+        .unwrap();
 
         let mut handover_and_acceptance_repo = MockRepository::new();
         handover_and_acceptance_repo
@@ -515,10 +521,12 @@ mod tests {
             total: 100,
         };
 
-        let handover_and_acceptance_full = test_handover_and_acceptance_full_builder()
-            .id(handover_and_acceptance_id)
-            .build()
-            .unwrap();
+        let handover_and_acceptance_full = test_handover_and_acceptance_full_builder(
+            test_customer_full_builder().build().unwrap(),
+        )
+        .id(handover_and_acceptance_id)
+        .build()
+        .unwrap();
 
         let mut handover_and_acceptance_repo = MockRepository::new();
         handover_and_acceptance_repo
@@ -1659,10 +1667,12 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let handover_and_acceptance_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
 
-        let handover_and_acceptance_full = test_handover_and_acceptance_full_builder()
-            .id(handover_and_acceptance_id)
-            .build()
-            .unwrap();
+        let handover_and_acceptance_full = test_handover_and_acceptance_full_builder(
+            test_customer_full_builder().build().unwrap(),
+        )
+        .id(handover_and_acceptance_id)
+        .build()
+        .unwrap();
 
         let mut repo = MockRepository::new();
         repo.expect_get_full()

@@ -28,6 +28,7 @@ use uuid::Uuid;
 use crate::{
     common::{
         CommonBuilderError,
+        dto::PaginatorMeta,
         error::{
             RepositoryError,
             v2::{AppError, AppErrorVisibility},
@@ -36,7 +37,11 @@ use crate::{
         query_parser::ResourceQuery,
         service::{BaseService, BaseServiceError},
     },
-    tenant::handover_and_acceptance::{ModuleInterface, UserInput, model::HandoverAndAcceptance},
+    tenant::handover_and_acceptance::{
+        self, ModuleInterface, Print, UserInput,
+        model::{HandoverAndAcceptance, HandoverAndAcceptanceFull},
+        test_handover_and_acceptance_full_print_builder,
+    },
 };
 
 #[derive(Debug, Error)]
@@ -112,7 +117,7 @@ type HandoverAndAcceptanceServiceResult<T> = Result<T, ServiceError>;
 pub trait Service {
     fn insert(
         &self,
-        payload: &HandoverAndAcceptanceUserInput,
+        payload: &UserInput,
     ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<HandoverAndAcceptance>> + Send;
     fn get_full(
         &self,
@@ -120,13 +125,16 @@ pub trait Service {
     ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<HandoverAndAcceptanceFull>> + Send;
     fn update(
         &self,
-        payload: &HandoverAndAcceptanceUserInput,
+        payload: &UserInput,
     ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<HandoverAndAcceptance>> + Send;
     fn delete(&self, payload: Uuid)
     -> impl Future<Output = HandoverAndAcceptanceServiceResult<()>>;
     fn get_paged(
         &self,
-        get_query: &ResourceQuery<HandoverAndAcceptanceOrderBy, HandoverAndAcceptanceFilterBy>,
+        get_query: &ResourceQuery<
+            handover_and_acceptance::types::OrderBy,
+            handover_and_acceptance::types::FilterBy,
+        >,
     ) -> impl Future<
         Output = HandoverAndAcceptanceServiceResult<(
             PaginatorMeta,
@@ -135,7 +143,7 @@ pub trait Service {
     > + Send;
     fn print(
         &self,
-        payload: &[HandoverAndAcceptanceFullPrint],
+        payload: &[Print],
     ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<Vec<u8>>> + Sync;
     fn print_snapshot(
         &self,
@@ -151,10 +159,11 @@ where
         &self,
         payload: &UserInput,
     ) -> HandoverAndAcceptanceServiceResult<HandoverAndAcceptance> {
-        self.module()
-            .handover_and_acceptance_repo(self.active_tenant()?)
+        Ok(self
+            .module()
+            .handover_and_acceptance_repo(self.active_tenant()?)?
             .insert(payload, self.claims()?.sub())
-            .await?
+            .await?)
     }
 
     async fn get_full(
@@ -170,7 +179,7 @@ where
 
     async fn update(
         &self,
-        payload: &HandoverAndAcceptanceUserInput,
+        payload: &UserInput,
     ) -> HandoverAndAcceptanceServiceResult<HandoverAndAcceptance> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
@@ -194,7 +203,10 @@ where
 
     async fn get_paged(
         &self,
-        get_query: &ResourceQuery<HandoverAndAcceptanceOrderBy, HandoverAndAcceptanceFilterBy>,
+        get_query: &ResourceQuery<
+            handover_and_acceptance::types::OrderBy,
+            handover_and_acceptance::types::FilterBy,
+        >,
     ) -> HandoverAndAcceptanceServiceResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)> {
         Ok(self
             .module()
@@ -203,10 +215,7 @@ where
             .await?)
     }
 
-    async fn print(
-        &self,
-        payload: &[HandoverAndAcceptanceFullPrint],
-    ) -> HandoverAndAcceptanceServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[Print]) -> HandoverAndAcceptanceServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::HandoverAndAcceptance,
             payload.to_vec(),
@@ -215,11 +224,11 @@ where
 
     async fn print_snapshot(&self, path: &Path) -> HandoverAndAcceptanceServiceResult<()> {
         let handover_and_acceptance_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+        let accepted_by: Uuid = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
         let handover_and_acceptance_resolved_print =
             test_handover_and_acceptance_full_print_builder()
                 .id(handover_and_acceptance_id)
-                .created_by_id(created_by_id)
+                .accepted_by(accepted_by.to_string())
                 .build()?;
         let pdf = self
             .print(&[handover_and_acceptance_resolved_print])

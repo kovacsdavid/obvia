@@ -467,7 +467,7 @@ mod tests {
             repair_limit: "1000".parse().unwrap(),
             currency_code: "HUF".parse().unwrap(),
             terms_version: "v1".parse().unwrap(),
-            received_at: TEST_TIME.to_string().parse().unwrap(),
+            received_at: TEST_TIME.date_naive().to_string().parse().unwrap(),
         };
 
         assert!(user_input.is_ok());

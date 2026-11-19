@@ -1208,19 +1208,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_invalid_user_input() {
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
         let user_input_helper = UserInputHelper {
             id: None,
-            customer_id: "".to_string(),
-            item_make_id: "other".to_string(),
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
             new_item_make: "".to_string(),
-            item_model_id: "asdf".to_string(),
+            item_model_id: item_model_id.to_string(),
             new_item_model: "".to_string(),
-            item_identifier_type_id: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
             new_item_identifier_type: "".to_string(),
-            item_identifier_value: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
             reported_issue: "Some reported issue".to_string(),
             condition_at_receipt: "Condition at receipt".to_string(),
             included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
@@ -1228,7 +1232,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
 
         let mut app_state = MockModule::new();

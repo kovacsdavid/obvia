@@ -414,23 +414,112 @@ impl TryFrom<UserInputHelper> for UserInput {
 mod tests {
 
     use pretty_assertions::assert_eq;
+    use uuid::Uuid;
+
+    use crate::common::TEST_TIME;
 
     use super::*;
 
     #[test]
-    fn valid_handover_and_acceptance_user_input_natural() {
-        todo!()
-    }
+    fn valid_handover_and_acceptance_user_input() {
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
 
-    #[test]
-    fn valid_handover_and_acceptance_user_input_legal() {
-        todo!()
-    }
-    #[test]
-    fn invalid_handover_and_acceptance_user_input_natural() {
-        todo!()
-    }
+        let user_input = UserInput::try_from(UserInputHelper {
+            id: None,
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        });
 
+        let expected_user_input = UserInput {
+            id: "".parse().unwrap(),
+            customer_id: customer_id.to_string().parse().unwrap(),
+            item_make_id: item_make_id.to_string().parse().unwrap(),
+            new_item_make: None,
+            item_model_id: item_model_id.to_string().parse().unwrap(),
+            new_item_model: None,
+            item_identifier_type_id: Some(item_identifier_type_id.to_string().parse().unwrap()),
+            new_item_identifier_type: None,
+            item_identifier_value: "ASD123456789".parse().unwrap(),
+            reported_issue: "Some reported issue".parse().unwrap(),
+            condition_at_receipt: "Condition at receipt".parse().unwrap(),
+            included_accessories: vec![
+                "chargeing cable".parse().unwrap(),
+                "laptop bag".parse().unwrap(),
+            ],
+            authorized_work: "Some work to do.".parse().unwrap(),
+            repair_limit: "1000".parse().unwrap(),
+            currency_code: "HUF".parse().unwrap(),
+            terms_version: "v1".parse().unwrap(),
+            received_at: TEST_TIME.to_string().parse().unwrap(),
+        };
+
+        assert!(user_input.is_ok());
+        assert_eq!(expected_user_input, user_input.unwrap());
+    }
     #[test]
-    fn invalid_handover_and_acceptance_user_input_legal() {}
+    fn invalid_handover_and_acceptance_user_input() {
+        let customer_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
+
+        let user_input = UserInput::try_from(UserInputHelper {
+            id: None,
+            customer_id: customer_id.to_string(),
+            item_make_id: "".to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        });
+
+        let expected_user_input_error = UserInputError {
+            id: None,
+            customer_id: None,
+            item_make_id: None,
+            new_item_make: None,
+            item_model_id: Some("Nincs megadva gyártó".to_string()),
+            new_item_model: Some("Nincs megadva gyártó".to_string()),
+            item_identifier_type_id: None,
+            new_item_identifier_type: None,
+            item_identifier_value: None,
+            reported_issue: None,
+            condition_at_receipt: None,
+            included_accessories: vec![None; 2],
+            authorized_work: None,
+            repair_limit: None,
+            currency_code: None,
+            terms_version: None,
+            received_at: None,
+        };
+
+        assert!(user_input.is_err());
+        assert_eq!(expected_user_input_error, user_input.unwrap_err());
+    }
 }

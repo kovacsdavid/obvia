@@ -129,7 +129,7 @@ impl Repository for PgPool {
                 ));
             };
 
-        insert(
+        let handover_and_acceptance = insert(
             &mut *tx,
             user_input,
             sub,
@@ -137,7 +137,11 @@ impl Repository for PgPool {
             item_model_id,
             item_identifier_type_id,
         )
-        .await
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(handover_and_acceptance)
     }
     async fn update(
         &self,

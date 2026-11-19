@@ -148,7 +148,70 @@ impl Repository for PgPool {
         user_input: &UserInput,
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance> {
-        todo!();
+        let id = user_input
+            .id
+            .as_uuid()
+            .ok_or(RepositoryError::InvalidInput("id".to_string()))?;
+        let mut tx = self.begin().await?;
+        let item_make_id = if let Some(new_item_make) = &user_input.new_item_make {
+            Some(
+                insert_item_make(&mut *tx, new_item_make.as_str()?)
+                    .await?
+                    .id,
+            )
+        } else {
+            user_input.item_make_id.as_uuid()
+        };
+
+        let item_model_id = if let Some(new_item_model) = &user_input.new_item_model {
+            if let Some(item_make_id) = item_make_id {
+                Some(
+                    insert_item_model(&mut *tx, new_item_model.as_str()?, item_make_id)
+                        .await?
+                        .id,
+                )
+            } else {
+                return Err(RepositoryError::InvalidState(
+                    "item make required if model present",
+                ));
+            }
+        } else {
+            if item_make_id.is_some() {
+                user_input.item_model_id.as_uuid()
+            } else {
+                return Err(RepositoryError::InvalidState(
+                    "item make required if model present",
+                ));
+            }
+        };
+
+        let item_identifier_type_id =
+            if let Some(new_item_identifier_type) = &user_input.new_item_identifier_type {
+                insert_item_identifier_type(&mut *tx, new_item_identifier_type.as_str()?)
+                    .await?
+                    .id
+            } else if let Some(item_identifier_type_id) = &user_input.item_identifier_type_id {
+                item_identifier_type_id.as_uuid()?
+            } else {
+                return Err(RepositoryError::InvalidState(
+                    "item_identifier_type is required",
+                ));
+            };
+
+        let handover_and_acceptance = update(
+            &mut *tx,
+            id,
+            user_input,
+            sub,
+            item_make_id,
+            item_model_id,
+            item_identifier_type_id,
+        )
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(handover_and_acceptance)
     }
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         todo!();
@@ -710,6 +773,61 @@ pub async fn insert_item_model(
     )
     .bind(item_make_id)
     .bind(name)
+    .fetch_one(executor)
+    .await?)
+}
+
+pub async fn update(
+    executor: &mut sqlx::PgConnection,
+    id: Uuid,
+    user_input: &UserInput,
+    sub: Uuid,
+    item_make_id: Option<Uuid>,
+    item_model_id: Option<Uuid>,
+    item_identifier_type_id: Uuid,
+) -> RepositoryResult<HandoverAndAcceptance> {
+    Ok(sqlx::query_as::<_, HandoverAndAcceptance>(
+        r#"
+        UPDATE handover_and_acceptance
+        SET customer_id = $1,
+            item_make_id = $2,
+            item_model_id = $3
+            item_identifier_type_id = $4
+            item_identifier_value = $5
+            reported_issue = $6
+            condition_at_receipt = $7
+            included_accessories = $8
+            authorized_work = $9
+            repair_limit = $10
+            currency_code = $11
+            terms_version = $12
+            accepted_by = $13
+            received_at = $14
+        WHERE id = $15
+        RETURNING *
+    "#,
+    )
+    .bind(user_input.customer_id.as_uuid()?)
+    .bind(item_make_id)
+    .bind(item_model_id)
+    .bind(item_identifier_type_id)
+    .bind(user_input.item_identifier_value.as_str()?)
+    .bind(user_input.reported_issue.as_str())
+    .bind(user_input.condition_at_receipt.as_str())
+    .bind(
+        user_input
+            .included_accessories
+            .iter()
+            .map(|v| v.as_str().unwrap_or("uxpected state"))
+            .collect::<Vec<&str>>(),
+    )
+    .bind(user_input.authorized_work.as_str())
+    .bind(user_input.repair_limit.as_f64())
+    .bind(user_input.currency_code.as_str())
+    .bind(user_input.terms_version.as_str())
+    .bind(sub)
+    .bind(user_input.received_at.as_date_naive()?)
+    .bind(id)
     .fetch_one(executor)
     .await?)
 }

@@ -17,11 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode, header},
+    response::IntoResponse,
 };
 use tracing::instrument;
 
@@ -35,7 +36,7 @@ use crate::{
     },
     manager::auth::middleware::AuthenticatedUser,
     tenant::handover_and_acceptance::{
-        ModuleInterface, Print, UserInput, UserInputHelper,
+        ModuleInterface, Print, Service, UserInput, UserInputHelper,
         types::{FilterBy, OrderBy},
     },
 };
@@ -224,7 +225,11 @@ pub async fn print<M: ModuleInterface>(
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::Write, path::Path};
+    use std::{
+        fs::File,
+        io::{Read, Write},
+        path::Path,
+    };
 
     use axum::{
         Router,
@@ -238,6 +243,7 @@ mod tests {
 
     use crate::{
         common::{
+            TEST_TIME,
             config::tests::test_app_config_builder,
             dto::PaginatorMeta,
             error::RepositoryError,
@@ -252,8 +258,12 @@ mod tests {
             query_parser::ResourceQuery,
         },
         tenant::handover_and_acceptance::{
-            self, MockRepository, UserInput, UserInputHelper,
-            model::tests::test_handover_and_acceptance_full_builder, tests::MockModule,
+            self, UserInput, UserInputHelper,
+            model::tests::{
+                test_handover_and_acceptance_builder, test_handover_and_acceptance_full_builder,
+            },
+            repository::MockRepository,
+            tests::MockModule,
         },
     };
 
@@ -261,7 +271,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_full_success() {
-        todo!();
         let active_tenant_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
@@ -442,7 +451,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut repo = MockModule::new();
+        let mut repo = MockRepository::new();
         repo.expect_get_full()
             .times(1)
             .with(eq(handover_and_acceptance_id))
@@ -506,7 +515,7 @@ mod tests {
             total: 100,
         };
 
-        let handover_and_acceptance_resolved = test_handover_and_acceptance_resolved_builder()
+        let handover_and_acceptance_full = test_handover_and_acceptance_full_builder()
             .id(handover_and_acceptance_id)
             .build()
             .unwrap();
@@ -522,7 +531,7 @@ mod tests {
                 >>()
                 .unwrap()))
             .returning({
-                let handover_and_acceptance_resolved = handover_and_acceptance_resolved.clone();
+                let handover_and_acceptance_resolved = handover_and_acceptance_full.clone();
                 move |_| {
                     Ok((
                         paginator_meta,
@@ -565,8 +574,6 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-
-        let handover_and_acceptance_full = handover_and_acceptance_resolved.into_full();
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
@@ -739,11 +746,33 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_success() {
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let user_input_helper = UserInputHelper {};
+        let user_input_helper = UserInputHelper {
+            id: None,
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
         let user_input = UserInput::try_from(user_input_helper.clone()).unwrap();
 
         let handover_and_acceptance = test_handover_and_acceptance_builder()
@@ -756,16 +785,30 @@ mod tests {
             .times(1)
             .withf({
                 let user_input_expected = user_input.clone();
-                // TODO: adjust this to HandoverAndAcceptance and figure out why did not you use
-                // PartialEq for this check
                 move |user_input, user_id_inner| {
-                    user_input.name == user_input_expected.name
-                        && user_input.contact_name == user_input_expected.contact_name
-                        && user_input.email == user_input_expected.email
-                        && user_input.phone_number == user_input_expected.phone_number
-                        && user_input.status == user_input_expected.status
+                    user_input.id == user_input_expected.id
+                        && user_input.customer_id == user_input_expected.customer_id
+                        && user_input.item_make_id == user_input_expected.item_make_id
+                        && user_input.new_item_make == user_input_expected.new_item_make
+                        && user_input.item_model_id == user_input_expected.item_model_id
+                        && user_input.new_item_model == user_input_expected.new_item_model
+                        && user_input.item_identifier_type_id
+                            == user_input_expected.item_identifier_type_id
+                        && user_input.new_item_identifier_type
+                            == user_input_expected.new_item_identifier_type
+                        && user_input.item_identifier_value
+                            == user_input_expected.item_identifier_value
+                        && user_input.reported_issue == user_input_expected.reported_issue
+                        && user_input.condition_at_receipt
+                            == user_input_expected.condition_at_receipt
+                        && user_input.included_accessories
+                            == user_input_expected.included_accessories
+                        && user_input.authorized_work == user_input_expected.authorized_work
+                        && user_input.repair_limit == user_input_expected.repair_limit
+                        && user_input.currency_code == user_input_expected.currency_code
+                        && user_input.terms_version == user_input_expected.terms_version
+                        && user_input.received_at == user_input_expected.received_at
                         && user_id == *user_id_inner
-                        && todo!()
                 }
             })
             .returning({
@@ -823,7 +866,25 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let user_input_helper = UserInputHelper {};
+        let user_input_helper = UserInputHelper {
+            id: None,
+            customer_id: "".to_string(),
+            item_make_id: "other".to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: "asdf".to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: "".to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
 
         let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
@@ -870,7 +931,30 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
-        let user_input_helper = UserInputHelper {};
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
+
+        let user_input_helper = UserInputHelper {
+            id: None,
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
 
         let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
@@ -911,7 +995,30 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_invalid_signature() {
-        let user_input_helper = UserInputHelper {};
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
+
+        let user_input_helper = UserInputHelper {
+            id: None,
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
 
         let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
@@ -952,7 +1059,30 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
-        let user_input_helper = UserInputHelper {};
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
+
+        let user_input_helper = UserInputHelper {
+            id: None,
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
 
         let app_state = MockModule::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
@@ -980,11 +1110,33 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_success() {
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let user_input_helper = UserInputHelper {};
+        let user_input_helper = UserInputHelper {
+            id: Some(handover_and_acceptance_id.to_string()),
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
         let user_input = UserInput::try_from(user_input_helper.clone()).unwrap();
 
         let handover_and_acceptance = test_handover_and_acceptance_builder()
@@ -1051,7 +1203,25 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let user_input_helper = UserInputHelper {};
+        let user_input_helper = UserInputHelper {
+            id: None,
+            customer_id: "".to_string(),
+            item_make_id: "other".to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: "asdf".to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: "".to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
 
         let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
@@ -1094,7 +1264,31 @@ mod tests {
     }
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let user_input_helper = UserInputHelper {};
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
+        let handover_and_acceptance_id = Uuid::now_v7();
+
+        let user_input_helper = UserInputHelper {
+            id: Some(handover_and_acceptance_id.to_string()),
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
 
         let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
@@ -1135,7 +1329,31 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_invalid_signature() {
-        let user_input_helper = UserInputHelper {};
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
+        let handover_and_acceptance_id = Uuid::now_v7();
+
+        let user_input_helper = UserInputHelper {
+            id: Some(handover_and_acceptance_id.to_string()),
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
 
         let mut app_state = MockModule::new();
         let test_config = test_app_config_builder().build().unwrap();
@@ -1176,7 +1394,31 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
-        let user_input_helper = UserInputHelper {};
+        let customer_id = Uuid::now_v7();
+        let item_make_id = Uuid::now_v7();
+        let item_model_id = Uuid::now_v7();
+        let item_identifier_type_id = Uuid::now_v7();
+        let handover_and_acceptance_id = Uuid::now_v7();
+
+        let user_input_helper = UserInputHelper {
+            id: Some(handover_and_acceptance_id.to_string()),
+            customer_id: customer_id.to_string(),
+            item_make_id: item_make_id.to_string(),
+            new_item_make: "".to_string(),
+            item_model_id: item_model_id.to_string(),
+            new_item_model: "".to_string(),
+            item_identifier_type_id: item_identifier_type_id.to_string(),
+            new_item_identifier_type: "".to_string(),
+            item_identifier_value: "ASD123456789".to_string(),
+            reported_issue: "Some reported issue".to_string(),
+            condition_at_receipt: "Condition at receipt".to_string(),
+            included_accessories: vec!["chargeing cable".to_string(), "laptop bag".to_string()],
+            authorized_work: "Some work to do.".to_string(),
+            repair_limit: "1000".to_string(),
+            currency_code: "HUF".to_string(),
+            terms_version: "v1".to_string(),
+            received_at: TEST_TIME.to_string(),
+        };
 
         let app_state = MockModule::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();

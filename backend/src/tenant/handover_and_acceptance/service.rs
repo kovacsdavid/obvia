@@ -112,53 +112,38 @@ impl From<ServiceError> for AppError {
     }
 }
 
-type HandoverAndAcceptanceServiceResult<T> = Result<T, ServiceError>;
+type ServiceResult<T> = Result<T, ServiceError>;
 
 pub trait Service {
     fn insert(
         &self,
         payload: &UserInput,
-    ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<HandoverAndAcceptance>> + Send;
+    ) -> impl Future<Output = ServiceResult<HandoverAndAcceptance>> + Send;
     fn get_full(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<HandoverAndAcceptanceFull>> + Send;
+    ) -> impl Future<Output = ServiceResult<HandoverAndAcceptanceFull>> + Send;
     fn update(
         &self,
         payload: &UserInput,
-    ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<HandoverAndAcceptance>> + Send;
-    fn delete(&self, payload: Uuid)
-    -> impl Future<Output = HandoverAndAcceptanceServiceResult<()>>;
+    ) -> impl Future<Output = ServiceResult<HandoverAndAcceptance>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>>;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<
             handover_and_acceptance::types::OrderBy,
             handover_and_acceptance::types::FilterBy,
         >,
-    ) -> impl Future<
-        Output = HandoverAndAcceptanceServiceResult<(
-            PaginatorMeta,
-            Vec<HandoverAndAcceptanceFull>,
-        )>,
-    > + Send;
-    fn print(
-        &self,
-        payload: &[Print],
-    ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<Vec<u8>>> + Sync;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = HandoverAndAcceptanceServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)>> + Send;
+    fn print(&self, payload: &[Print]) -> impl Future<Output = ServiceResult<Vec<u8>>> + Sync;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> Service for BaseService<'a, T>
 where
     T: ModuleInterface,
 {
-    async fn insert(
-        &self,
-        payload: &UserInput,
-    ) -> HandoverAndAcceptanceServiceResult<HandoverAndAcceptance> {
+    async fn insert(&self, payload: &UserInput) -> ServiceResult<HandoverAndAcceptance> {
         Ok(self
             .module()
             .handover_and_acceptance_repo(self.active_tenant()?)?
@@ -166,10 +151,7 @@ where
             .await?)
     }
 
-    async fn get_full(
-        &self,
-        payload: Uuid,
-    ) -> HandoverAndAcceptanceServiceResult<HandoverAndAcceptanceFull> {
+    async fn get_full(&self, payload: Uuid) -> ServiceResult<HandoverAndAcceptanceFull> {
         Ok(self
             .module()
             .handover_and_acceptance_repo(self.active_tenant()?)?
@@ -177,10 +159,7 @@ where
             .await?)
     }
 
-    async fn update(
-        &self,
-        payload: &UserInput,
-    ) -> HandoverAndAcceptanceServiceResult<HandoverAndAcceptance> {
+    async fn update(&self, payload: &UserInput) -> ServiceResult<HandoverAndAcceptance> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -193,7 +172,7 @@ where
             .await?)
     }
 
-    async fn delete(&self, payload: Uuid) -> HandoverAndAcceptanceServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .handover_and_acceptance_repo(self.active_tenant()?)?
@@ -207,7 +186,7 @@ where
             handover_and_acceptance::types::OrderBy,
             handover_and_acceptance::types::FilterBy,
         >,
-    ) -> HandoverAndAcceptanceServiceResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)> {
         Ok(self
             .module()
             .handover_and_acceptance_repo(self.active_tenant()?)?
@@ -215,14 +194,14 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[Print]) -> HandoverAndAcceptanceServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[Print]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
-            &PdfTemplates::HandoverAndAcceptance,
+            &PdfTemplates::HandoverAndAcceptanceView,
             payload.to_vec(),
         )?)
     }
 
-    async fn print_snapshot(&self, path: &Path) -> HandoverAndAcceptanceServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let handover_and_acceptance_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
         let accepted_by: Uuid = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
         let handover_and_acceptance_resolved_print =

@@ -221,6 +221,35 @@ pub mod tests {
         builder
     }
 
+    pub fn test_handover_and_acceptance_builder() -> HandoverAndAcceptanceBuilder {
+        let mut builder = HandoverAndAcceptanceBuilder::default();
+
+        builder
+            .id(Uuid::now_v7())
+            .customer_id(Uuid::now_v7())
+            .item_make_id(Some(Uuid::now_v7()))
+            .item_model_id(Some(Uuid::now_v7()))
+            .item_identifier_type_id(Uuid::now_v7())
+            .item_identifier_value("ASD123456789".to_string())
+            .reported_issue(Some("Some reported issue".to_string()))
+            .condition_at_receipt(Some("Condition at receipt".to_string()))
+            .included_accessories(Some(vec![
+                "chargeing cable".to_string(),
+                "laptop bag".to_string(),
+            ]))
+            .authorized_work(Some("Some work to do.".to_string()))
+            .repair_limit(Some("1000".parse().unwrap()))
+            .currency_code(Some("HUF".to_string()))
+            .terms_version(Some("v1".to_string()))
+            .accepted_by(Uuid::now_v7())
+            .received_at(*TEST_TIME)
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None);
+
+        builder
+    }
+
     pub fn test_handover_and_acceptance_full_builder() -> HandoverAndAcceptanceFullBuilder {
         let mut builder = HandoverAndAcceptanceFullBuilder::default();
         let item_make = test_item_make_builder();

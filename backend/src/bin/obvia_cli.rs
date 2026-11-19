@@ -25,7 +25,9 @@ use obvia::{
     common::{config::AppConfig, init::init_default_app_state, service::BaseService},
     manager::auth::dto::claims::Claims,
     tenant::{
-        Modules, customers::service::CustomerService, inventory::service::InventoryService,
+        Modules, customers::service::CustomerService,
+        handover_and_acceptance::Service as HandoverAndAcceptanceService,
+        inventory::service::InventoryService,
         inventory_movements::service::InventoryMovementService,
         inventory_reservations::service::InventoryReservationService,
         products::service::ProductService, services::service::ServiceService,
@@ -114,6 +116,9 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
         Modules::Services => Ok(ServiceService::print_snapshot(&service, path).await?),
         Modules::Tasks => Ok(TaskService::print_snapshot(&service, path).await?),
         Modules::Worksheets => Ok(WorksheetService::print_snapshot(&service, path).await?),
+        Modules::HandoverAndAcceptance => {
+            Ok(HandoverAndAcceptanceService::print_snapshot(&service, path).await?)
+        }
     }
 }
 

@@ -779,7 +779,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
         let user_input = UserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -891,7 +891,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
 
         let mut app_state = MockModule::new();
@@ -961,7 +961,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
 
         let mut app_state = MockModule::new();
@@ -1025,7 +1025,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
 
         let mut app_state = MockModule::new();
@@ -1089,7 +1089,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
 
         let app_state = MockModule::new();
@@ -1143,7 +1143,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
         let user_input = UserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -1299,7 +1299,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
 
         let mut app_state = MockModule::new();
@@ -1364,7 +1364,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
 
         let mut app_state = MockModule::new();
@@ -1429,7 +1429,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         };
 
         let app_state = MockModule::new();
@@ -1683,8 +1683,8 @@ mod tests {
             .times(1)
             .with(eq(handover_and_acceptance_id))
             .returning({
-                let handover_and_acceptance_resolved = handover_and_acceptance_full.clone();
-                move |_| Ok(handover_and_acceptance_resolved.clone())
+                let handover_and_acceptance_full = handover_and_acceptance_full.clone();
+                move |_| Ok(handover_and_acceptance_full.clone())
             });
 
         let mut app_state = MockModule::new();

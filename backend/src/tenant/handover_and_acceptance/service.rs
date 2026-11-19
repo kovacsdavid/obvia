@@ -20,11 +20,14 @@
 use std::{fs::File, io::Write, path::Path};
 
 use axum::http::StatusCode;
+use mockall_double::double;
 use serde_json::json;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
 
+#[double]
+use crate::common::pdf::PdfGenerator;
 use crate::{
     common::{
         CommonBuilderError,
@@ -33,7 +36,7 @@ use crate::{
             RepositoryError,
             v2::{AppError, AppErrorVisibility},
         },
-        pdf::{PdfGenError, PdfGenerator, PdfTemplates},
+        pdf::{PdfGenError, PdfTemplates},
         query_parser::ResourceQuery,
         service::{BaseService, BaseServiceError},
     },

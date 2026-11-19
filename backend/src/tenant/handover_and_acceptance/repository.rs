@@ -107,7 +107,13 @@ impl Repository for PgPool {
                 ));
             }
         } else {
-            None
+            if item_make_id.is_some() {
+                user_input.item_model_id.as_uuid()
+            } else {
+                return Err(RepositoryError::InvalidState(
+                    "item make required if model present",
+                ));
+            }
         };
 
         let item_identifier_type_id =

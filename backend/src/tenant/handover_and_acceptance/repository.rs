@@ -214,7 +214,9 @@ impl Repository for PgPool {
         Ok(handover_and_acceptance)
     }
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
-        todo!();
+        delete(&mut *self.acquire().await?, id);
+
+        Ok(())
     }
 }
 
@@ -830,4 +832,19 @@ pub async fn update(
     .bind(id)
     .fetch_one(executor)
     .await?)
+}
+
+pub async fn delete(executor: &mut sqlx::PgConnection, id: Uuid) -> RepositoryResult<()> {
+    sqlx::query(
+        r#"
+            UPDATE handover_and_acceptance
+            SET deleted_at = NOW()
+            WHERE id = $1
+        "#,
+    )
+    .bind(id)
+    .execute(executor)
+    .await?;
+
+    Ok(())
 }

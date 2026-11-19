@@ -281,14 +281,14 @@ impl CustomersRepository for PgPool {
         customer_user_input: &CustomerUserInput,
         sub: Uuid,
     ) -> RepositoryResult<Customer> {
-        let contact_name = match &customer_user_input.contact_name {
-            Some(v) => Some(v.as_str()?),
-            None => None,
-        };
         let id = customer_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        let contact_name = match &customer_user_input.contact_name {
+            Some(v) => Some(v.as_str()?),
+            None => None,
+        };
 
         let mut tx = self.begin().await?;
 

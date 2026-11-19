@@ -444,7 +444,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         });
 
         let expected_user_input = UserInput {
@@ -496,7 +496,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.to_string(),
+            received_at: TEST_TIME.date_naive().to_string(),
         });
 
         let expected_user_input_error = UserInputError {

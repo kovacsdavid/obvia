@@ -242,7 +242,7 @@ where
         for address in self
             .module()
             .address_repo(self.active_tenant()?)?
-            .get_resolved_by_ids(address_ids)
+            .get_resolved_by_ids(&address_ids)
             .await?
         {
             addresses.insert(address.id, address);

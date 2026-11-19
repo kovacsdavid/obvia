@@ -85,11 +85,7 @@ impl Repository for PgPool {
     ) -> RepositoryResult<HandoverAndAcceptance> {
         let mut tx = self.begin().await?;
         let item_make_id = if let Some(new_item_make) = &user_input.new_item_make {
-            Some(
-                insert_item_make(&mut *tx, new_item_make.as_str()?)
-                    .await?
-                    .id,
-            )
+            Some(insert_item_make(&mut tx, new_item_make.as_str()?).await?.id)
         } else {
             user_input.item_make_id.as_uuid()
         };
@@ -97,7 +93,7 @@ impl Repository for PgPool {
         let item_model_id = if let Some(new_item_model) = &user_input.new_item_model {
             if let Some(item_make_id) = item_make_id {
                 Some(
-                    insert_item_model(&mut *tx, new_item_model.as_str()?, item_make_id)
+                    insert_item_model(&mut tx, new_item_model.as_str()?, item_make_id)
                         .await?
                         .id,
                 )
@@ -118,7 +114,7 @@ impl Repository for PgPool {
 
         let item_identifier_type_id =
             if let Some(new_item_identifier_type) = &user_input.new_item_identifier_type {
-                insert_item_identifier_type(&mut *tx, new_item_identifier_type.as_str()?)
+                insert_item_identifier_type(&mut tx, new_item_identifier_type.as_str()?)
                     .await?
                     .id
             } else if let Some(item_identifier_type_id) = &user_input.item_identifier_type_id {
@@ -130,7 +126,7 @@ impl Repository for PgPool {
             };
 
         let handover_and_acceptance = insert(
-            &mut *tx,
+            &mut tx,
             user_input,
             sub,
             item_make_id,
@@ -154,11 +150,7 @@ impl Repository for PgPool {
             .ok_or(RepositoryError::InvalidInput("id".to_string()))?;
         let mut tx = self.begin().await?;
         let item_make_id = if let Some(new_item_make) = &user_input.new_item_make {
-            Some(
-                insert_item_make(&mut *tx, new_item_make.as_str()?)
-                    .await?
-                    .id,
-            )
+            Some(insert_item_make(&mut tx, new_item_make.as_str()?).await?.id)
         } else {
             user_input.item_make_id.as_uuid()
         };
@@ -166,7 +158,7 @@ impl Repository for PgPool {
         let item_model_id = if let Some(new_item_model) = &user_input.new_item_model {
             if let Some(item_make_id) = item_make_id {
                 Some(
-                    insert_item_model(&mut *tx, new_item_model.as_str()?, item_make_id)
+                    insert_item_model(&mut tx, new_item_model.as_str()?, item_make_id)
                         .await?
                         .id,
                 )
@@ -187,7 +179,7 @@ impl Repository for PgPool {
 
         let item_identifier_type_id =
             if let Some(new_item_identifier_type) = &user_input.new_item_identifier_type {
-                insert_item_identifier_type(&mut *tx, new_item_identifier_type.as_str()?)
+                insert_item_identifier_type(&mut tx, new_item_identifier_type.as_str()?)
                     .await?
                     .id
             } else if let Some(item_identifier_type_id) = &user_input.item_identifier_type_id {
@@ -199,7 +191,7 @@ impl Repository for PgPool {
             };
 
         let handover_and_acceptance = update(
-            &mut *tx,
+            &mut tx,
             id,
             user_input,
             sub,
@@ -214,7 +206,7 @@ impl Repository for PgPool {
         Ok(handover_and_acceptance)
     }
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
-        delete(&mut *self.acquire().await?, id);
+        delete(&mut *self.acquire().await?, id).await?;
 
         Ok(())
     }
@@ -389,7 +381,7 @@ where
     )
     .await?;
     let currency = if let Some(currency_code) = &handover_and_acceptance.currency_code {
-        Some(currencies_repository::get(executor.clone(), &currency_code).await?)
+        Some(currencies_repository::get(executor.clone(), currency_code).await?)
     } else {
         None
     };
@@ -549,10 +541,7 @@ where
         executor.clone(),
         &handover_and_acceptance_vec
             .iter()
-            .filter_map(|v| match &v.currency_code {
-                Some(v) => Some(v.as_str()),
-                None => None,
-            })
+            .filter_map(|v| v.currency_code.as_deref())
             .collect::<Vec<&str>>(),
     )
     .await?

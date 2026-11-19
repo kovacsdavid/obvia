@@ -491,7 +491,7 @@ where
     if ids.is_empty() {
         return Ok(vec![]);
     }
-    let customer_resolved_vec = sqlx::query_as::<_, CustomerResolved>(AssertSqlSafe(format!(
+    let customer_resolved_vec = sqlx::query_as::<_, CustomerResolved>(AssertSqlSafe(
         r#"
         SELECT
             customers.id as id,
@@ -512,8 +512,8 @@ where
         LEFT JOIN users ON customers.created_by_id = users.id
         WHERE customers.deleted_at IS NULL
             AND customers.id = ANY($1)
-        "#
-    )))
+        "#,
+    ))
     .bind(ids)
     .fetch_all(executor.clone())
     .await?;

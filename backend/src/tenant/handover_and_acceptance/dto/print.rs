@@ -60,7 +60,7 @@ impl Print {
             Some(format!(
                 "{} {}",
                 thousand_separated_number_bigdecimal(repair_limit, 2),
-                &currency_code.name
+                currency_code.name
             ))
         } else {
             None
@@ -72,7 +72,7 @@ impl Print {
         {
             format!("{last_name} {first_name}")
         } else {
-            format!("N/A")
+            "N/A".to_string()
         };
         Self {
             id: handover_and_acceptance_full.id,

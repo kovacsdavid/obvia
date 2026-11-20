@@ -18,21 +18,21 @@
  */
 
 create table item_identifier_types (
-    id          uuid            primary key,
+    id          uuid            primary key default uuidv7(),
     name        varchar(100)    not null unique,
     is_active   boolean         not null default true,
     created_at  timestamptz     not null default now()
 );
 
 create table item_makes (
-    id          uuid            primary key,
+    id          uuid            primary key default uuidv7(),
     name        varchar(100)    not null unique,
     is_active   boolean         not null default true,
     created_at  timestamptz     not null default now()
 );
 
 create table item_models (
-    id          uuid            primary key,
+    id          uuid            primary key default uuidv7(),
     make_id     uuid            not null,
     name        varchar(100)    not null unique,
     is_active   boolean         not null default true,
@@ -44,7 +44,7 @@ create index idx_item_models_item_makes ON item_models (make_id);
 
 create table handover_and_acceptance 
 (
-    id                          uuid            primary key,
+    id                          uuid            primary key default uuidv7(),
     display_id                  varchar(255)    not null,
     display_year                int             not null,
     display_seq                 int             not null,

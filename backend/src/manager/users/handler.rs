@@ -22,7 +22,7 @@ use super::service::UserService;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::dto::login::{OtpUserInput, OtpUserInputHelper};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
@@ -58,7 +58,7 @@ pub async fn otp_enable<M: UsersModuleInterface>(
     client_context: ClientContext,
     AuthenticatedUser(claims): AuthenticatedUser,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), users_module.clone());
+    let service = BaseService::new(Some(&claims), users_module.clone());
     let response = map_handler_err(
         service.otp_enable(&client_context).await,
         users_module.clone(),
@@ -85,7 +85,7 @@ pub async fn otp_verify<M: UsersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), users_module.clone());
+    let service = BaseService::new(Some(&claims), users_module.clone());
     map_handler_err(
         service.otp_verify(&user_input, &client_context).await,
         users_module.clone(),
@@ -115,7 +115,7 @@ pub async fn otp_disable<M: UsersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), users_module.clone());
+    let service = BaseService::new(Some(&claims), users_module.clone());
     map_handler_err(
         service.otp_disable(&user_input, &client_context).await,
         users_module.clone(),

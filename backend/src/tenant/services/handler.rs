@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilde
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::print::ServicesResolvedPrint;
@@ -46,7 +46,7 @@ pub async fn get_resolved<M: ServicesModule>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), services_module.clone());
+    let service = BaseService::new(Some(&claims), services_module.clone());
     let result = map_handler_err(
         service.get_resolved(payload.uuid).await,
         services_module.clone(),
@@ -70,7 +70,7 @@ pub async fn get<M: ServicesModule>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), services_module.clone());
+    let service = BaseService::new(Some(&claims), services_module.clone());
     let result = map_handler_err(service.get(payload.uuid).await, services_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -93,7 +93,7 @@ pub async fn create<M: ServicesModule>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), services_module.clone());
+    let service = BaseService::new(Some(&claims), services_module.clone());
     let result =
         map_handler_err(service.insert(&user_input).await, services_module.clone()).await?;
     Ok(map_handler_err(
@@ -117,7 +117,7 @@ pub async fn update<M: ServicesModule>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), services_module.clone());
+    let service = BaseService::new(Some(&claims), services_module.clone());
     let result =
         map_handler_err(service.update(&user_input).await, services_module.clone()).await?;
     Ok(map_handler_err(
@@ -141,7 +141,7 @@ pub async fn delete<M: ServicesModule>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), services_module.clone());
+    let service = BaseService::new(Some(&claims), services_module.clone());
     map_handler_err(service.delete(payload.uuid).await, services_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -163,7 +163,7 @@ pub async fn list<M: ServicesModule>(
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), services_module.clone());
+    let service = BaseService::new(Some(&claims), services_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<ServiceOrderBy, ServiceFilterBy>::from_str(payload.q()),
         services_module.clone(),
@@ -196,7 +196,7 @@ pub async fn select_list<M: ServicesModule>(
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), services_module.clone());
+    let service = BaseService::new(Some(&claims), services_module.clone());
     let list_type = payload
         .get("list")
         .cloned()
@@ -228,7 +228,7 @@ pub async fn print<M: ServicesModule>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), services_module.clone());
+    let service = BaseService::new(Some(&claims), services_module.clone());
     let service_resolved_print = ServicesResolvedPrint::new(
         map_handler_err(
             service.get_resolved(payload.uuid).await,

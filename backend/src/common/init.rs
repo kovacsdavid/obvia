@@ -91,6 +91,9 @@ pub async fn init_default_app(
             .merge(crate::tenant::address::routes::routes(app_state.clone()))
             .merge(crate::tenant::comments::routes::routes(app_state.clone()))
             .merge(crate::tenant::customers::routes::routes(app_state.clone()))
+            .merge(crate::tenant::handover_and_acceptance::routes::routes(
+                app_state.clone(),
+            ))
             .merge(crate::tenant::inventory::routes::routes(app_state.clone()))
             .merge(crate::tenant::inventory_movements::routes::routes(
                 app_state.clone(),

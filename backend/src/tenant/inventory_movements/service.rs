@@ -27,7 +27,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::print::test_inventory_resolved_print_builder;
@@ -92,10 +92,10 @@ pub enum InventoryMovementsServiceError {
     OutOfStock,
 }
 
-impl From<ServiceError> for InventoryMovementsServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for InventoryMovementsServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => InventoryMovementsServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => InventoryMovementsServiceError::Unauthorized,
         }
     }
 }
@@ -202,7 +202,7 @@ pub trait InventoryMovementService {
     ) -> impl Future<Output = InventoryMovementsServiceResult<()>> + Sync;
 }
 
-impl<'a, T> InventoryMovementService for Service<'a, T>
+impl<'a, T> InventoryMovementService for BaseService<'a, T>
 where
     T: InventoryMovementsModuleInterface,
 {

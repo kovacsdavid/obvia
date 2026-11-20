@@ -22,10 +22,12 @@ use chrono::{Duration, Utc};
 use chrono_tz::Tz;
 use clap::{Parser, Subcommand};
 use obvia::{
-    common::{config::AppConfig, init::init_default_app_state, service::Service},
+    common::{config::AppConfig, init::init_default_app_state, service::BaseService},
     manager::auth::dto::claims::Claims,
     tenant::{
-        Modules, customers::service::CustomerService, inventory::service::InventoryService,
+        Modules, customers::service::CustomerService,
+        handover_and_acceptance::Service as HandoverAndAcceptanceService,
+        inventory::service::InventoryService,
         inventory_movements::service::InventoryMovementService,
         inventory_reservations::service::InventoryReservationService,
         products::service::ProductService, services::service::ServiceService,
@@ -96,7 +98,7 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
     let config = AppConfig::from_env()?;
     let claims = init_dev_claims(&config)?;
     let app_state = init_default_app_state(config).await?;
-    let service = Service::new(Some(&claims), Arc::new(app_state));
+    let service = BaseService::new(Some(&claims), Arc::new(app_state));
     let path = format!("{folder}/{module}_test.pdf");
     let path = Path::new(&path);
     match module {
@@ -114,6 +116,9 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
         Modules::Services => Ok(ServiceService::print_snapshot(&service, path).await?),
         Modules::Tasks => Ok(TaskService::print_snapshot(&service, path).await?),
         Modules::Worksheets => Ok(WorksheetService::print_snapshot(&service, path).await?),
+        Modules::HandoverAndAcceptance => {
+            Ok(HandoverAndAcceptanceService::print_snapshot(&service, path).await?)
+        }
     }
 }
 

@@ -20,7 +20,7 @@
 use crate::common::CommonBuilderError;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::tenant::owner_profile::OwnerProfileModuleInterface;
 use crate::tenant::owner_profile::dto::user_input::OwnerProfileUserInput;
 use crate::tenant::owner_profile::model::OwnerProfileFull;
@@ -53,10 +53,10 @@ pub enum OwnerProfileServiceError {
     UuidError(#[from] uuid::Error),
 }
 
-impl From<ServiceError> for OwnerProfileServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for OwnerProfileServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => OwnerProfileServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => OwnerProfileServiceError::Unauthorized,
         }
     }
 }
@@ -104,7 +104,7 @@ pub trait OwnerProfileService {
     ) -> impl Future<Output = OwnerProfileServiceResult<OwnerProfileFull>> + Send;
 }
 
-impl<'a, T> OwnerProfileService for Service<'a, T>
+impl<'a, T> OwnerProfileService for BaseService<'a, T>
 where
     T: OwnerProfileModuleInterface,
 {

@@ -25,7 +25,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::common::value_object::ValueObjectError;
 use crate::tenant::products::ProductsModuleInterface;
 use crate::tenant::products::dto::print::ProductsResolvedPrint;
@@ -75,10 +75,10 @@ pub enum ProductsServiceError {
     IOError(#[from] std::io::Error),
 }
 
-impl From<ServiceError> for ProductsServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for ProductsServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => ProductsServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => ProductsServiceError::Unauthorized,
         }
     }
 }
@@ -164,7 +164,7 @@ pub trait ProductService {
     -> impl Future<Output = ProductsServiceResult<()>> + Sync;
 }
 
-impl<'a, T> ProductService for Service<'a, T>
+impl<'a, T> ProductService for BaseService<'a, T>
 where
     T: ProductsModuleInterface,
 {

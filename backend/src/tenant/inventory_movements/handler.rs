@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilde
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory_movements::InventoryMovementsModuleInterface;
 use crate::tenant::inventory_movements::dto::user_input::{
@@ -49,7 +49,7 @@ pub async fn get<M: InventoryMovementsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
     let result = map_handler_err(
         service.get(payload.uuid).await,
         inventory_movements_module.clone(),
@@ -76,7 +76,7 @@ pub async fn get_resolved<M: InventoryMovementsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
     let result = map_handler_err(
         service.get_resolved(payload.uuid).await,
         inventory_movements_module.clone(),
@@ -106,7 +106,7 @@ pub async fn create<M: InventoryMovementsModuleInterface>(
         InventoryMovementUserInputHelper,
     >,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
     let result = map_handler_err(
         service.insert(&user_input).await,
         inventory_movements_module.clone(),
@@ -136,7 +136,7 @@ pub async fn update<M: InventoryMovementsModuleInterface>(
         InventoryMovementUserInputHelper,
     >,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
     let result = map_handler_err(
         service.update(&user_input).await,
         inventory_movements_module.clone(),
@@ -163,7 +163,7 @@ pub async fn delete<M: InventoryMovementsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
     map_handler_err(
         service.delete(payload.uuid).await,
         inventory_movements_module.clone(),
@@ -193,7 +193,7 @@ pub async fn list<M: InventoryMovementsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<InventoryMovementsRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<InventoryMovementOrderBy, InventoryMovementFilterBy>::from_str(payload.q()),
         inventory_movements_module.clone(),
@@ -229,7 +229,7 @@ pub async fn select_list<M: InventoryMovementsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
     let list_type = payload
         .get("list")
         .cloned()
@@ -261,7 +261,7 @@ pub async fn print<M: InventoryMovementsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
 
     let pdf = map_handler_err(
         service.print(payload.uuid).await,

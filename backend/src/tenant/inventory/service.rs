@@ -26,7 +26,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::inventory::InventoryModuleInterface;
 use crate::tenant::inventory::dto::print::{
@@ -88,10 +88,10 @@ pub enum InventoryServiceError {
     UuidError(#[from] uuid::Error),
 }
 
-impl From<ServiceError> for InventoryServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for InventoryServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => InventoryServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => InventoryServiceError::Unauthorized,
         }
     }
 }
@@ -188,7 +188,7 @@ pub trait InventoryService {
     ) -> impl Future<Output = InventoryServiceResult<()>> + Sync;
 }
 
-impl<'a, T> InventoryService for Service<'a, T>
+impl<'a, T> InventoryService for BaseService<'a, T>
 where
     T: InventoryModuleInterface,
 {

@@ -25,6 +25,7 @@ pub mod address;
 pub mod comments;
 pub mod currencies;
 pub mod customers;
+pub mod handover_and_acceptance;
 pub mod inventory;
 pub mod inventory_movements;
 pub mod inventory_reservations;
@@ -49,6 +50,7 @@ pub enum Modules {
     Services,
     Tasks,
     Worksheets,
+    HandoverAndAcceptance,
 }
 
 impl Display for Modules {
@@ -64,6 +66,7 @@ impl Display for Modules {
             Modules::Services => write!(f, "services"),
             Modules::Tasks => write!(f, "tasks"),
             Modules::Worksheets => write!(f, "worksheets"),
+            Modules::HandoverAndAcceptance => write!(f, "handover_and_acceptance"),
         }
     }
 }

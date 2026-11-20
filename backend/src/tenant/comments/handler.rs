@@ -20,7 +20,7 @@
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
-use crate::common::service::BaseService;
+use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::{CommentUserInput, CommentUserInputHelper};
@@ -38,7 +38,7 @@ pub async fn post<M: CommentsModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CommentUserInput, CommentUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), comments_module.clone());
+    let service = Service::new(Some(&claims), comments_module.clone());
     let result = map_handler_err(service.post(&user_input).await, comments_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -61,7 +61,7 @@ pub async fn delete<M: CommentsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), comments_module.clone());
+    let service = Service::new(Some(&claims), comments_module.clone());
     map_handler_err(service.delete(payload.uuid).await, comments_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()

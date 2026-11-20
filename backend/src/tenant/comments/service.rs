@@ -19,7 +19,7 @@
 
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
-use crate::common::service::{BaseService, BaseServiceError};
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
@@ -38,10 +38,10 @@ pub enum CommentsServiceError {
     Unauthorized,
 }
 
-impl From<BaseServiceError> for CommentsServiceError {
-    fn from(value: BaseServiceError) -> Self {
+impl From<ServiceError> for CommentsServiceError {
+    fn from(value: ServiceError) -> Self {
         match value {
-            BaseServiceError::Unauthorized => CommentsServiceError::Unauthorized,
+            ServiceError::Unauthorized => CommentsServiceError::Unauthorized,
         }
     }
 }
@@ -75,7 +75,7 @@ pub trait CommentService {
     fn delete(&self, payload: Uuid) -> impl Future<Output = CommentsServiceResult<()>>;
 }
 
-impl<'a, T> CommentService for BaseService<'a, T>
+impl<'a, T> CommentService for Service<'a, T>
 where
     T: CommentsModuleInterface,
 {

@@ -32,7 +32,7 @@ use uuid::Uuid;
 pub trait AddressRepository: Send + Sync {
     async fn get_all_countries_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<AddressResolved>;
-    async fn get_resolved_by_ids(&self, ids: &[Uuid]) -> RepositoryResult<Vec<AddressResolved>>;
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>>;
     async fn insert(
         &self,
         address_user_input: &AddressUserInput,
@@ -86,7 +86,7 @@ impl AddressRepository for PgPool {
         .fetch_one(self)
         .await?)
     }
-    async fn get_resolved_by_ids(&self, ids: &[Uuid]) -> RepositoryResult<Vec<AddressResolved>> {
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>> {
         get_resolved_addresses_by_ids(self, ids).await
     }
     async fn insert(
@@ -237,15 +237,11 @@ where
 
 pub async fn get_resolved_addresses_by_ids<'e, E>(
     executor: E,
-    ids: &[Uuid],
+    ids: Vec<Uuid>,
 ) -> RepositoryResult<Vec<AddressResolved>>
 where
     E: sqlx::Executor<'e, Database = sqlx::Postgres>,
 {
-    if ids.is_empty() {
-        return Ok(vec![]);
-    }
-
     Ok(sqlx::query_as::<_, AddressResolved>(
         r#"
         SELECT

@@ -26,7 +26,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{BaseService, BaseServiceError};
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::print::{
     ServicesResolvedPrint, test_service_resolved_print_builder,
@@ -75,10 +75,10 @@ pub enum ServicesServiceError {
     BuilderError(#[from] CommonBuilderError),
 }
 
-impl From<BaseServiceError> for ServicesServiceError {
-    fn from(value: BaseServiceError) -> Self {
+impl From<ServiceError> for ServicesServiceError {
+    fn from(value: ServiceError) -> Self {
         match value {
-            BaseServiceError::Unauthorized => ServicesServiceError::Unauthorized,
+            ServiceError::Unauthorized => ServicesServiceError::Unauthorized,
         }
     }
 }
@@ -177,7 +177,7 @@ pub trait ServiceService {
     -> impl Future<Output = ServicesServiceResult<()>> + Sync;
 }
 
-impl<'a, T> ServiceService for BaseService<'a, T>
+impl<'a, T> ServiceService for Service<'a, T>
 where
     T: ServicesModule,
 {

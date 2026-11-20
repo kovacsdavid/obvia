@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilde
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
-use crate::common::service::BaseService;
+use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::taxes::TaxesModuleInterface;
 use crate::tenant::taxes::dto::print::TaxResolvedPrint;
@@ -46,7 +46,7 @@ pub async fn get_resolved<M: TaxesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), taxes_module.clone());
+    let service = Service::new(Some(&claims), taxes_module.clone());
     let result = map_handler_err(
         service.get_resolved(payload.uuid).await,
         taxes_module.clone(),
@@ -70,7 +70,7 @@ pub async fn get<M: TaxesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), taxes_module.clone());
+    let service = Service::new(Some(&claims), taxes_module.clone());
     let result = map_handler_err(service.get(payload.uuid).await, taxes_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -90,7 +90,7 @@ pub async fn create<M: TaxesModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), taxes_module.clone());
+    let service = Service::new(Some(&claims), taxes_module.clone());
     let result = map_handler_err(service.insert(&user_input).await, taxes_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -110,7 +110,7 @@ pub async fn update<M: TaxesModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), taxes_module.clone());
+    let service = Service::new(Some(&claims), taxes_module.clone());
     let result = map_handler_err(service.update(&user_input).await, taxes_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -130,7 +130,7 @@ pub async fn delete<M: TaxesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), taxes_module.clone());
+    let service = Service::new(Some(&claims), taxes_module.clone());
     map_handler_err(service.delete(payload.uuid).await, taxes_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -152,7 +152,7 @@ pub async fn list<M: TaxesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), taxes_module.clone());
+    let service = Service::new(Some(&claims), taxes_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<TaxOrderBy, TaxFilterBy>::from_str(payload.q()),
         taxes_module.clone(),
@@ -185,7 +185,7 @@ pub async fn select_list<M: TaxesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), taxes_module.clone());
+    let service = Service::new(Some(&claims), taxes_module.clone());
     let list_type = payload
         .get("list")
         .cloned()
@@ -214,7 +214,7 @@ pub async fn print<M: TaxesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), taxes_module.clone());
+    let service = Service::new(Some(&claims), taxes_module.clone());
     let tax_resolved_print = TaxResolvedPrint::from_tax_resolved(
         map_handler_err(
             service.get_resolved(payload.uuid).await,

@@ -24,14 +24,14 @@ use uuid::Uuid;
 use crate::manager::auth::dto::claims::Claims;
 
 #[derive(Debug, Error)]
-pub enum BaseServiceError {
+pub enum ServiceError {
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
 }
 
-type BaseServiceResult<T> = Result<T, BaseServiceError>;
+type ServiceResult<T> = Result<T, ServiceError>;
 
-pub struct BaseService<'a, T>
+pub struct Service<'a, T>
 where
     T: Send + Sync,
 {
@@ -39,22 +39,22 @@ where
     module: Arc<T>,
 }
 
-impl<'a, T> BaseService<'a, T>
+impl<'a, T> Service<'a, T>
 where
     T: Send + Sync,
 {
     pub fn new(claims: Option<&'a Claims>, module: Arc<T>) -> Self {
-        BaseService { claims, module }
+        Service { claims, module }
     }
-    pub fn claims(&self) -> BaseServiceResult<&Claims> {
-        self.claims.ok_or(BaseServiceError::Unauthorized)
+    pub fn claims(&self) -> ServiceResult<&Claims> {
+        self.claims.ok_or(ServiceError::Unauthorized)
     }
     pub fn module(&self) -> &T {
         &self.module
     }
-    pub fn active_tenant(&self) -> BaseServiceResult<Uuid> {
+    pub fn active_tenant(&self) -> ServiceResult<Uuid> {
         self.claims()?
             .active_tenant()
-            .ok_or(BaseServiceError::Unauthorized)
+            .ok_or(ServiceError::Unauthorized)
     }
 }

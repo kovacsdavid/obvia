@@ -20,7 +20,7 @@
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
-use crate::common::service::BaseService;
+use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::owner_profile::OwnerProfileModuleInterface;
 use crate::tenant::owner_profile::dto::user_input::{
@@ -42,7 +42,7 @@ pub async fn get_full<M: OwnerProfileModuleInterface>(
     State(owner_profile_module): State<Arc<M>>,
     _client_context: ClientContext,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), owner_profile_module.clone());
+    let service = Service::new(Some(&claims), owner_profile_module.clone());
     let result = map_handler_err(service.get_full().await, owner_profile_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -65,7 +65,7 @@ pub async fn update<M: OwnerProfileModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<OwnerProfileUserInput, OwnerProfileUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), owner_profile_module.clone());
+    let service = Service::new(Some(&claims), owner_profile_module.clone());
     let result = map_handler_err(
         service.update(&user_input).await,
         owner_profile_module.clone(),

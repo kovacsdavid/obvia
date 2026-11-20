@@ -19,7 +19,6 @@
 
 use crate::common::error::RepositoryResult;
 use crate::common::model::SelectOption;
-use crate::tenant::currencies::model::Currency;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -40,39 +39,4 @@ impl CurrenciesRepository for PgPool {
         .fetch_all(self)
         .await?)
     }
-}
-
-pub async fn get<'e, E>(executor: E, code: &str) -> RepositoryResult<Currency>
-where
-    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
-{
-    Ok(sqlx::query_as::<_, Currency>(
-        r#"
-            SELECT *
-            FROM currencies
-            WHERE code = $1
-        "#,
-    )
-    .bind(code)
-    .fetch_one(executor)
-    .await?)
-}
-
-pub async fn get_vec<'e, E>(executor: E, codes: &[&str]) -> RepositoryResult<Vec<Currency>>
-where
-    E: sqlx::Executor<'e, Database = sqlx::Postgres> + Clone,
-{
-    if codes.is_empty() {
-        return Ok(vec![]);
-    }
-    Ok(sqlx::query_as::<_, Currency>(
-        r#"
-            SELECT *
-            FROM currencies
-            WHERE code = ANY($1)
-        "#,
-    )
-    .bind(codes)
-    .fetch_all(executor)
-    .await?)
 }

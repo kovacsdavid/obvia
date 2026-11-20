@@ -31,7 +31,7 @@ use crate::{
         dto::SuccessResponseBuilder,
         extractors::ClientContext,
         handler::{HandlerResult, map_handler_err},
-        service::BaseService,
+        service::Service,
     },
     manager::auth::middleware::AuthenticatedUser,
     tenant::address::AddressModuleInterface,
@@ -47,7 +47,7 @@ pub async fn select_list<M: AddressModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), address_module.clone());
+    let service = Service::new(Some(&claims), address_module.clone());
     let list_type = payload
         .get("list")
         .cloned()

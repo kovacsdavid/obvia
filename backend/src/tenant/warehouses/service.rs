@@ -24,7 +24,7 @@ use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{BaseService, BaseServiceError};
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::warehouses::WarehousesModuleInterface;
 use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
 use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
@@ -63,10 +63,10 @@ pub enum WarehousesServiceError {
     IOError(#[from] std::io::Error),
 }
 
-impl From<BaseServiceError> for WarehousesServiceError {
-    fn from(value: BaseServiceError) -> Self {
+impl From<ServiceError> for WarehousesServiceError {
+    fn from(value: ServiceError) -> Self {
         match value {
-            BaseServiceError::Unauthorized => WarehousesServiceError::Unauthorized,
+            ServiceError::Unauthorized => WarehousesServiceError::Unauthorized,
         }
     }
 }
@@ -136,7 +136,7 @@ pub trait WarehouseService {
     ) -> impl Future<Output = WarehousesServiceResult<()>> + Sync;
 }
 
-impl<'a, T> WarehouseService for BaseService<'a, T>
+impl<'a, T> WarehouseService for Service<'a, T>
 where
     T: WarehousesModuleInterface,
 {

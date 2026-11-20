@@ -24,7 +24,7 @@ use super::{
 use crate::manager::auth::dto::register::{ForgottenPasswordRequest, NewPasswordRequest};
 use crate::{common::error::RepositoryError, manager::auth::model::ForgottenPassword};
 use crate::{
-    common::service::{BaseService, BaseServiceError},
+    common::service::{Service, ServiceError},
     manager::{auth::dto::claims::ClaimsError, users::model::UserModelError},
 };
 use crate::{
@@ -129,10 +129,10 @@ pub enum AuthServiceError {
     ClaimsError(#[from] ClaimsError),
 }
 
-impl From<BaseServiceError> for AuthServiceError {
-    fn from(value: BaseServiceError) -> Self {
+impl From<ServiceError> for AuthServiceError {
+    fn from(value: ServiceError) -> Self {
         match value {
-            BaseServiceError::Unauthorized => AuthServiceError::Unauthorized,
+            ServiceError::Unauthorized => AuthServiceError::Unauthorized,
         }
     }
 }
@@ -210,7 +210,7 @@ pub trait AuthService {
     ) -> impl Future<Output = AuthServiceResult<()>> + Send;
 }
 
-impl<'a, T> AuthService for BaseService<'a, T>
+impl<'a, T> AuthService for Service<'a, T>
 where
     T: AuthModuleInterface,
 {

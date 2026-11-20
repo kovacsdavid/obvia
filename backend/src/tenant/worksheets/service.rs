@@ -26,7 +26,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{BaseService, BaseServiceError};
+use crate::common::service::{Service, ServiceError};
 use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::customers::dto::print::CustomerFullPrint;
 use crate::tenant::customers::dto::print::test_customer_full_print_builder;
@@ -105,10 +105,10 @@ pub enum WorksheetsServiceError {
     WorksheetResolvedPrintError(#[from] WorksheetResolvedPrintError),
 }
 
-impl From<BaseServiceError> for WorksheetsServiceError {
-    fn from(value: BaseServiceError) -> Self {
+impl From<ServiceError> for WorksheetsServiceError {
+    fn from(value: ServiceError) -> Self {
         match value {
-            BaseServiceError::Unauthorized => WorksheetsServiceError::Unauthorized,
+            ServiceError::Unauthorized => WorksheetsServiceError::Unauthorized,
         }
     }
 }
@@ -199,10 +199,10 @@ pub trait WorksheetService {
     fn print_snapshot(
         &self,
         path: &Path,
-    ) -> impl Future<Output = WorksheetsServiceResult<()>> + Send;
+    ) -> impl Future<Output = WorksheetsServiceResult<()>> + Sync;
 }
 
-impl<'a, T> WorksheetService for BaseService<'a, T>
+impl<'a, T> WorksheetService for Service<'a, T>
 where
     T: WorksheetsModuleInterface,
 {

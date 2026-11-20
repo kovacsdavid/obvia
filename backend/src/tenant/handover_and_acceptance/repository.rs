@@ -103,7 +103,7 @@ impl Repository for PgPool {
                 ));
             }
         } else {
-            if item_make_id.is_some() {
+            if item_make_id.is_some() || !user_input.item_model_id.is_present() {
                 user_input.item_model_id.as_uuid()
             } else {
                 return Err(RepositoryError::InvalidState(
@@ -168,7 +168,7 @@ impl Repository for PgPool {
                 ));
             }
         } else {
-            if item_make_id.is_some() {
+            if item_make_id.is_some() || !user_input.item_model_id.is_present() {
                 user_input.item_model_id.as_uuid()
             } else {
                 return Err(RepositoryError::InvalidState(

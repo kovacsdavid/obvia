@@ -481,7 +481,7 @@ where
     )
 }
 
-pub async fn get_full_by_ids<'e, E>(
+pub async fn get_full_by_ids_with_archive<'e, E>(
     executor: E,
     ids: &[Uuid],
 ) -> RepositoryResult<Vec<CustomerFull>>
@@ -510,8 +510,7 @@ where
             customers.mailing_address as mailing_address
         FROM customers
         LEFT JOIN users ON customers.created_by_id = users.id
-        WHERE customers.deleted_at IS NULL
-            AND customers.id = ANY($1)
+        WHERE customers.id = ANY($1)
         "#,
     ))
     .bind(ids)

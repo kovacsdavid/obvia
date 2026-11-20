@@ -359,6 +359,13 @@ impl TryFrom<UserInputHelper> for UserInput {
                 error.currency_code = Some(e.to_string());
             });
 
+        if let (Ok(repair_limit), Ok(currency_code)) = (&repair_limit, &currency_code)
+            && repair_limit.is_present()
+            && !currency_code.is_present()
+        {
+            error.currency_code = Some(ValueObjectError::REQUIRED.to_string());
+        }
+
         let terms_version = value
             .terms_version
             .parse::<

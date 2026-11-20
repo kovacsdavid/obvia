@@ -40,6 +40,11 @@ impl ValueObjectData for RepairLimit {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
+        if !self.0.is_finite() || self.0 <= 0.0 || self.0 > 9_999_999_999_999.994_f64 {
+            return Err(ValueObjectError::InvalidInput(
+                "A maximális javítási költség kívül esik a megengedett tartományon!",
+            ));
+        }
         Ok(())
     }
 

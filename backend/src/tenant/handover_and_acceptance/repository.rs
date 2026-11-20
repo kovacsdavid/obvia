@@ -103,7 +103,7 @@ impl Repository for PgPool {
                 ));
             }
         } else {
-            if item_make_id.is_some() {
+            if item_make_id.is_some() || !user_input.item_model_id.is_present() {
                 user_input.item_model_id.as_uuid()
             } else {
                 return Err(RepositoryError::InvalidState(
@@ -168,7 +168,7 @@ impl Repository for PgPool {
                 ));
             }
         } else {
-            if item_make_id.is_some() {
+            if item_make_id.is_some() || !user_input.item_model_id.is_present() {
                 user_input.item_model_id.as_uuid()
             } else {
                 return Err(RepositoryError::InvalidState(
@@ -489,7 +489,7 @@ where
         }
     };
 
-    let customer_full_map: HashMap<_, _> = customers_repository::get_full_by_ids(
+    let customer_full_map: HashMap<_, _> = customers_repository::get_full_by_ids_with_archive(
         executor.clone(),
         &handover_and_acceptance_vec
             .iter()
@@ -665,7 +665,7 @@ pub async fn insert(
         r#"
         WITH counter AS (
             INSERT INTO document_counters (document_type, year, last_value)
-            VALUES ('worksheet', EXTRACT(YEAR FROM now())::int, 1)
+            VALUES ('handover_and_acceptance', EXTRACT(YEAR FROM now())::int, 1)
             ON CONFLICT (document_type, year)
             DO UPDATE SET last_value = document_counters.last_value + 1
             RETURNING year, last_value
@@ -692,7 +692,7 @@ pub async fn insert(
         SELECT $1 || '-AT-' || counter.year || '-' || counter.last_value,
             counter.year,
             counter.last_value,
-            $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+            $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
         FROM counter
         RETURNING *
     "#,
@@ -766,7 +766,7 @@ pub async fn insert_item_model(
     Ok(sqlx::query_as::<_, ItemModel>(
         r#"
             INSERT INTO item_models (
-                make_id
+                make_id,
                 name
             ) VALUES (
                 $1,
@@ -794,19 +794,20 @@ pub async fn update(
         UPDATE handover_and_acceptance
         SET customer_id = $1,
             item_make_id = $2,
-            item_model_id = $3
-            item_identifier_type_id = $4
-            item_identifier_value = $5
-            reported_issue = $6
-            condition_at_receipt = $7
-            included_accessories = $8
-            authorized_work = $9
-            repair_limit = $10
-            currency_code = $11
-            terms_version = $12
-            accepted_by = $13
+            item_model_id = $3,
+            item_identifier_type_id = $4,
+            item_identifier_value = $5,
+            reported_issue = $6,
+            condition_at_receipt = $7,
+            included_accessories = $8,
+            authorized_work = $9,
+            repair_limit = $10,
+            currency_code = $11,
+            terms_version = $12,
+            accepted_by = $13,
             received_at = $14
         WHERE id = $15
+            AND deleted_at IS NULL
         RETURNING *
     "#,
     )

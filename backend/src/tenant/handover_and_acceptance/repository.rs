@@ -794,17 +794,17 @@ pub async fn update(
         UPDATE handover_and_acceptance
         SET customer_id = $1,
             item_make_id = $2,
-            item_model_id = $3
-            item_identifier_type_id = $4
-            item_identifier_value = $5
-            reported_issue = $6
-            condition_at_receipt = $7
-            included_accessories = $8
-            authorized_work = $9
-            repair_limit = $10
-            currency_code = $11
-            terms_version = $12
-            accepted_by = $13
+            item_model_id = $3,
+            item_identifier_type_id = $4,
+            item_identifier_value = $5,
+            reported_issue = $6,
+            condition_at_receipt = $7,
+            included_accessories = $8,
+            authorized_work = $9,
+            repair_limit = $10,
+            currency_code = $11,
+            terms_version = $12,
+            accepted_by = $13,
             received_at = $14
         WHERE id = $15
         RETURNING *

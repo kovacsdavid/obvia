@@ -113,6 +113,12 @@ impl From<ServiceError> for AppError {
                     json!({"message": "Nem található"}),
                 )
             }
+            ServiceError::Repository(RepositoryError::DocumentPrefixNotSet) => Self::new(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
             _ => Self::new(
                 Level::ERROR,
                 StatusCode::INTERNAL_SERVER_ERROR,

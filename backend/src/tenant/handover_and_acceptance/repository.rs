@@ -692,7 +692,7 @@ pub async fn insert(
         SELECT $1 || '-AT-' || counter.year || '-' || counter.last_value,
             counter.year,
             counter.last_value,
-            $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+            $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
         FROM counter
         RETURNING *
     "#,

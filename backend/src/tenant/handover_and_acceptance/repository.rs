@@ -766,7 +766,7 @@ pub async fn insert_item_model(
     Ok(sqlx::query_as::<_, ItemModel>(
         r#"
             INSERT INTO item_models (
-                make_id
+                make_id,
                 name
             ) VALUES (
                 $1,

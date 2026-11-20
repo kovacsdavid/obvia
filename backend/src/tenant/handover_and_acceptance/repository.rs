@@ -489,7 +489,7 @@ where
         }
     };
 
-    let customer_full_map: HashMap<_, _> = customers_repository::get_full_by_ids(
+    let customer_full_map: HashMap<_, _> = customers_repository::get_full_by_ids_with_archive(
         executor.clone(),
         &handover_and_acceptance_vec
             .iter()

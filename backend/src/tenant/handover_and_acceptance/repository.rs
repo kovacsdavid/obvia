@@ -807,6 +807,7 @@ pub async fn update(
             accepted_by = $13,
             received_at = $14
         WHERE id = $15
+            AND deleted_at IS NULL
         RETURNING *
     "#,
     )

@@ -37,6 +37,7 @@ use crate::tenant::{
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct HandoverAndAcceptance {
     pub id: Uuid,
+    pub display_id: String,
     pub customer_id: Uuid,
     pub item_make_id: Option<Uuid>,
     pub item_model_id: Option<Uuid>,
@@ -59,6 +60,7 @@ pub struct HandoverAndAcceptance {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct HandoverAndAcceptanceFull {
     pub id: Uuid,
+    pub display_id: String,
     pub customer: CustomerFull,
     pub item_make: Option<ItemMake>,
     pub item_model: Option<ItemModelFull>,
@@ -102,6 +104,7 @@ impl
     ) -> Self {
         Self {
             id: value.0.id,
+            display_id: value.0.display_id,
             customer: value.1,
             item_make: value.2,
             item_model: value.3,
@@ -225,6 +228,7 @@ pub mod tests {
 
         builder
             .id(Uuid::now_v7())
+            .display_id("KD-AT-2026-1".to_string())
             .customer_id(Uuid::now_v7())
             .item_make_id(Some(Uuid::now_v7()))
             .item_model_id(Some(Uuid::now_v7()))
@@ -257,6 +261,7 @@ pub mod tests {
 
         builder
             .id(Uuid::now_v7())
+            .display_id("KD-AT-2026-1".to_string())
             .customer(customer_full)
             .item_make(Some(item_make.build().unwrap()))
             .item_model(Some(

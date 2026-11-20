@@ -36,7 +36,7 @@ use crate::{
     },
     manager::auth::middleware::AuthenticatedUser,
     tenant::handover_and_acceptance::{
-        ModuleInterface, Print, Service, UserInput, UserInputHelper,
+        ModuleInterface, Service, UserInput, UserInputHelper,
         types::{FilterBy, OrderBy},
     },
 };
@@ -196,27 +196,18 @@ pub async fn print<M: ModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
-    let handover_and_acceptance_resolved_print = Print::new(
-        map_handler_err(
-            service.get_full(payload.uuid).await,
-            handover_and_acceptance_module.clone(),
-        )
-        .await?,
-        map_handler_err(claims.tz(), handover_and_acceptance_module.clone()).await?,
-    );
-    let handover_and_acceptance_id = handover_and_acceptance_resolved_print.id();
+
     let pdf = map_handler_err(
-        service
-            .print(&[handover_and_acceptance_resolved_print])
-            .await,
+        service.print(payload.uuid).await,
         handover_and_acceptance_module,
     )
     .await?;
+
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
         header::CONTENT_DISPOSITION,
-        format!(r#"inline; filename="vevo_{handover_and_acceptance_id}.pdf""#)
+        format!(r#"inline; filename="{}""#, payload.uuid)
             .parse()
             .unwrap(),
     );
@@ -244,7 +235,7 @@ mod tests {
 
     use crate::{
         common::{
-            TEST_TIME,
+            TEST_TIME, TEST_TZ,
             config::tests::test_app_config_builder,
             dto::PaginatorMeta,
             error::RepositoryError,
@@ -259,15 +250,21 @@ mod tests {
             query_parser::ResourceQuery,
         },
         tenant::{
+            address::model::test_address_resolved_builder,
             customers::model::tests::test_customer_full_builder,
             handover_and_acceptance::{
-                self, UserInput, UserInputHelper,
+                self, Print, UserInput, UserInputHelper,
                 model::tests::{
                     test_handover_and_acceptance_builder, test_handover_and_acceptance_full_builder,
                 },
                 repository::MockRepository,
                 tests::MockModule,
             },
+            owner_profile::{
+                dto::print::OwnerProfileFullPrint, model::tests::test_owner_profile_full_builder,
+                repository::MockOwnerProfileRepository,
+            },
+            users::model::tests::test_user_builder,
         },
     };
 
@@ -1670,11 +1667,18 @@ mod tests {
     async fn test_print_success() {
         let active_tenant_id = Uuid::now_v7();
         let handover_and_acceptance_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
+        let owner_profile_id = "de6c4563-640e-483c-ad2d-d47b1c9115b7".parse().unwrap();
+        let customer_id = "01a1f891-a6e5-733e-b525-41a33aa00cb3".parse().unwrap();
 
         let handover_and_acceptance_full = test_handover_and_acceptance_full_builder(
-            test_customer_full_builder().build().unwrap(),
+            test_customer_full_builder()
+                .id(customer_id)
+                .billing_address(Some(test_address_resolved_builder().build().unwrap()))
+                .build()
+                .unwrap(),
         )
         .id(handover_and_acceptance_id)
+        .accepted_by(test_user_builder().build().unwrap())
         .build()
         .unwrap();
 
@@ -1687,8 +1691,20 @@ mod tests {
                 move |_| Ok(handover_and_acceptance_full.clone())
             });
 
+        let mut owner_profile_repo = MockOwnerProfileRepository::new();
+        let owner_profile_full = test_owner_profile_full_builder()
+            .id(owner_profile_id)
+            .billing_address(Some(test_address_resolved_builder().build().unwrap()))
+            .build()
+            .unwrap();
+        owner_profile_repo.expect_get_full().times(1).returning({
+            let owner_profile_full = owner_profile_full.clone();
+            move || Ok(owner_profile_full.clone())
+        });
+
         let mut app_state = MockModule::new();
         let repo = Arc::new(repo);
+        let owner_profile_repo = Arc::new(owner_profile_repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_handover_and_acceptance_repo()
@@ -1696,19 +1712,33 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(repo.clone()));
         app_state
+            .expect_owner_profile_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(owner_profile_repo.clone()));
+        app_state
             .expect_config()
             .times(1)
             .return_const(test_config.clone());
 
-        let pdf_gen_payload_expected = vec![Print::new(
+        let owner_profile_full = test_owner_profile_full_builder()
+            .id(owner_profile_id)
+            .billing_address(Some(test_address_resolved_builder().build().unwrap()))
+            .build()
+            .unwrap();
+
+        let owner_profile_full_print = OwnerProfileFullPrint::new(owner_profile_full, *TEST_TZ);
+
+        let pdf_gen_payload_expected = Print::new(
             handover_and_acceptance_full,
+            owner_profile_full_print,
             "Europe/Budapest".parse().unwrap(),
-        )];
+        );
 
         let _m = PDF_GENERATOR_TEST_SYNC.lock();
         let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();
         pdf_gen
-            .expect::<Vec<Print>>()
+            .expect::<Print>()
             .times(1)
             .with(
                 eq(PdfTemplates::HandoverAndAcceptanceView),

@@ -40,10 +40,15 @@ use crate::{
         query_parser::ResourceQuery,
         service::{BaseService, BaseServiceError},
     },
-    tenant::handover_and_acceptance::{
-        self, ModuleInterface, Print, UserInput,
-        model::{HandoverAndAcceptance, HandoverAndAcceptanceFull},
-        test_handover_and_acceptance_full_print_builder,
+    manager::auth::dto::claims::ClaimsError,
+    tenant::{
+        customers::dto::print::test_customer_full_print_builder,
+        handover_and_acceptance::{
+            self, ModuleInterface, Print, UserInput,
+            model::{HandoverAndAcceptance, HandoverAndAcceptanceFull},
+            test_handover_and_acceptance_full_print_builder,
+        },
+        owner_profile::dto::print::{OwnerProfileFullPrint, test_owner_profile_full_print_builder},
     },
 };
 
@@ -72,6 +77,9 @@ pub enum ServiceError {
 
     #[error("UuidError: {0}")]
     UuidError(#[from] uuid::Error),
+
+    #[error("Claims error: {0}")]
+    ClaimsError(#[from] ClaimsError),
 }
 
 impl From<BaseServiceError> for ServiceError {
@@ -138,8 +146,8 @@ pub trait Service {
             handover_and_acceptance::types::FilterBy,
         >,
     ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<HandoverAndAcceptanceFull>)>> + Send;
-    fn print(&self, payload: &[Print]) -> impl Future<Output = ServiceResult<Vec<u8>>> + Sync;
-    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
+    fn print(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Send;
 }
 
 impl<'a, T> Service for BaseService<'a, T>
@@ -197,24 +205,46 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[Print]) -> ServiceResult<Vec<u8>> {
+    async fn print(&self, payload: Uuid) -> ServiceResult<Vec<u8>> {
+        let active_tenant = self.active_tenant()?;
+        let tz = self.claims()?.tz()?;
+
+        let owner_profile_print = OwnerProfileFullPrint::new(
+            self.module()
+                .owner_profile_repo(active_tenant)?
+                .get_full()
+                .await?,
+            tz,
+        );
+
+        let print = Print::new(self.get_full(payload).await?, owner_profile_print, tz);
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::HandoverAndAcceptanceView,
-            payload.to_vec(),
+            print,
         )?)
     }
 
     async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let handover_and_acceptance_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-        let accepted_by: Uuid = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+        let owner_profile_id = "de6c4563-640e-483c-ad2d-d47b1c9115b7".parse()?;
+        let customer_id = "01a1f891-a6e5-733e-b525-41a33aa00cb3".parse().unwrap();
+        let owner_profile_full_print = test_owner_profile_full_print_builder()
+            .id(owner_profile_id)
+            .build()?;
         let handover_and_acceptance_resolved_print =
-            test_handover_and_acceptance_full_print_builder()
+            test_handover_and_acceptance_full_print_builder(owner_profile_full_print)
                 .id(handover_and_acceptance_id)
-                .accepted_by(accepted_by.to_string())
+                .customer(
+                    test_customer_full_print_builder()
+                        .id(customer_id)
+                        .build()
+                        .unwrap(),
+                )
                 .build()?;
-        let pdf = self
-            .print(&[handover_and_acceptance_resolved_print])
-            .await?;
+        let pdf = PdfGenerator::gen_pdf_temporary(
+            &PdfTemplates::HandoverAndAcceptanceView,
+            handover_and_acceptance_resolved_print,
+        )?;
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;
         Ok(())

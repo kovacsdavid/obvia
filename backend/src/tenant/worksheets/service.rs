@@ -199,7 +199,7 @@ pub trait WorksheetService {
     fn print_snapshot(
         &self,
         path: &Path,
-    ) -> impl Future<Output = WorksheetsServiceResult<()>> + Sync;
+    ) -> impl Future<Output = WorksheetsServiceResult<()>> + Send;
 }
 
 impl<'a, T> WorksheetService for BaseService<'a, T>

@@ -24,7 +24,10 @@ use lettre::{
 use std::{fmt::Debug, sync::Arc};
 use uuid::Uuid;
 
-use crate::common::{AppState, BaseModule, database::PoolManager, error::RepositoryResult};
+use crate::{
+    common::{AppState, BaseModule, database::PoolManager, error::RepositoryResult},
+    tenant::owner_profile::repository::OwnerProfileRepository,
+};
 
 pub mod dto;
 mod handler;
@@ -47,7 +50,11 @@ pub trait ModuleInterface: BaseModule {
     fn handover_and_acceptance_repo(
         &self,
         tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn Repository>>;
+    ) -> RepositoryResult<Arc<dyn Repository + Send + Sync>>;
+    fn owner_profile_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
 }
 
 // TODO: implement the interface
@@ -60,7 +67,14 @@ where
     fn handover_and_acceptance_repo(
         &self,
         tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn Repository>> {
+    ) -> RepositoryResult<Arc<dyn Repository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+
+    fn owner_profile_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
@@ -91,7 +105,11 @@ pub mod tests {
             fn handover_and_acceptance_repo(
                 &self,
                 tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn Repository>>;
+            ) -> RepositoryResult<Arc<dyn Repository + Send + Sync>>;
+            fn owner_profile_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
         }
     );
 }

@@ -45,6 +45,9 @@ create index idx_item_models_item_makes ON item_models (make_id);
 create table handover_and_acceptance 
 (
     id                          uuid            primary key,
+    display_id                  varchar(255)    not null,
+    display_year                int             not null,
+    display_seq                 int             not null,
     customer_id                 uuid            not null,
     item_make_id                uuid,
     item_model_id               uuid,

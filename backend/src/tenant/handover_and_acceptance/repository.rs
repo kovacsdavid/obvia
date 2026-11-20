@@ -651,9 +651,29 @@ pub async fn insert(
     item_model_id: Option<Uuid>,
     item_identifier_type_id: Uuid,
 ) -> RepositoryResult<HandoverAndAcceptance> {
+    let prefix: Option<String> = sqlx::query_scalar(
+        "SELECT document_prefix FROM owner_profile
+                WHERE document_prefix ~ '^[A-Z0-9]{1,10}$'
+                LIMIT 1",
+    )
+    .fetch_optional(&mut *executor)
+    .await?;
+
+    let prefix = prefix.ok_or(RepositoryError::DocumentPrefixNotSet)?;
+
     Ok(sqlx::query_as::<_, HandoverAndAcceptance>(
         r#"
+        WITH counter AS (
+            INSERT INTO document_counters (document_type, year, last_value)
+            VALUES ('worksheet', EXTRACT(YEAR FROM now())::int, 1)
+            ON CONFLICT (document_type, year)
+            DO UPDATE SET last_value = document_counters.last_value + 1
+            RETURNING year, last_value
+        )
         INSERT INTO handover_and_acceptance (
+            display_id
+            display_year
+            display_seq
             customer_id
             item_make_id
             item_model_id
@@ -668,24 +688,16 @@ pub async fn insert(
             terms_version
             accepted_by
             received_at
-        ) VALUES (
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6,
-            $7,
-            $8,
-            $9,
-            $10,
-            $11,
-            $12,
-            $13,
-            $14
-        ) RETURNING *
+        )
+        SELECT $1 || '-AT-' || counter.year || '-' || counter.last_value,
+            counter.year,
+            counter.last_value,
+            $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+        FROM counter
+        RETURNING *
     "#,
     )
+    .bind(prefix)
     .bind(user_input.customer_id.as_uuid()?)
     .bind(item_make_id)
     .bind(item_model_id)
@@ -706,7 +718,7 @@ pub async fn insert(
     .bind(user_input.terms_version.as_str())
     .bind(sub)
     .bind(user_input.received_at.as_date_naive()?)
-    .fetch_one(executor)
+    .fetch_one(&mut *executor)
     .await?)
 }
 

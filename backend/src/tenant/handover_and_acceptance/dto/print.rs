@@ -23,6 +23,7 @@ use crate::common::utils::thousand_separated_number_bigdecimal;
 use crate::tenant::customers::dto::print::CustomerFullPrint;
 use crate::tenant::customers::dto::print::test_customer_full_print_builder;
 use crate::tenant::handover_and_acceptance::model::HandoverAndAcceptanceFull;
+use crate::tenant::owner_profile::dto::print::OwnerProfileFullPrint;
 use chrono_tz::Tz;
 use derive_builder::Builder;
 use serde::Serialize;
@@ -32,6 +33,8 @@ use uuid::Uuid;
 #[builder(build_fn(error = "CommonBuilderError"))]
 pub struct Print {
     id: Uuid,
+    display_id: String,
+    owner_profile: OwnerProfileFullPrint,
     customer: CustomerFullPrint,
     item_make: Option<String>,
     item_model: Option<String>,
@@ -51,7 +54,11 @@ pub struct Print {
 }
 
 impl Print {
-    pub fn new(handover_and_acceptance_full: HandoverAndAcceptanceFull, tz: Tz) -> Self {
+    pub fn new(
+        handover_and_acceptance_full: HandoverAndAcceptanceFull,
+        owner_profile_full_print: OwnerProfileFullPrint,
+        tz: Tz,
+    ) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         // NOTE: on user_input validation if repair_limit is set currency_code should be required.
         let repair_limit = if let Some(repair_limit) = &handover_and_acceptance_full.repair_limit
@@ -76,6 +83,8 @@ impl Print {
         };
         Self {
             id: handover_and_acceptance_full.id,
+            display_id: handover_and_acceptance_full.display_id,
+            owner_profile: owner_profile_full_print,
             customer: CustomerFullPrint::new(handover_and_acceptance_full.customer, tz),
             item_make: handover_and_acceptance_full.item_make.map(|v| v.name),
             item_model: handover_and_acceptance_full.item_model.map(|v| v.name),
@@ -113,10 +122,14 @@ impl Print {
     }
 }
 
-pub fn test_handover_and_acceptance_full_print_builder() -> PrintBuilder {
+pub fn test_handover_and_acceptance_full_print_builder(
+    owner_profile_full_print: OwnerProfileFullPrint,
+) -> PrintBuilder {
     let mut builder = PrintBuilder::default();
     builder
         .id(Uuid::now_v7())
+        .display_id("KD-AT-2026-1".to_string())
+        .owner_profile(owner_profile_full_print)
         .customer(test_customer_full_print_builder().build().unwrap())
         .item_make(Some("TestMake".to_string()))
         .item_model(Some("TestModel".to_string()))
@@ -149,6 +162,7 @@ mod tests {
             address::model::test_address_resolved_builder,
             customers::model::tests::test_customer_full_builder,
             handover_and_acceptance::model::tests::test_handover_and_acceptance_full_builder,
+            owner_profile::model::{OwnerProfileFull, tests::test_owner_profile_resolved_builder},
         },
     };
 
@@ -160,6 +174,7 @@ mod tests {
         let handover_and_acceptance_id = Uuid::now_v7();
         let customer_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
+        let owner_profile_id = Uuid::now_v7();
         let customer_full_print = test_customer_full_print_builder()
             .id(customer_id)
             .created_by_id(created_by_id)
@@ -176,10 +191,25 @@ mod tests {
         .id(handover_and_acceptance_id)
         .build()
         .unwrap();
-        let handover_and_acceptance_resolved_print =
-            Print::new(handover_and_acceptance_full, *TEST_TZ);
+
+        let owner_profile_resolved = test_owner_profile_resolved_builder()
+            .id(owner_profile_id)
+            .build()
+            .unwrap();
+
+        let owner_profile_full_print = OwnerProfileFullPrint::new(
+            OwnerProfileFull::from((owner_profile_resolved, None, None)),
+            *TEST_TZ,
+        );
+        let handover_and_acceptance_resolved_print = Print::new(
+            handover_and_acceptance_full,
+            owner_profile_full_print.clone(),
+            *TEST_TZ,
+        );
         let handover_and_acceptance_resolved_print_expected = Print {
             id: handover_and_acceptance_id,
+            display_id: "KD-AT-2026-1".to_string(),
+            owner_profile: owner_profile_full_print,
             customer: customer_full_print,
             item_make: Some("TestMake".to_string()),
             item_model: Some("TestModel".to_string()),

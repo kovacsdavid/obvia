@@ -665,7 +665,7 @@ pub async fn insert(
         r#"
         WITH counter AS (
             INSERT INTO document_counters (document_type, year, last_value)
-            VALUES ('worksheet', EXTRACT(YEAR FROM now())::int, 1)
+            VALUES ('handover_and_acceptance', EXTRACT(YEAR FROM now())::int, 1)
             ON CONFLICT (document_type, year)
             DO UPDATE SET last_value = document_counters.last_value + 1
             RETURNING year, last_value

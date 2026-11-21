@@ -451,7 +451,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         });
 
         let expected_user_input = UserInput {
@@ -474,7 +474,7 @@ mod tests {
             repair_limit: "1000".parse().unwrap(),
             currency_code: "HUF".parse().unwrap(),
             terms_version: "v1".parse().unwrap(),
-            received_at: TEST_TIME.date_naive().to_string().parse().unwrap(),
+            received_at: TEST_TIME.to_rfc3339().parse().unwrap(),
         };
 
         assert!(user_input.is_ok());
@@ -503,7 +503,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         });
 
         let expected_user_input_error = UserInputError {

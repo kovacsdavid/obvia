@@ -18,7 +18,7 @@
  */
 
 use axum::http::StatusCode;
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, Utc};
 use serde_json::json;
 use std::str::FromStr;
 use std::{fmt::Display, marker::PhantomData};
@@ -147,6 +147,19 @@ where
     T: ValueObjectData<DataType = NaiveDate>,
 {
     pub fn as_date_naive(&self) -> ValueObjectResult<&NaiveDate> {
+        Ok(self
+            .0
+            .as_ref()
+            .ok_or(ValueObjectError::InvalidState)?
+            .get_data())
+    }
+}
+
+impl<T> ValueObjectRequired<T>
+where
+    T: ValueObjectData<DataType = DateTime<Utc>>,
+{
+    pub fn as_datetime(&self) -> ValueObjectResult<&DateTime<Utc>> {
         Ok(self
             .0
             .as_ref()

@@ -764,7 +764,7 @@ pub async fn insert(
     .bind(user_input.currency_code.as_str())
     .bind(user_input.terms_version.as_str())
     .bind(sub)
-    .bind(user_input.received_at.as_date_naive()?)
+    .bind(user_input.received_at.as_datetime()?)
     .fetch_one(&mut *executor)
     .await?)
 }
@@ -877,7 +877,7 @@ pub async fn update(
     .bind(user_input.currency_code.as_str())
     .bind(user_input.terms_version.as_str())
     .bind(sub)
-    .bind(user_input.received_at.as_date_naive()?)
+    .bind(user_input.received_at.as_datetime()?)
     .bind(id)
     .fetch_one(executor)
     .await?)

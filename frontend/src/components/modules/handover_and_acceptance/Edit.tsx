@@ -40,6 +40,7 @@ import { ConditionalCard } from "@/components/ui/card.tsx";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import CustomersEdit from "@/components/modules/customers/Edit.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
+import { useAuth } from "@/hooks/use_auth";
 import {
     create,
     get_full,
@@ -52,7 +53,11 @@ import type {
     HandoverAndAcceptanceFull,
 } from "./lib/interface.ts";
 import type { SelectOptionList } from "@/lib/interface.ts";
-import { formatDateToYMD } from "@/lib/utils.ts";
+import {
+    formatReceiptTime,
+    resolveReceiptTime,
+    validReceiptTimeZone,
+} from "./lib/receivedAt";
 import { handleApiResult } from "@/lib/api/handleApiResult";
 import { toast } from "@/components/ui/toast-lib";
 
@@ -69,6 +74,7 @@ export default function Edit({
 }: EditProps) {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
+    const { claims } = useAuth();
     const params = useParams();
     const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -104,6 +110,14 @@ export default function Edit({
     );
     const [termsVersion, setTermsVersion] = React.useState("");
     const [receivedAt, setReceivedAt] = React.useState("");
+    const [originalReceivedAt, setOriginalReceivedAt] = React.useState<
+        string | null
+    >(null);
+    const [receivedAtChanged, setReceivedAtChanged] = React.useState(false);
+    const [receivedAtOffset, setReceivedAtOffset] = React.useState("");
+    const [receivedAtError, setReceivedAtError] = React.useState<string | null>(
+        null,
+    );
     const [errors, setErrors] =
         React.useState<HandoverAndAcceptanceError | null>(null);
     const [openNewCustomerDialog, setOpenNewCustomerDialog] =
@@ -147,8 +161,7 @@ export default function Edit({
                 .unwrap()
                 .then((result) => {
                     handleApiResult(result, {
-                        onSuccess: ({ data }) =>
-                            setItemMakesList(data ?? []),
+                        onSuccess: ({ data }) => setItemMakesList(data ?? []),
                     });
                 }),
             dispatch(selectHandoverList({ list: "item_identifier_type" }))
@@ -196,15 +209,60 @@ export default function Edit({
                         setRepairLimit(data.repair_limit ?? "");
                         setCurrencyCode(data.currency_code?.code ?? "");
                         setTermsVersion(data.terms_version ?? "");
-                        setReceivedAt(formatDateToYMD(data.received_at));
+                        setOriginalReceivedAt(data.received_at);
+                        setReceivedAtChanged(false);
+                        setReceivedAtOffset("");
                     },
                 });
             }
         });
     }, [dispatch, id, loadItemModels, loadLists]);
 
+    const receiptTimeValue =
+        !receivedAtChanged && originalReceivedAt
+            ? formatReceiptTime(originalReceivedAt, claims?.tz)
+            : receivedAt;
+    const receiptTimeResult = resolveReceiptTime(receiptTimeValue, claims?.tz);
+
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
+
+        let receivedAtUtc: string;
+        if (!validReceiptTimeZone(claims?.tz)) {
+            setReceivedAtError("Az időzóna nincs megadva vagy érvénytelen.");
+            return;
+        }
+        if (
+            receiptTimeResult.kind === "invalid-time" ||
+            receiptTimeResult.kind === "invalid-zone"
+        ) {
+            setReceivedAtError("Adjon meg egy érvényes dátumot és időpontot.");
+            return;
+        }
+        if (receiptTimeResult.kind === "gap") {
+            setReceivedAtError(
+                "Ez az időpont az óraátállítás miatt nem létezik.",
+            );
+            return;
+        }
+        if (!receivedAtChanged && originalReceivedAt) {
+            receivedAtUtc = originalReceivedAt;
+        } else {
+            const option =
+                receiptTimeResult.options.length === 1
+                    ? receiptTimeResult.options[0]
+                    : receiptTimeResult.options.find(
+                          (item) => item.offset === receivedAtOffset,
+                      );
+            if (!option) {
+                setReceivedAtError(
+                    "Válassza ki az időeltolást az ismétlődő időponthoz.",
+                );
+                return;
+            }
+            receivedAtUtc = option.utc;
+        }
+        setReceivedAtError(null);
 
         const input = {
             id,
@@ -223,7 +281,7 @@ export default function Edit({
             repairLimit,
             currencyCode,
             termsVersion,
-            receivedAt,
+            receivedAt: receivedAtUtc,
         };
 
         const result = await dispatch(
@@ -744,21 +802,81 @@ export default function Edit({
                                 <FieldErrorV2 error={errors?.terms_version} />
                             </Field>
 
-                            <Field data-invalid={isInvalidField("received_at")}>
+                            <Field
+                                data-invalid={
+                                    !!receivedAtError ||
+                                    isInvalidField("received_at")
+                                }
+                            >
                                 <FieldLabel htmlFor="received_at">
-                                    Átvétel dátuma
+                                    Átvétel dátuma és időpontja{" "}
+                                    {claims?.tz ? `(${claims.tz})` : ""}
                                 </FieldLabel>
                                 <Input
                                     id="received_at"
-                                    type="date"
-                                    value={receivedAt}
+                                    type="datetime-local"
+                                    step="0"
+                                    value={receiptTimeValue}
                                     onChange={(e) => {
                                         clearError("received_at");
                                         setReceivedAt(e.target.value);
+                                        setReceivedAtChanged(true);
+                                        setReceivedAtOffset("");
+                                        setReceivedAtError(null);
                                     }}
-                                    aria-invalid={isInvalidField("received_at")}
+                                    aria-invalid={
+                                        !!receivedAtError ||
+                                        isInvalidField("received_at")
+                                    }
                                 />
-                                <FieldErrorV2 error={errors?.received_at} />
+                                {receivedAtChanged &&
+                                    receiptTimeResult.kind === "valid" &&
+                                    receiptTimeResult.options.length > 1 && (
+                                        <Field>
+                                            <FieldLabel htmlFor="received_at_offset">
+                                                Időeltolás
+                                            </FieldLabel>
+                                            <Select
+                                                value={receivedAtOffset}
+                                                onValueChange={(value) => {
+                                                    setReceivedAtOffset(value);
+                                                    setReceivedAtError(null);
+                                                }}
+                                            >
+                                                <SelectTrigger
+                                                    id="received_at_offset"
+                                                    className="w-full"
+                                                    aria-invalid={
+                                                        !!receivedAtError
+                                                    }
+                                                >
+                                                    <SelectValue placeholder="Válasszon időeltolást" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {receiptTimeResult.options.map(
+                                                        (option) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    option.offset
+                                                                }
+                                                                value={
+                                                                    option.offset
+                                                                }
+                                                            >
+                                                                UTC
+                                                                {option.offset}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
+                                    )}
+                                <FieldErrorV2
+                                    error={
+                                        receivedAtError ?? errors?.received_at
+                                    }
+                                />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

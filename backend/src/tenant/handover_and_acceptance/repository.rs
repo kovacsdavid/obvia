@@ -671,22 +671,22 @@ pub async fn insert(
             RETURNING year, last_value
         )
         INSERT INTO handover_and_acceptance (
-            display_id
-            display_year
-            display_seq
-            customer_id
-            item_make_id
-            item_model_id
-            item_identifier_type_id
-            item_identifier_value
-            reported_issue
-            condition_at_receipt
-            included_accessories
-            authorized_work
-            repair_limit
-            currency_code
-            terms_version
-            accepted_by
+            display_id,
+            display_year,
+            display_seq,
+            customer_id,
+            item_make_id,
+            item_model_id,
+            item_identifier_type_id,
+            item_identifier_value,
+            reported_issue,
+            condition_at_receipt,
+            included_accessories,
+            authorized_work,
+            repair_limit,
+            currency_code,
+            terms_version,
+            accepted_by,
             received_at
         )
         SELECT $1 || '-AT-' || counter.year || '-' || counter.last_value,

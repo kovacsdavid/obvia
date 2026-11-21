@@ -32,6 +32,7 @@ import type {
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 import type { ApiResult } from "@/lib/api/types";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { SelectOptionListResponse } from "@/lib/interface";
 
 interface HandoverAndAcceptanceState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -73,6 +74,29 @@ export const list = createAsyncThunk<
             query,
             token,
             signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
+    },
+);
+
+export const select_list = createAsyncThunk<
+    ApiResult<SelectOptionListResponse>,
+    { list: string; param?: string; silent?: boolean },
+    { state: RootState }
+>(
+    "handover_and_acceptance/select_list",
+    async (
+        { list, param, silent = false },
+        { getState, dispatch, signal },
+    ) => {
+        await dispatch(refreshAccessToken());
+        const token = getState().auth.login.token;
+        const result = await handoverAndAcceptanceApi.select_list(
+            list,
+            token,
+            signal,
+            param,
         );
         if (!silent) notifyApiError(result);
         return result;

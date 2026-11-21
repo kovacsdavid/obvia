@@ -25,6 +25,7 @@ import type {
     HandoverAndAcceptanceResponse,
     HandoverAndAcceptanceUserInput,
     PaginatedHandoverAndAcceptanceFullListResponse,
+    SelectOptionListResponse,
     UpdateHandoverAndAcceptanceResponse,
 } from "@/components/modules/handover_and_acceptance/lib/interface.ts";
 import {
@@ -34,6 +35,7 @@ import {
     isHandoverAndAcceptanceFullResponse,
     isHandoverAndAcceptanceResponse,
     isPaginatedHandoverAndAcceptanceFullListResponse,
+    isSelectOptionListResponse,
     isUpdateHandoverAndAcceptanceResponse,
 } from "@/components/modules/handover_and_acceptance/lib/guards.ts";
 import { apiRequest } from "@/lib/api/request";
@@ -107,6 +109,25 @@ export async function list(
         signal,
         guard: isPaginatedHandoverAndAcceptanceFullListResponse,
     });
+}
+
+export async function select_list(
+    list: string,
+    token: string | null,
+    signal?: AbortSignal,
+    param?: string,
+): Promise<ApiResult<SelectOptionListResponse>> {
+    const query = new URLSearchParams({ list });
+    if (param !== undefined) query.set("param", param);
+    return apiRequest(
+        `/api/handover_and_acceptance/select_list?${query.toString()}`,
+        {
+            method: "GET",
+            token,
+            signal,
+            guard: isSelectOptionListResponse,
+        },
+    );
 }
 
 export async function get_full(

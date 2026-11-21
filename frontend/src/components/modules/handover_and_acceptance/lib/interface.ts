@@ -25,7 +25,10 @@ import {
     type PaginatedDataResponse,
     type SimpleError,
     type SimpleMessageData,
+    type SelectOptionListResponse,
 } from "@/lib/interface.ts";
+
+export type { SelectOptionListResponse };
 
 export interface HandoverAndAcceptanceUserInput {
     id: string | null;

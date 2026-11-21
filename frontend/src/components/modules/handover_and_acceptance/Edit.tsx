@@ -46,7 +46,8 @@ import {
     update,
 } from "@/components/modules/handover_and_acceptance/lib/slice.ts";
 import { list as listCustomers } from "@/components/modules/customers/lib/slice.ts";
-import { select_list as selectList } from "@/components/modules/tasks/lib/slice.ts";
+import { select_list as selectCurrencyList } from "@/components/modules/tasks/lib/slice.ts";
+import { select_list as selectHandoverList } from "@/components/modules/handover_and_acceptance/lib/slice.ts";
 import type { Customer } from "@/components/modules/customers/lib/interface.ts";
 import type {
     HandoverAndAcceptanceError,
@@ -78,10 +79,17 @@ export default function Edit({
         [],
     );
     const [itemMakeId, setItemMakeId] = React.useState("");
+    const [itemMakesList, setItemMakesList] = React.useState<SelectOptionList>(
+        [],
+    );
     const [newItemMake, setNewItemMake] = React.useState("");
     const [itemModelId, setItemModelId] = React.useState("");
+    const [itemModelsList, setItemModelsList] =
+        React.useState<SelectOptionList>([]);
     const [newItemModel, setNewItemModel] = React.useState("");
     const [itemIdentifierTypeId, setItemIdentifierTypeId] = React.useState("");
+    const [itemIdentifierTypesList, setItemIdentifierTypesList] =
+        React.useState<SelectOptionList>([]);
     const [newItemIdentifierType, setNewItemIdentifierType] =
         React.useState("");
     const [itemIdentifierValue, setItemIdentifierValue] = React.useState("");
@@ -102,6 +110,22 @@ export default function Edit({
         React.useState<HandoverAndAcceptanceError | null>(null);
     const [openNewCustomerDialog, setOpenNewCustomerDialog] =
         React.useState(false);
+
+    const loadItemModels = useCallback(
+        async (makeId: string) => {
+            setItemModelsList([]);
+            if (!makeId || makeId === "other") {
+                return;
+            }
+            const result = await dispatch(
+                selectHandoverList({ list: "item_models", param: makeId }),
+            ).unwrap();
+            handleApiResult(result, {
+                onSuccess: ({ data }) => setItemModelsList(data ?? []),
+            });
+        },
+        [dispatch],
+    );
 
     const clearError = (field: keyof HandoverAndAcceptanceError) => {
         setErrors((prev) =>
@@ -128,7 +152,23 @@ export default function Edit({
                         },
                     });
                 }),
-            dispatch(selectList({ list: "currencies" }))
+            dispatch(selectHandoverList({ list: "item_makes" }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) =>
+                            setItemMakesList(data ?? []),
+                    });
+                }),
+            dispatch(selectHandoverList({ list: "item_identifier_type" }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) =>
+                            setItemIdentifierTypesList(data ?? []),
+                    });
+                }),
+            dispatch(selectCurrencyList({ list: "currencies" }))
                 .unwrap()
                 .then((result) => {
                     handleApiResult(result, {
@@ -143,8 +183,13 @@ export default function Edit({
             if (typeof id === "string") {
                 const result = await dispatch(get_full({ uuid: id })).unwrap();
                 handleApiResult(result, {
-                    onSuccess: ({ data }) => {
+                    onSuccess: async ({ data }) => {
                         if (!data) return;
+                        if (data.item_make?.id) {
+                            await loadItemModels(data.item_make.id);
+                        } else {
+                            setItemModelsList([]);
+                        }
                         setCustomerId(data.customer.id);
                         setItemMakeId(data.item_make?.id ?? "");
                         setNewItemMake("");
@@ -165,7 +210,7 @@ export default function Edit({
                 });
             }
         });
-    }, [dispatch, id, loadLists]);
+    }, [dispatch, id, loadItemModels, loadLists]);
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -317,17 +362,33 @@ export default function Edit({
                                         clearError("item_make_id");
                                         clearError("new_item_make");
                                         setItemMakeId(value);
+                                        setItemModelId("");
+                                        setNewItemModel("");
+                                        void loadItemModels(value);
                                     }}
                                 >
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Nincs megadva" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {itemMakeId && (
-                                            <SelectItem value={itemMakeId}>
-                                                Meglévő gyártó
+                                        {itemMakesList.map((make) => (
+                                            <SelectItem
+                                                key={make.value}
+                                                value={make.value}
+                                            >
+                                                {make.title}
                                             </SelectItem>
-                                        )}
+                                        ))}
+                                        {itemMakeId &&
+                                            itemMakeId !== "other" &&
+                                            !itemMakesList.some(
+                                                (make) =>
+                                                    make.value === itemMakeId,
+                                            ) && (
+                                                <SelectItem value={itemMakeId}>
+                                                    Meglévő gyártó
+                                                </SelectItem>
+                                            )}
                                         <SelectItem value="other">
                                             Új gyártó
                                         </SelectItem>
@@ -374,11 +435,24 @@ export default function Edit({
                                         <SelectValue placeholder="Nincs megadva" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {itemModelId && (
-                                            <SelectItem value={itemModelId}>
-                                                Meglévő típus
+                                        {itemModelsList.map((model) => (
+                                            <SelectItem
+                                                key={model.value}
+                                                value={model.value}
+                                            >
+                                                {model.title}
                                             </SelectItem>
-                                        )}
+                                        ))}
+                                        {itemModelId &&
+                                            itemModelId !== "other" &&
+                                            !itemModelsList.some(
+                                                (model) =>
+                                                    model.value === itemModelId,
+                                            ) && (
+                                                <SelectItem value={itemModelId}>
+                                                    Meglévő típus
+                                                </SelectItem>
+                                            )}
                                         <SelectItem value="other">
                                             Új típus
                                         </SelectItem>
@@ -427,13 +501,29 @@ export default function Edit({
                                         <SelectValue placeholder="Válasszon" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {itemIdentifierTypeId && (
-                                            <SelectItem
-                                                value={itemIdentifierTypeId}
-                                            >
-                                                Meglévő típus
-                                            </SelectItem>
+                                        {itemIdentifierTypesList.map(
+                                            (identifierType) => (
+                                                <SelectItem
+                                                    key={identifierType.value}
+                                                    value={identifierType.value}
+                                                >
+                                                    {identifierType.title}
+                                                </SelectItem>
+                                            ),
                                         )}
+                                        {itemIdentifierTypeId &&
+                                            itemIdentifierTypeId !== "other" &&
+                                            !itemIdentifierTypesList.some(
+                                                (identifierType) =>
+                                                    identifierType.value ===
+                                                    itemIdentifierTypeId,
+                                            ) && (
+                                                <SelectItem
+                                                    value={itemIdentifierTypeId}
+                                                >
+                                                    Meglévő típus
+                                                </SelectItem>
+                                            )}
                                         <SelectItem value="other">
                                             Új azonosító típus
                                         </SelectItem>

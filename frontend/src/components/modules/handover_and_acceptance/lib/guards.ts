@@ -42,6 +42,8 @@ import type {
     UpdateHandoverAndAcceptanceResponse,
 } from "@/components/modules/handover_and_acceptance/lib/interface.ts";
 
+export { isSelectOptionListResponse } from "@/lib/interface.ts";
+
 export function isCreateHandoverAndAcceptanceResponse(
     data: unknown,
 ): data is CreateHandoverAndAcceptanceResponse {

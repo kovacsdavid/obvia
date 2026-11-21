@@ -18,6 +18,7 @@
  */
 
 import {
+    act,
     cleanup,
     fireEvent,
     render,
@@ -389,5 +390,149 @@ describe("receipt date and time form", () => {
             ).not.toBeInTheDocument(),
         );
         expect(screen.getByLabelText("Azonosító értéke")).toHaveValue("kept");
+    });
+
+    it.each([false, true])(
+        "keeps indexed accessory errors aligned in edit mode %s",
+        async (editing) => {
+            mocks.id = editing ? "existing" : undefined;
+            const originalDispatch = mocks.dispatch.getMockImplementation()!;
+            mocks.dispatch.mockImplementation((action: { kind: string }) =>
+                action.kind === "create" || action.kind === "update"
+                    ? {
+                          unwrap: async () => ({
+                              kind: "http_error",
+                              status: 422,
+                              body: {
+                                  error: {
+                                      message: "Validation error",
+                                      fields: {
+                                          item_identifier_value:
+                                              "Identifier error",
+                                          included_accessories: [
+                                              null,
+                                              "Second accessory error",
+                                              "Third accessory error",
+                                          ],
+                                      },
+                                  },
+                              },
+                          }),
+                      }
+                    : originalDispatch(action),
+            );
+            render(<Edit />);
+            if (editing) {
+                await waitFor(() =>
+                    expect(
+                        screen.getByLabelText("Azonosító értéke"),
+                    ).toHaveValue("serial"),
+                );
+            }
+            const add = screen.getByRole("button", {
+                name: "Tartozék hozzáadása",
+            });
+            fireEvent.click(add);
+            fireEvent.click(add);
+            fireEvent.click(add);
+            fireEvent.change(screen.getByLabelText("Tartozék 1"), {
+                target: { value: "Valid accessory" },
+            });
+            fireEvent.click(
+                screen.getByRole("button", {
+                    name: editing ? "Módosítás" : "Létrehozás",
+                }),
+            );
+
+            expect(
+                await screen.findByText("Second accessory error"),
+            ).toBeInTheDocument();
+            expect(screen.getByLabelText("Tartozék 1")).not.toHaveAttribute(
+                "aria-describedby",
+            );
+            expect(
+                screen.getByLabelText("Tartozék 2"),
+            ).toHaveAccessibleDescription("Second accessory error");
+            expect(
+                screen.getByLabelText("Tartozék 3"),
+            ).toHaveAccessibleDescription("Third accessory error");
+            expect(screen.getByLabelText("Tartozék 2")).toHaveAttribute(
+                "aria-invalid",
+                "true",
+            );
+
+            fireEvent.change(screen.getByLabelText("Tartozék 2"), {
+                target: { value: "Fixed" },
+            });
+            expect(
+                screen.queryByText("Second accessory error"),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.getByLabelText("Tartozék 3"),
+            ).toHaveAccessibleDescription("Third accessory error");
+            expect(screen.getByText("Identifier error")).toBeInTheDocument();
+
+            fireEvent.click(
+                screen.getByRole("button", { name: "Tartozék 1 törlése" }),
+            );
+            expect(
+                screen.getByLabelText("Tartozék 2"),
+            ).toHaveAccessibleDescription("Third accessory error");
+            fireEvent.click(add);
+            expect(screen.getByLabelText("Tartozék 3")).not.toHaveAttribute(
+                "aria-describedby",
+            );
+            expect(
+                screen.getByLabelText("Tartozék 2"),
+            ).toHaveAccessibleDescription("Third accessory error");
+            fireEvent.click(
+                screen.getByRole("button", { name: "Tartozék 2 törlése" }),
+            );
+            expect(
+                screen.queryByText("Third accessory error"),
+            ).not.toBeInTheDocument();
+            expect(screen.getByText("Identifier error")).toBeInTheDocument();
+        },
+    );
+
+    it("keeps accessory controls locked until a pending save finishes", async () => {
+        let resolveSave!: (value: unknown) => void;
+        const save = new Promise((resolve) => {
+            resolveSave = resolve;
+        });
+        const originalDispatch = mocks.dispatch.getMockImplementation()!;
+        mocks.dispatch.mockImplementation((action: { kind: string }) =>
+            action.kind === "create"
+                ? { unwrap: () => save }
+                : originalDispatch(action),
+        );
+        render(<Edit />);
+        const add = screen.getByRole("button", { name: "Tartozék hozzáadása" });
+        fireEvent.click(add);
+        const input = screen.getByLabelText("Tartozék 1");
+        const remove = screen.getByRole("button", {
+            name: "Tartozék 1 törlése",
+        });
+        const submit = screen.getByRole("button", { name: "Létrehozás" });
+        fireEvent.click(submit);
+        expect(add).toBeDisabled();
+        expect(input).toBeDisabled();
+        expect(remove).toBeDisabled();
+        expect(submit).toBeDisabled();
+        fireEvent.submit(submit.closest("form")!);
+        expect(
+            mocks.dispatch.mock.calls.filter(
+                ([action]) => action.kind === "create",
+            ),
+        ).toHaveLength(1);
+
+        await act(async () => {
+            resolveSave({ kind: "network_error", offline: false });
+            await save;
+        });
+        expect(add).toBeEnabled();
+        expect(input).toBeEnabled();
+        expect(remove).toBeEnabled();
+        expect(submit).toBeEnabled();
     });
 });

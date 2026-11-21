@@ -77,6 +77,7 @@ export default function Edit({
     const { claims } = useAuth();
     const params = useParams();
     const id = React.useMemo(() => params["id"] ?? null, [params]);
+    const accessoryId = React.useId();
 
     const [customerId, setCustomerId] = React.useState("");
     const [customersList, setCustomersList] = React.useState<SelectOptionList>(
@@ -121,6 +122,8 @@ export default function Edit({
     );
     const [errors, setErrors] =
         React.useState<HandoverAndAcceptanceError | null>(null);
+    const [isSaving, setIsSaving] = React.useState(false);
+    const savingRef = React.useRef(false);
     const [openNewCustomerDialog, setOpenNewCustomerDialog] =
         React.useState(false);
 
@@ -229,6 +232,7 @@ export default function Edit({
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
+        if (savingRef.current) return;
 
         let receivedAtUtc: string;
         if (!validReceiptTimeZone(claims?.tz)) {
@@ -287,24 +291,31 @@ export default function Edit({
             receivedAt: receivedAtUtc,
         };
 
-        const result = await dispatch(
-            id ? update({ input }) : create({ input }),
-        ).unwrap();
+        savingRef.current = true;
+        setIsSaving(true);
+        try {
+            const result = await dispatch(
+                id ? update({ input }) : create({ input }),
+            ).unwrap();
 
-        handleApiResult(result, {
-            onSuccess: ({ data }) => {
-                toast.add({
-                    type: "success",
-                    title: "A mentés sikeresen megtörtént!",
-                });
-                if (typeof onSuccess === "function" && data) {
-                    onSuccess(data as unknown as HandoverAndAcceptanceFull);
-                } else {
-                    navigate("/atadas-atvetel/lista");
-                }
-            },
-            onFieldErrors: setErrors,
-        });
+            handleApiResult(result, {
+                onSuccess: ({ data }) => {
+                    toast.add({
+                        type: "success",
+                        title: "A mentés sikeresen megtörtént!",
+                    });
+                    if (typeof onSuccess === "function" && data) {
+                        onSuccess(data as unknown as HandoverAndAcceptanceFull);
+                    } else {
+                        navigate("/atadas-atvetel/lista");
+                    }
+                },
+                onFieldErrors: setErrors,
+            });
+        } finally {
+            savingRef.current = false;
+            setIsSaving(false);
+        }
     };
 
     const handleCancel = (e: React.MouseEvent) => {
@@ -321,9 +332,33 @@ export default function Edit({
     };
 
     const updateAccessory = (index: number, value: string) => {
-        clearError("included_accessories");
+        setErrors((prev) =>
+            prev?.included_accessories
+                ? {
+                      ...prev,
+                      included_accessories: prev.included_accessories.map(
+                          (error, errorIndex) =>
+                              errorIndex === index ? null : error,
+                      ),
+                  }
+                : prev,
+        );
         setIncludedAccessories((prev) =>
             prev.map((item, itemIndex) => (itemIndex === index ? value : item)),
+        );
+    };
+
+    const removeAccessory = (index: number) => {
+        setIncludedAccessories((prev) => prev.filter((_, i) => i !== index));
+        setErrors((prev) =>
+            prev?.included_accessories
+                ? {
+                      ...prev,
+                      included_accessories: prev.included_accessories.filter(
+                          (_, i) => i !== index,
+                      ),
+                  }
+                : prev,
         );
     };
 
@@ -674,6 +709,8 @@ export default function Edit({
                                     <Button
                                         type="button"
                                         variant="outline"
+                                        aria-label="Tartozék hozzáadása"
+                                        disabled={isSaving}
                                         onClick={() =>
                                             setIncludedAccessories((prev) => [
                                                 ...prev,
@@ -691,27 +728,57 @@ export default function Edit({
                                                 key={index}
                                                 className="flex gap-2"
                                             >
-                                                <Input
-                                                    value={accessory}
-                                                    onChange={(e) =>
-                                                        updateAccessory(
-                                                            index,
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                />
+                                                <div className="min-w-0 flex-1 space-y-2">
+                                                    <Input
+                                                        aria-label={`Tartozék ${index + 1}`}
+                                                        disabled={isSaving}
+                                                        aria-invalid={
+                                                            errors
+                                                                ?.included_accessories?.[
+                                                                index
+                                                            ] != null
+                                                        }
+                                                        aria-describedby={
+                                                            errors
+                                                                ?.included_accessories?.[
+                                                                index
+                                                            ] != null
+                                                                ? `${accessoryId}-error-${index}`
+                                                                : undefined
+                                                        }
+                                                        value={accessory}
+                                                        onChange={(e) =>
+                                                            updateAccessory(
+                                                                index,
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    {errors
+                                                        ?.included_accessories?.[
+                                                        index
+                                                    ] != null && (
+                                                        <div
+                                                            id={`${accessoryId}-error-${index}`}
+                                                        >
+                                                            <FieldErrorV2
+                                                                error={
+                                                                    errors
+                                                                        .included_accessories[
+                                                                        index
+                                                                    ]
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
+                                                    aria-label={`Tartozék ${index + 1} törlése`}
+                                                    disabled={isSaving}
                                                     onClick={() =>
-                                                        setIncludedAccessories(
-                                                            (prev) =>
-                                                                prev.filter(
-                                                                    (_, i) =>
-                                                                        i !==
-                                                                        index,
-                                                                ),
-                                                        )
+                                                        removeAccessory(index)
                                                     }
                                                 >
                                                     <Trash />
@@ -720,9 +787,6 @@ export default function Edit({
                                         ),
                                     )}
                                 </div>
-                                <FieldErrorV2
-                                    error={errors?.included_accessories?.[0]}
-                                />
                             </Field>
 
                             <Field
@@ -893,7 +957,7 @@ export default function Edit({
                             >
                                 Mégse
                             </Button>
-                            <Button type="submit">
+                            <Button type="submit" disabled={isSaving}>
                                 {id ? "Módosítás" : "Létrehozás"}
                             </Button>
                         </div>

@@ -36,7 +36,7 @@ describe("receipt time conversion", () => {
         });
         expect(
             formatReceiptTime("2026-01-01T23:30:45.123Z", "Europe/Budapest"),
-        ).toBe("2026-01-02T00:30:45.123");
+        ).toBe("2026-01-02T00:30");
     });
 
     it("rejects invalid timezones, invalid times, and daylight-saving gaps", () => {

@@ -110,6 +110,9 @@ export default function Edit({
     );
     const [termsVersion, setTermsVersion] = React.useState("");
     const [receivedAt, setReceivedAt] = React.useState("");
+    const [defaultReceivedAt, setDefaultReceivedAt] = React.useState<
+        string | null
+    >(null);
     const [originalReceivedAt, setOriginalReceivedAt] = React.useState<
         string | null
     >(null);
@@ -218,9 +221,21 @@ export default function Edit({
         });
     }, [dispatch, id, loadItemModels, loadLists]);
 
+    useEffect(() => {
+        if (
+            id ||
+            defaultReceivedAt ||
+            !validReceiptTimeZone(claims?.tz)
+        ) {
+            return;
+        }
+        setDefaultReceivedAt(new Date().toISOString());
+    }, [claims?.tz, defaultReceivedAt, id]);
+
+    const unchangedReceivedAt = originalReceivedAt ?? defaultReceivedAt;
     const receiptTimeValue =
-        !receivedAtChanged && originalReceivedAt
-            ? formatReceiptTime(originalReceivedAt, claims?.tz)
+        !receivedAtChanged && unchangedReceivedAt
+            ? formatReceiptTime(unchangedReceivedAt, claims?.tz)
             : receivedAt;
     const receiptTimeResult = resolveReceiptTime(receiptTimeValue, claims?.tz);
 
@@ -245,8 +260,8 @@ export default function Edit({
             );
             return;
         }
-        if (!receivedAtChanged && originalReceivedAt) {
-            receivedAtUtc = originalReceivedAt;
+        if (!receivedAtChanged && unchangedReceivedAt) {
+            receivedAtUtc = unchangedReceivedAt;
         } else {
             const option =
                 receiptTimeResult.options.length === 1
@@ -815,7 +830,7 @@ export default function Edit({
                                 <Input
                                     id="received_at"
                                     type="datetime-local"
-                                    step="0"
+                                    step="60"
                                     value={receiptTimeValue}
                                     onChange={(e) => {
                                         clearError("received_at");

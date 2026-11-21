@@ -77,7 +77,59 @@ describe("receipt date and time form", () => {
             }),
         }));
     });
-    afterEach(cleanup);
+    afterEach(() => {
+        cleanup();
+        vi.useRealTimers();
+    });
+
+    it("defaults to now in the account timezone and submits that instant untouched", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-07-02T10:30:45.123Z"));
+        render(<Edit />);
+        const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
+        await waitFor(() =>
+            expect(field).toHaveValue("2026-07-02T12:30"),
+        );
+
+        fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
+        await waitFor(() =>
+            expect(mocks.dispatch).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    kind: "create",
+                    payload: expect.objectContaining({
+                        input: expect.objectContaining({
+                            receivedAt: "2026-07-02T10:30:45.123Z",
+                        }),
+                    }),
+                }),
+            ),
+        );
+    });
+
+    it("submits the exact default instant during a repeated hour", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-10-25T00:30:45.123Z"));
+        render(<Edit />);
+        const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
+        await waitFor(() =>
+            expect(field).toHaveValue("2026-10-25T02:30"),
+        );
+        expect(screen.queryByText("Időeltolás")).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
+        await waitFor(() =>
+            expect(mocks.dispatch).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    kind: "create",
+                    payload: expect.objectContaining({
+                        input: expect.objectContaining({
+                            receivedAt: "2026-10-25T00:30:45.123Z",
+                        }),
+                    }),
+                }),
+            ),
+        );
+    });
 
     it("sends a new local time as UTC", async () => {
         render(<Edit />);
@@ -104,7 +156,7 @@ describe("receipt date and time form", () => {
         render(<Edit />);
         const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
         await waitFor(() =>
-            expect(field).toHaveValue("2026-10-25T02:30:12.123"),
+            expect(field).toHaveValue("2026-10-25T02:30"),
         );
         fireEvent.click(screen.getByRole("button", { name: "Módosítás" }));
         await waitFor(() =>

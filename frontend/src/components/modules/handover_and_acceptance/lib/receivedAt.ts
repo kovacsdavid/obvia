@@ -35,7 +35,7 @@ export function formatReceiptTime(
 ): string {
     if (!validReceiptTimeZone(zone)) return "";
     const date = DateTime.fromISO(utc, { setZone: true }).setZone(zone);
-    return date.isValid ? date.toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS") : "";
+    return date.isValid ? date.toFormat("yyyy-MM-dd'T'HH:mm") : "";
 }
 
 export function resolveReceiptTime(

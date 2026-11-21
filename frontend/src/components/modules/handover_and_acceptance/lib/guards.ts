@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { isCustomer } from "@/components/modules/customers/lib/guards";
+import { isCustomerFull } from "@/components/modules/customers/lib/guards";
 import type { Currency } from "@/components/modules/currencies/lib/interface";
 import {
     isCommonResponse,
@@ -76,21 +76,12 @@ export function isHandoverAndAcceptance(
         typeof data.customer_id === "string" &&
         "item_make_id" in data &&
         (data.item_make_id === null || typeof data.item_make_id === "string") &&
-        "new_item_make" in data &&
-        (data.new_item_make === null ||
-            typeof data.new_item_make === "string") &&
         "item_model_id" in data &&
         (data.item_model_id === null ||
             typeof data.item_model_id === "string") &&
-        "new_item_model" in data &&
-        (data.new_item_model === null ||
-            typeof data.new_item_model === "string") &&
         "item_identifier_type_id" in data &&
         (data.item_identifier_type_id === null ||
             typeof data.item_identifier_type_id === "string") &&
-        "new_item_identifier_type" in data &&
-        (data.new_item_identifier_type === null ||
-            typeof data.new_item_identifier_type === "string") &&
         "item_identifier_value" in data &&
         typeof data.item_identifier_value === "string" &&
         "reported_issue" in data &&
@@ -265,7 +256,7 @@ export function isHandoverAndAcceptanceFull(
         "display_id" in data &&
         typeof data.display_id === "string" &&
         "customer" in data &&
-        isCustomer(data.customer) &&
+        isCustomerFull(data.customer) &&
         "item_make" in data &&
         (data.item_make === null || isItemMake(data.item_make)) &&
         "item_model" in data &&

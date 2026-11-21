@@ -18,7 +18,7 @@
  */
 
 import type { Currency as CurrencyInterface } from "@/components/modules/currencies/lib/interface";
-import type { Customer as CustomerInterface } from "@/components/modules/customers/lib/interface";
+import type { CustomerFull as CustomerInterface } from "@/components/modules/customers/lib/interface";
 import {
     type CommonResponse,
     type FormError,

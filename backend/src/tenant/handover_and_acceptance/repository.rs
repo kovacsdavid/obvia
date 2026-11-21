@@ -21,6 +21,7 @@ use std::collections::HashMap;
 
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
 use crate::tenant::currencies::repository as currencies_repository;
 use crate::tenant::customers::repository as customers_repository;
@@ -59,6 +60,12 @@ pub trait Repository: Send + Sync {
         sub: Uuid,
     ) -> RepositoryResult<HandoverAndAcceptance>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
+    async fn get_item_makes_select_list(&self) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_item_models_select_list(
+        &self,
+        make_id: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_item_identifier_type_select_list(&self) -> RepositoryResult<Vec<SelectOption>>;
 }
 
 #[async_trait]
@@ -209,6 +216,46 @@ impl Repository for PgPool {
         delete(&mut *self.acquire().await?, id).await?;
 
         Ok(())
+    }
+    async fn get_item_makes_select_list(&self) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            r#"
+                SELECT item_makes.id::VARCHAR as value, item_makes.name as title
+                FROM item_makes
+                WHERE is_active
+            "#,
+        )
+        .fetch_all(self)
+        .await?)
+    }
+    async fn get_item_models_select_list(
+        &self,
+        make_id: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            r#"
+                SELECT item_models.id::VARCHAR as value, item_models.name as title
+                FROM item_models
+                WHERE is_active
+                    AND item_Models.make_id = $1
+            "#,
+        )
+        .bind(make_id)
+        .fetch_all(self)
+        .await?)
+    }
+    async fn get_item_identifier_type_select_list(&self) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            r#"
+                SELECT
+                    item_identifier_types.id::VARCHAR as value,
+                    item_identifier_types.name as title
+                FROM item_identifier_types
+                WHERE is_active
+            "#,
+        )
+        .fetch_all(self)
+        .await?)
     }
 }
 

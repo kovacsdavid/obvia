@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use axum::{
     extract::{Query, State},
@@ -95,6 +95,36 @@ pub async fn list<M: ModuleInterface>(
             .status_code(StatusCode::OK)
             .meta(meta)
             .data(data)
+            .build(),
+        handover_and_acceptance_module,
+    )
+    .await?
+    .into_response())
+}
+
+#[instrument(
+    name = "obvia::tenant::handover_and_acceptance::handler::select_list",
+    skip(handover_and_acceptance_module)
+)]
+pub async fn select_list<M: ModuleInterface>(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(handover_and_acceptance_module): State<Arc<M>>,
+    _client_context: extractors::ClientContext,
+    Query(payload): Query<HashMap<String, String>>,
+) -> HandlerResult {
+    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
+    let list_type = payload.get("list").map(|v| v.as_str());
+    let list_param = payload.get("param").map(|v| v.as_str());
+
+    let result = map_handler_err(
+        service.get_select_list_items(list_type, list_param).await,
+        handover_and_acceptance_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
             .build(),
         handover_and_acceptance_module,
     )

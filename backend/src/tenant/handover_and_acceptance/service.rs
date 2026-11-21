@@ -140,6 +140,7 @@ pub enum SelectLists {
     ItemMakes,
     ItemModels,
     ItemIdentifierType,
+    Currencies,
 }
 
 impl FromStr for SelectLists {
@@ -151,6 +152,7 @@ impl FromStr for SelectLists {
             "item_makes" => Ok(Self::Customers),
             "item_models" => Ok(Self::Customers),
             "item_identifier_type" => Ok(Self::ItemIdentifierType),
+            "currencies" => Ok(Self::Currencies),
             _ => Err(Self::Err::InvalidSelectList),
         }
     }
@@ -232,6 +234,12 @@ where
                 self.module()
                     .handover_and_acceptance_repo(active_tenant)?
                     .get_item_identifier_type_select_list()
+                    .await?
+            }
+            SelectLists::Currencies => {
+                self.module()
+                    .currencies_repo(active_tenant)?
+                    .get_all_countries_select_list_items()
                     .await?
             }
         })

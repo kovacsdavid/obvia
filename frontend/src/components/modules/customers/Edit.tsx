@@ -60,12 +60,14 @@ import { toast } from "@/components/ui/toast-lib";
 
 interface EditProps {
     showCard?: boolean;
+    createOnly?: boolean;
     onSuccess?: (customer: Customer) => void;
     onCancel?: () => void;
 }
 
 export default function Edit({
     showCard = true,
+    createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
@@ -87,7 +89,7 @@ export default function Edit({
     const navigate = useNavigate();
     const params = useParams();
     const [errors, setErrors] = React.useState<CustomerErrors | null>(null);
-    const id = React.useMemo(() => params["id"] ?? null, [params]);
+    const id = createOnly ? null : (params["id"] ?? null);
 
     const handleNeedMailingAddressChange = () => {
         if (mailingAddress === null || typeof mailingAddress === "undefined") {

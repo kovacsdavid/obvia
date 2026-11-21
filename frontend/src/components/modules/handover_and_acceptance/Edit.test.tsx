@@ -49,7 +49,30 @@ vi.mock("@/components/modules/handover_and_acceptance/lib/slice.ts", () => ({
     update: (payload: unknown) => ({ kind: "update", payload }),
 }));
 vi.mock("@/components/modules/customers/Edit.tsx", () => ({
-    default: () => null,
+    default: ({
+        createOnly,
+        onSuccess,
+        onCancel,
+    }: {
+        createOnly?: boolean;
+        onSuccess: (customer: { id: string }) => void;
+        onCancel: () => void;
+    }) => (
+        <div>
+            <span>
+                {createOnly ? "Customer create-only" : "Customer route mode"}
+            </span>
+            <button
+                type="button"
+                onClick={() => onSuccess({ id: "new-customer" })}
+            >
+                Complete customer
+            </button>
+            <button type="button" onClick={onCancel}>
+                Cancel customer
+            </button>
+        </div>
+    ),
 }));
 vi.mock("@/components/ui/toast-lib", () => ({ toast: { add: vi.fn() } }));
 
@@ -231,5 +254,72 @@ describe("receipt date and time form", () => {
                 }),
             ),
         );
+    });
+
+    it("creates a customer in an edit dialog and selects it on the handover", async () => {
+        mocks.id = "handover-id";
+        render(<Edit />);
+        await waitFor(() =>
+            expect(screen.getByLabelText("Azonosító értéke")).toHaveValue(
+                "serial",
+            ),
+        );
+        fireEvent.change(screen.getByLabelText("Azonosító értéke"), {
+            target: { value: "kept" },
+        });
+        fireEvent.click(screen.getAllByRole("button")[0]);
+        expect(screen.getByText("Customer create-only")).toBeInTheDocument();
+        fireEvent.click(
+            screen.getByRole("button", { name: "Complete customer" }),
+        );
+        await waitFor(() =>
+            expect(
+                screen.queryByText("Customer create-only"),
+            ).not.toBeInTheDocument(),
+        );
+        expect(
+            mocks.dispatch.mock.calls.filter(
+                ([action]) =>
+                    action.kind === "list" &&
+                    action.payload.list === "customers",
+            ),
+        ).toHaveLength(2);
+        expect(screen.getByLabelText("Azonosító értéke")).toHaveValue("kept");
+        fireEvent.click(screen.getByRole("button", { name: "Módosítás" }));
+        await waitFor(() =>
+            expect(mocks.dispatch).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    kind: "update",
+                    payload: expect.objectContaining({
+                        input: expect.objectContaining({
+                            customerId: "new-customer",
+                        }),
+                    }),
+                }),
+            ),
+        );
+    });
+
+    it("closes the customer dialog without changing the handover", async () => {
+        mocks.id = "handover-id";
+        render(<Edit />);
+        await waitFor(() =>
+            expect(screen.getByLabelText("Azonosító értéke")).toHaveValue(
+                "serial",
+            ),
+        );
+        fireEvent.change(screen.getByLabelText("Azonosító értéke"), {
+            target: { value: "kept" },
+        });
+        fireEvent.click(screen.getAllByRole("button")[0]);
+        fireEvent.click(
+            screen.getByRole("button", { name: "Cancel customer" }),
+        );
+        await waitFor(() =>
+            expect(
+                screen.queryByText("Customer create-only"),
+            ).not.toBeInTheDocument(),
+        );
+        expect(screen.getByLabelText("Azonosító értéke")).toHaveValue("kept");
     });
 });

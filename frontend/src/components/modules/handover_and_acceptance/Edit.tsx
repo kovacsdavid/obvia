@@ -349,6 +349,7 @@ export default function Edit({
                     <DialogTitle>Vevő létrehozása</DialogTitle>
                     <CustomersEdit
                         showCard={false}
+                        createOnly
                         onSuccess={handleEditCustomersSuccess}
                         onCancel={() => setOpenNewCustomerDialog(false)}
                     />

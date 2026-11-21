@@ -311,6 +311,7 @@ export default function Edit({
                     <DialogTitle>Munkalap létrehozása</DialogTitle>
                     <WorksheetsEdit
                         showCard={false}
+                        createOnly
                         onSuccess={handleEditWorksheetsSuccess}
                         onCancel={() => setOpenNewWorksheetDialog(false)}
                     />
@@ -324,6 +325,7 @@ export default function Edit({
                     <DialogTitle>Szolgáltatás létrehozása</DialogTitle>
                     <ServicesEdit
                         showCard={false}
+                        createOnly
                         onSuccess={handleEditServicesSuccess}
                         onCancel={() => setOpenNewServiceDialog(false)}
                     />

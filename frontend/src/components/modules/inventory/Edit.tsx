@@ -57,12 +57,14 @@ import {
 
 interface EditProps {
     showCard?: boolean;
+    createOnly?: boolean;
     onSuccess?: (inventory: Inventory) => void;
     onCancel?: () => void;
 }
 
 export default function Edit({
     showCard = true,
+    createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
@@ -83,7 +85,7 @@ export default function Edit({
     const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
         useFormError();
     const params = useParams();
-    const id = React.useMemo(() => params["id"] ?? null, [params]);
+    const id = createOnly ? null : (params["id"] ?? null);
     const [openNewProductDialog, setOpenNewProductDialog] =
         React.useState(false);
     const [openNewWarehouseDialog, setOpenNewWarehouseDialog] =

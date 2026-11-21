@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{fs::File, io::Write, path::Path};
+use std::{fs::File, io::Write, path::Path, str::FromStr};
 
 use axum::http::StatusCode;
 use mockall_double::double;
@@ -36,6 +36,7 @@ use crate::{
             RepositoryError,
             v2::{AppError, AppErrorVisibility},
         },
+        model::SelectOption,
         pdf::{PdfGenError, PdfTemplates},
         query_parser::ResourceQuery,
         service::{BaseService, BaseServiceError},
@@ -62,6 +63,9 @@ pub enum ServiceError {
 
     #[error("Hiba történt az adatok feldolgozása során: {0}")]
     UnprocessableEntry(&'static str),
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
@@ -131,11 +135,39 @@ impl From<ServiceError> for AppError {
 
 type ServiceResult<T> = Result<T, ServiceError>;
 
+pub enum SelectLists {
+    Customers,
+    ItemMakes,
+    ItemModels,
+    ItemIdentifierType,
+    Currencies,
+}
+
+impl FromStr for SelectLists {
+    type Err = ServiceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "customers" => Ok(Self::Customers),
+            "item_makes" => Ok(Self::ItemMakes),
+            "item_models" => Ok(Self::ItemModels),
+            "item_identifier_type" => Ok(Self::ItemIdentifierType),
+            "currencies" => Ok(Self::Currencies),
+            _ => Err(Self::Err::InvalidSelectList),
+        }
+    }
+}
+
 pub trait Service {
     fn insert(
         &self,
         payload: &UserInput,
     ) -> impl Future<Output = ServiceResult<HandoverAndAcceptance>> + Send;
+    fn get_select_list_items(
+        &self,
+        select_list: Option<&str>,
+        select_param: Option<&str>,
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn get_full(
         &self,
         payload: Uuid,
@@ -166,6 +198,51 @@ where
             .handover_and_acceptance_repo(self.active_tenant()?)?
             .insert(payload, self.claims()?.sub())
             .await?)
+    }
+
+    async fn get_select_list_items(
+        &self,
+        select_list: Option<&str>,
+        select_param: Option<&str>,
+    ) -> ServiceResult<Vec<SelectOption>> {
+        let list = select_list.ok_or(ServiceError::InvalidSelectList)?;
+        let active_tenant = self.active_tenant()?;
+        Ok(match SelectLists::from_str(list)? {
+            SelectLists::Customers => {
+                self.module()
+                    .customers_repo(active_tenant)?
+                    .get_select_list_items()
+                    .await?
+            }
+            SelectLists::ItemMakes => {
+                self.module()
+                    .handover_and_acceptance_repo(active_tenant)?
+                    .get_item_makes_select_list()
+                    .await?
+            }
+            SelectLists::ItemModels => {
+                self.module()
+                    .handover_and_acceptance_repo(active_tenant)?
+                    .get_item_models_select_list(
+                        select_param
+                            .ok_or(ServiceError::InvalidSelectList)?
+                            .parse()?,
+                    )
+                    .await?
+            }
+            SelectLists::ItemIdentifierType => {
+                self.module()
+                    .handover_and_acceptance_repo(active_tenant)?
+                    .get_item_identifier_type_select_list()
+                    .await?
+            }
+            SelectLists::Currencies => {
+                self.module()
+                    .currencies_repo(active_tenant)?
+                    .get_all_countries_select_list_items()
+                    .await?
+            }
+        })
     }
 
     async fn get_full(&self, payload: Uuid) -> ServiceResult<HandoverAndAcceptanceFull> {

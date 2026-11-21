@@ -31,6 +31,7 @@ pub fn routes<M: ModuleInterface>(handover_and_acceptance_module: Arc<M>) -> Rou
         Router::new()
             .route("/get_full", get(handler::get_full::<M>))
             .route("/list", get(handler::list::<M>))
+            .route("/select_list", get(handler::select_list::<M>))
             .route("/create", post(handler::create::<M>))
             .route("/update", put(handler::update::<M>))
             .route("/delete", delete(handler::delete::<M>))

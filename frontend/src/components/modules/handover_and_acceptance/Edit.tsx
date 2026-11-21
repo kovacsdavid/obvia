@@ -110,9 +110,7 @@ export default function Edit({
     );
     const [termsVersion, setTermsVersion] = React.useState("");
     const [receivedAt, setReceivedAt] = React.useState("");
-    const [defaultReceivedAt, setDefaultReceivedAt] = React.useState<
-        string | null
-    >(null);
+    const [defaultReceivedAt] = React.useState(() => new Date().toISOString());
     const [originalReceivedAt, setOriginalReceivedAt] = React.useState<
         string | null
     >(null);
@@ -221,18 +219,8 @@ export default function Edit({
         });
     }, [dispatch, id, loadItemModels, loadLists]);
 
-    useEffect(() => {
-        if (
-            id ||
-            defaultReceivedAt ||
-            !validReceiptTimeZone(claims?.tz)
-        ) {
-            return;
-        }
-        setDefaultReceivedAt(new Date().toISOString());
-    }, [claims?.tz, defaultReceivedAt, id]);
-
-    const unchangedReceivedAt = originalReceivedAt ?? defaultReceivedAt;
+    const unchangedReceivedAt =
+        originalReceivedAt ?? (id ? null : defaultReceivedAt);
     const receiptTimeValue =
         !receivedAtChanged && unchangedReceivedAt
             ? formatReceiptTime(unchangedReceivedAt, claims?.tz)

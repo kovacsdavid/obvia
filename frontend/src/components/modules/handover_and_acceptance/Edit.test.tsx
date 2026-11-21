@@ -129,6 +129,80 @@ describe("receipt date and time form", () => {
         );
     });
 
+    it.each([undefined, "invalid/timezone"])(
+        "keeps the mount instant when timezone %s becomes valid and changes",
+        async (timezone) => {
+            vi.useFakeTimers({ toFake: ["Date"] });
+            vi.setSystemTime(new Date("2026-07-02T10:30:45.123Z"));
+            mocks.timezone = timezone;
+            const { rerender } = render(<Edit />);
+            const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
+            expect(field).toHaveValue("");
+
+            vi.setSystemTime(new Date("2026-07-02T11:30:45.123Z"));
+            mocks.timezone = "Europe/Budapest";
+            rerender(<Edit />);
+            expect(field).toHaveValue("2026-07-02T12:30");
+
+            mocks.timezone = "America/New_York";
+            rerender(<Edit />);
+            expect(field).toHaveValue("2026-07-02T06:30");
+            fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
+            await waitFor(() =>
+                expect(mocks.dispatch).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        kind: "create",
+                        payload: expect.objectContaining({
+                            input: expect.objectContaining({
+                                receivedAt: "2026-07-02T10:30:45.123Z",
+                            }),
+                        }),
+                    }),
+                ),
+            );
+        },
+    );
+
+    it("keeps an entered receipt time when the timezone changes", async () => {
+        const { rerender } = render(<Edit />);
+        const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
+        fireEvent.change(field, { target: { value: "2026-07-02T12:30" } });
+        mocks.timezone = "America/New_York";
+        rerender(<Edit />);
+        expect(field).toHaveValue("2026-07-02T12:30");
+        fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
+        await waitFor(() =>
+            expect(mocks.dispatch).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    kind: "create",
+                    payload: expect.objectContaining({
+                        input: expect.objectContaining({
+                            receivedAt: "2026-07-02T16:30:00.000Z",
+                        }),
+                    }),
+                }),
+            ),
+        );
+    });
+
+    it("does not show a default while the existing record is loading", async () => {
+        mocks.id = "existing";
+        mocks.dispatch.mockImplementation((action: { kind: string }) => ({
+            unwrap: () =>
+                action.kind === "get"
+                    ? new Promise(() => {})
+                    : Promise.resolve({ kind: "success", data: { data: [] } }),
+        }));
+        render(<Edit />);
+        const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
+        await waitFor(() =>
+            expect(mocks.dispatch).toHaveBeenCalledWith(
+                expect.objectContaining({ kind: "get" }),
+            ),
+        );
+        expect(field).toHaveValue("");
+    });
+
     it("submits the exact default instant during a repeated hour", async () => {
         vi.useFakeTimers({ toFake: ["Date"] });
         vi.setSystemTime(new Date("2026-10-25T00:30:45.123Z"));

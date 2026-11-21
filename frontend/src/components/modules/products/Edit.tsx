@@ -50,12 +50,14 @@ import {
 
 interface EditProps {
     showCard?: boolean;
+    createOnly?: boolean;
     onSuccess?: (products: Product) => void;
     onCancel?: () => void;
 }
 
 export default function Edit({
     showCard = true,
+    createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
@@ -72,7 +74,7 @@ export default function Edit({
     const navigate = useNavigate();
     const { setListResponse } = useSelectList();
     const params = useParams();
-    const id = React.useMemo(() => params["id"] ?? null, [params]);
+    const id = createOnly ? null : (params["id"] ?? null);
 
     const handleCreate = useCallback(() => {
         dispatch(

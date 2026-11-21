@@ -346,6 +346,7 @@ export default function Edit({
                     <DialogTitle>Termék létrehozása</DialogTitle>
                     <ProductsEdit
                         showCard={false}
+                        createOnly
                         onSuccess={handleEditProductsSuccess}
                         onCancel={() => setOpenNewProductDialog(false)}
                     />
@@ -359,6 +360,7 @@ export default function Edit({
                     <DialogTitle>Raktár létrehozása</DialogTitle>
                     <WarehousesEdit
                         showCard={false}
+                        createOnly
                         onSuccess={handleEditWarehousesSuccess}
                         onCancel={() => setOpenNewWarehouseDialog(false)}
                     />

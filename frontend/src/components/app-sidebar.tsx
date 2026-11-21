@@ -230,6 +230,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         icon: <NotebookText />,
                         isActive: location.pathname.includes("/munkalap/lista"),
                     },
+                    {
+                        title: "Átadás-átvétel",
+                        url: "/atadas-atvetel/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <NotebookPen />,
+                        isActive: location.pathname.includes(
+                            "/atadas-atvetel/lista",
+                        ),
+                    },
                 ],
             },
 

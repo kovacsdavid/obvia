@@ -149,8 +149,8 @@ impl FromStr for SelectLists {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "customers" => Ok(Self::Customers),
-            "item_makes" => Ok(Self::Customers),
-            "item_models" => Ok(Self::Customers),
+            "item_makes" => Ok(Self::ItemMakes),
+            "item_models" => Ok(Self::ItemModels),
             "item_identifier_type" => Ok(Self::ItemIdentifierType),
             "currencies" => Ok(Self::Currencies),
             _ => Err(Self::Err::InvalidSelectList),

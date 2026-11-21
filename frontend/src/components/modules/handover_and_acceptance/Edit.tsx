@@ -45,8 +45,6 @@ import {
     get_full,
     update,
 } from "@/components/modules/handover_and_acceptance/lib/slice.ts";
-import { list as listCustomers } from "@/components/modules/customers/lib/slice.ts";
-import { select_list as selectCurrencyList } from "@/components/modules/tasks/lib/slice.ts";
 import { select_list as selectHandoverList } from "@/components/modules/handover_and_acceptance/lib/slice.ts";
 import type { Customer } from "@/components/modules/customers/lib/interface.ts";
 import type {
@@ -138,18 +136,11 @@ export default function Edit({
 
     const loadLists = useCallback(async () => {
         await Promise.all([
-            dispatch(listCustomers({ query: null }))
+            dispatch(selectHandoverList({ list: "customers" }))
                 .unwrap()
                 .then((result) => {
                     handleApiResult(result, {
-                        onSuccess: ({ data }) => {
-                            setCustomersList(
-                                data?.map((customer) => ({
-                                    value: customer.id,
-                                    title: customer.name,
-                                })) ?? [],
-                            );
-                        },
+                        onSuccess: ({ data }) => setCustomersList(data ?? []),
                     });
                 }),
             dispatch(selectHandoverList({ list: "item_makes" }))
@@ -168,7 +159,7 @@ export default function Edit({
                             setItemIdentifierTypesList(data ?? []),
                     });
                 }),
-            dispatch(selectCurrencyList({ list: "currencies" }))
+            dispatch(selectHandoverList({ list: "currencies" }))
                 .unwrap()
                 .then((result) => {
                     handleApiResult(result, {

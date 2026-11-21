@@ -50,7 +50,8 @@ impl ValueObjectData for CommentableType {
             | "inventory_reservations"
             | "services"
             | "tasks"
-            | "worksheets" => Ok(()),
+            | "worksheets"
+            | "handover_and_acceptance" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }

@@ -86,10 +86,7 @@ export const select_list = createAsyncThunk<
     { state: RootState }
 >(
     "handover_and_acceptance/select_list",
-    async (
-        { list, param, silent = false },
-        { getState, dispatch, signal },
-    ) => {
+    async ({ list, param, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
         const token = getState().auth.login.token;
         const result = await handoverAndAcceptanceApi.select_list(

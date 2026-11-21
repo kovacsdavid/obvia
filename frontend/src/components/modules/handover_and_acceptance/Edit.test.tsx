@@ -110,9 +110,7 @@ describe("receipt date and time form", () => {
         vi.setSystemTime(new Date("2026-07-02T10:30:45.123Z"));
         render(<Edit />);
         const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
-        await waitFor(() =>
-            expect(field).toHaveValue("2026-07-02T12:30"),
-        );
+        await waitFor(() => expect(field).toHaveValue("2026-07-02T12:30"));
 
         fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
         await waitFor(() =>
@@ -208,9 +206,7 @@ describe("receipt date and time form", () => {
         vi.setSystemTime(new Date("2026-10-25T00:30:45.123Z"));
         render(<Edit />);
         const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
-        await waitFor(() =>
-            expect(field).toHaveValue("2026-10-25T02:30"),
-        );
+        await waitFor(() => expect(field).toHaveValue("2026-10-25T02:30"));
         expect(screen.queryByText("Időeltolás")).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
@@ -252,9 +248,7 @@ describe("receipt date and time form", () => {
         mocks.id = "existing";
         render(<Edit />);
         const field = screen.getByLabelText(/Átvétel dátuma és időpontja/);
-        await waitFor(() =>
-            expect(field).toHaveValue("2026-10-25T02:30"),
-        );
+        await waitFor(() => expect(field).toHaveValue("2026-10-25T02:30"));
         fireEvent.click(screen.getByRole("button", { name: "Módosítás" }));
         await waitFor(() =>
             expect(mocks.dispatch).toHaveBeenCalledWith(

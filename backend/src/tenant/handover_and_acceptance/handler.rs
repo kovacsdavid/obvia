@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use axum::{
     extract::{Query, State},
@@ -95,6 +95,36 @@ pub async fn list<M: ModuleInterface>(
             .status_code(StatusCode::OK)
             .meta(meta)
             .data(data)
+            .build(),
+        handover_and_acceptance_module,
+    )
+    .await?
+    .into_response())
+}
+
+#[instrument(
+    name = "obvia::tenant::handover_and_acceptance::handler::select_list",
+    skip(handover_and_acceptance_module)
+)]
+pub async fn select_list<M: ModuleInterface>(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(handover_and_acceptance_module): State<Arc<M>>,
+    _client_context: extractors::ClientContext,
+    Query(payload): Query<HashMap<String, String>>,
+) -> HandlerResult {
+    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
+    let list_type = payload.get("list").map(|v| v.as_str());
+    let list_param = payload.get("param").map(|v| v.as_str());
+
+    let result = map_handler_err(
+        service.get_select_list_items(list_type, list_param).await,
+        handover_and_acceptance_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
             .build(),
         handover_and_acceptance_module,
     )
@@ -509,6 +539,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
+        assert_list_success("").await;
+    }
+
+    #[tokio::test]
+    async fn test_list_success_with_display_id_filter() {
+        assert_list_success(
+            "filtering:display_id-DEMO-AT-2026-1 ordering:created_at-asc paging:1-25",
+        )
+        .await;
+    }
+
+    async fn assert_list_success(query: &str) {
         let active_tenant_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
@@ -525,16 +567,31 @@ mod tests {
         .build()
         .unwrap();
 
+        let expected_query = query
+            .parse::<ResourceQuery<
+                handover_and_acceptance::types::OrderBy,
+                handover_and_acceptance::types::FilterBy,
+            >>()
+            .unwrap();
+        if !query.is_empty() {
+            assert_eq!(expected_query.filtering().filter_by(), Some("display_id"));
+            assert_eq!(
+                expected_query.filtering().value_unchecked(),
+                Some("DEMO-AT-2026-1")
+            );
+            assert_eq!(
+                expected_query.ordering().order_by().as_deref(),
+                Some("created_at")
+            );
+            assert_eq!(expected_query.paging().page(), Some(1));
+            assert_eq!(expected_query.paging().limit(), Some(25));
+        }
+
         let mut handover_and_acceptance_repo = MockRepository::new();
         handover_and_acceptance_repo
             .expect_get_paged()
             .times(1)
-            .with(eq(""
-                .parse::<ResourceQuery<
-                    handover_and_acceptance::types::OrderBy,
-                    handover_and_acceptance::types::FilterBy,
-                >>()
-                .unwrap()))
+            .with(eq(expected_query))
             .returning({
                 let handover_and_acceptance_resolved = handover_and_acceptance_full.clone();
                 move |_| {
@@ -567,7 +624,10 @@ mod tests {
             )
             .header("Content-Type", "application/json")
             .method("GET")
-            .uri("/api/handover_and_acceptance/list")
+            .uri(format!(
+                "/api/handover_and_acceptance/list?q={}",
+                query.replace(' ', "%20")
+            ))
             .body("".to_string())
             .unwrap();
 
@@ -776,7 +836,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
         let user_input = UserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -888,7 +948,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
 
         let mut app_state = MockModule::new();
@@ -958,7 +1018,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
 
         let mut app_state = MockModule::new();
@@ -1022,7 +1082,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
 
         let mut app_state = MockModule::new();
@@ -1086,7 +1146,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
 
         let app_state = MockModule::new();
@@ -1140,7 +1200,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
         let user_input = UserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -1229,7 +1289,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
 
         let mut app_state = MockModule::new();
@@ -1296,7 +1356,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
 
         let mut app_state = MockModule::new();
@@ -1361,7 +1421,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
 
         let mut app_state = MockModule::new();
@@ -1426,7 +1486,7 @@ mod tests {
             repair_limit: "1000".to_string(),
             currency_code: "HUF".to_string(),
             terms_version: "v1".to_string(),
-            received_at: TEST_TIME.date_naive().to_string(),
+            received_at: TEST_TIME.to_rfc3339(),
         };
 
         let app_state = MockModule::new();

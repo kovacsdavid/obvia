@@ -36,7 +36,7 @@ impl ValueObjectData for FilterBy {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
-            "created_at" | "updated_at" => Ok(()),
+            "display_id" | "created_at" | "updated_at" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }
@@ -58,16 +58,21 @@ mod tests {
 
     #[test]
     fn test_valid_filter_by() {
-        let filter_by = "created_at"
-            .parse::<ValueObjectRequired<FilterBy>>()
-            .unwrap();
-        assert_eq!(filter_by.as_str().unwrap(), "created_at");
+        for field in ["display_id", "created_at", "updated_at"] {
+            let filter_by = field.parse::<ValueObjectRequired<FilterBy>>().unwrap();
+            assert_eq!(filter_by.as_str().unwrap(), field);
+        }
     }
 
     #[test]
     fn test_invalid_filter_by() {
-        let filter_by = "invalid".parse::<ValueObjectRequired<FilterBy>>();
-        assert!(filter_by.is_err());
+        for field in [
+            "invalid",
+            "customer",
+            "display_id; DROP TABLE handover_and_acceptance",
+        ] {
+            assert!(field.parse::<ValueObjectRequired<FilterBy>>().is_err());
+        }
     }
 
     #[test]

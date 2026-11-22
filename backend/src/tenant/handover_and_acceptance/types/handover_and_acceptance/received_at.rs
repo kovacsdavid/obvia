@@ -18,25 +18,27 @@
  */
 
 use crate::common::value_object::*;
-use chrono::NaiveDate;
+use chrono::{DateTime, Utc};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ReceivedAt(NaiveDate);
+pub struct ReceivedAt(DateTime<Utc>);
 
 impl ReceivedAt {
     pub const PARSE_ERROR: &'static str = "Hibás dátum formátum!";
 }
 
 impl ValueObjectData for ReceivedAt {
-    type DataType = NaiveDate;
+    type DataType = DateTime<Utc>;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         let data_trim = data.trim();
         if !data_trim.is_empty() {
-            Ok(Some(Self(data_trim.parse().map_err(|_| {
-                ValueObjectError::InvalidInput(Self::PARSE_ERROR)
-            })?)))
+            Ok(Some(Self(
+                DateTime::parse_from_rfc3339(data_trim)
+                    .map_err(|_| ValueObjectError::InvalidInput(Self::PARSE_ERROR))?
+                    .with_timezone(&Utc),
+            )))
         } else {
             Ok(None)
         }
@@ -58,48 +60,26 @@ impl Display for ReceivedAt {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Days, Utc};
-
     use super::*;
 
     #[test]
-    fn test_tomorrow() {
-        let valid_date = Utc::now()
-            .checked_add_days(Days::new(1))
-            .unwrap()
-            .date_naive()
-            .to_string();
-        let date = valid_date
-            .parse::<ValueObjectRequired<ReceivedAt>>()
-            .unwrap();
-        assert_eq!(date.as_date_naive().unwrap().to_string(), valid_date);
-    }
-
-    #[test]
-    fn test_today() {
-        let valid_date = Utc::now().date_naive().to_string();
-        let date = valid_date
-            .parse::<ValueObjectRequired<ReceivedAt>>()
-            .unwrap();
-        assert_eq!(date.as_date_naive().unwrap().to_string(), valid_date);
-    }
-
-    #[test]
-    fn test_yesterday() {
-        let valid_date = Utc::now()
-            .checked_sub_days(Days::new(1))
-            .unwrap()
-            .date_naive()
-            .to_string();
-        let date = valid_date
-            .parse::<ValueObjectRequired<ReceivedAt>>()
-            .unwrap();
-        assert_eq!(date.as_date_naive().unwrap().to_string(), valid_date);
+    fn test_timestamps_are_normalized_to_utc() {
+        let expected = "2026-01-02T11:11:11.123Z".parse::<DateTime<Utc>>().unwrap();
+        for value in [
+            "2026-01-02T11:11:11.123Z",
+            "2026-01-02T12:11:11.123+01:00",
+            "2026-01-02T06:11:11.123-05:00",
+        ] {
+            let date = value.parse::<ValueObjectRequired<ReceivedAt>>().unwrap();
+            assert_eq!(*date.as_datetime().unwrap(), expected);
+        }
     }
 
     #[test]
     fn test_invalid_received_at_formats() {
         let cases = vec![
+            "2024-01-01",
+            "2024-01-01T12:00:00",
             r#""2024/01/01""#,
             r#""2024.01.01""#,
             r#""01-01-2024""#,

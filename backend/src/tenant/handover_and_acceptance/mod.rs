@@ -26,7 +26,10 @@ use uuid::Uuid;
 
 use crate::{
     common::{AppState, BaseModule, database::PoolManager, error::RepositoryResult},
-    tenant::owner_profile::repository::OwnerProfileRepository,
+    tenant::{
+        currencies::repository::CurrenciesRepository, customers::repository::CustomersRepository,
+        owner_profile::repository::OwnerProfileRepository,
+    },
 };
 
 pub mod dto;
@@ -55,6 +58,14 @@ pub trait ModuleInterface: BaseModule {
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+    fn currencies_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
 }
 
 // TODO: implement the interface
@@ -70,11 +81,22 @@ where
     ) -> RepositoryResult<Arc<dyn Repository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
-
     fn owner_profile_repo(
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn currencies_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
@@ -110,6 +132,14 @@ pub mod tests {
                 &self,
                 tenant_id: Uuid,
             ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
+            fn customers_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+            fn currencies_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
         }
     );
 }

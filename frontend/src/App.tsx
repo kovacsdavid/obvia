@@ -108,6 +108,16 @@ const ServicesEdit = lazy(() => import("@/components/modules/services/Edit"));
 const ServicesList = lazy(() => import("@/components/modules/services/List"));
 const ServicesView = lazy(() => import("@/components/modules/services/View"));
 
+const HandoverAndAcceptanceEdit = lazy(
+    () => import("@/components/modules/handover_and_acceptance/Edit"),
+);
+const HandoverAndAcceptanceList = lazy(
+    () => import("@/components/modules/handover_and_acceptance/List"),
+);
+const HandoverAndAcceptanceView = lazy(
+    () => import("@/components/modules/handover_and_acceptance/View"),
+);
+
 type RouteComponent = React.ComponentType<object>;
 
 interface RouteConfig {
@@ -166,6 +176,12 @@ const ROUTE_CONFIGS: RouteConfig[] = [
     ...crudRoutes("munkalap", WorksheetsEdit, WorksheetsList, WorksheetsView),
     ...crudRoutes("ado", TaxesEdit, TaxesList, TaxesView),
     ...crudRoutes("szolgaltatas", ServicesEdit, ServicesList, ServicesView),
+    ...crudRoutes(
+        "atadas-atvetel",
+        HandoverAndAcceptanceEdit,
+        HandoverAndAcceptanceList,
+        HandoverAndAcceptanceView,
+    ),
 
     {
         path: "/raktarkeszlet-mozgas/letrehozas",

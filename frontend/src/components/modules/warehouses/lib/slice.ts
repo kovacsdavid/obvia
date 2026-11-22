@@ -30,7 +30,10 @@ import type {
     WarehouseUserInput,
     WarehouseError,
 } from "@/components/modules/warehouses/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
 import type { ApiResult } from "@/lib/api/types";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
@@ -49,7 +52,12 @@ export const create = createAsyncThunk<
 >(
     "warehouses/create",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await warehousesApi.create(
             input,
             getState().auth.login.token,
@@ -67,7 +75,12 @@ export const list = createAsyncThunk<
 >(
     "warehouses/list",
     async ({ query, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await warehousesApi.list(
             query,
             getState().auth.login.token,
@@ -85,7 +98,12 @@ export const get_resolved = createAsyncThunk<
 >(
     "warehouses/get_resolved",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await warehousesApi.get_resolved(
             uuid,
             getState().auth.login.token,
@@ -103,7 +121,12 @@ export const get = createAsyncThunk<
 >(
     "warehouses/get",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await warehousesApi.get(
             uuid,
             getState().auth.login.token,
@@ -121,7 +144,12 @@ export const update = createAsyncThunk<
 >(
     "warehouses/update",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await warehousesApi.update(
             input,
             getState().auth.login.token,
@@ -139,7 +167,12 @@ export const deleteItem = createAsyncThunk<
 >(
     "warehouses/deleteItem",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await warehousesApi.deleteItem(
             uuid,
             getState().auth.login.token,
@@ -157,7 +190,12 @@ export const print = createAsyncThunk<
 >(
     "warehouses/print",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await warehousesApi.print(
             uuid,
             getState().auth.login.token,

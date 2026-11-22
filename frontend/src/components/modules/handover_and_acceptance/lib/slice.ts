@@ -29,7 +29,10 @@ import type {
     PaginatedHandoverAndAcceptanceFullListResponse,
     UpdateHandoverAndAcceptanceResponse,
 } from "@/components/modules/handover_and_acceptance/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
 import type { ApiResult } from "@/lib/api/types";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
 import type { SelectOptionListResponse } from "@/lib/interface";
@@ -49,7 +52,12 @@ export const create = createAsyncThunk<
 >(
     "handover_and_acceptance/create",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await handoverAndAcceptanceApi.create(
             input,
@@ -68,7 +76,12 @@ export const list = createAsyncThunk<
 >(
     "handover_and_acceptance/list",
     async ({ query, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await handoverAndAcceptanceApi.list(
             query,
@@ -87,7 +100,12 @@ export const select_list = createAsyncThunk<
 >(
     "handover_and_acceptance/select_list",
     async ({ list, param, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await handoverAndAcceptanceApi.select_list(
             list,
@@ -107,7 +125,12 @@ export const get_full = createAsyncThunk<
 >(
     "handover_and_acceptance/get_full",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await handoverAndAcceptanceApi.get_full(
             uuid,
@@ -126,7 +149,12 @@ export const update = createAsyncThunk<
 >(
     "handover_and_acceptance/update",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await handoverAndAcceptanceApi.update(
             input,
@@ -145,7 +173,12 @@ export const deleteItem = createAsyncThunk<
 >(
     "handover_and_acceptance/deleteItem",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await handoverAndAcceptanceApi.deleteItem(
             uuid,
@@ -164,7 +197,12 @@ export const print = createAsyncThunk<
 >(
     "handover_and_acceptance/print",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await handoverAndAcceptanceApi.print(
             uuid,

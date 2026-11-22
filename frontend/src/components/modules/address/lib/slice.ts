@@ -17,7 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import * as addressApi from "@/components/modules/address/lib/service";
 import type { RootState } from "@/store";
@@ -32,7 +35,12 @@ export const select_list = createAsyncThunk<
 >(
     "address/select_list",
     async ({ list, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await addressApi.select_list(list, token, signal);
         if (!silent) notifyApiError(result);

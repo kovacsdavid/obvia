@@ -28,7 +28,10 @@ import type {
     DatabaseResponse,
     PaginatedDatabaseListResponse,
 } from "@/components/modules/databases/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
 import type { ApiResult } from "@/lib/api/types";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
@@ -47,7 +50,12 @@ export const create = createAsyncThunk<
 >(
     "databases/create",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await databasesApi.create(
             input,
             getState().auth.login.token,
@@ -65,7 +73,12 @@ export const list = createAsyncThunk<
 >(
     "databases/list",
     async ({ query, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await databasesApi.list(
             query,
             getState().auth.login.token,
@@ -83,7 +96,12 @@ export const activate = createAsyncThunk<
 >(
     "databases/activate",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await databasesApi.activate(
             uuid,
             getState().auth.login.token,
@@ -101,7 +119,12 @@ export const get = createAsyncThunk<
 >(
     "databases/get",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await databasesApi.get_resolved(
             uuid,
             getState().auth.login.token,
@@ -119,7 +142,12 @@ export const deleteDatabase = createAsyncThunk<
 >(
     "database/deleteDatabase",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await databasesApi.deleteDatabase(
             uuid,
             getState().auth.login.token,

@@ -24,7 +24,10 @@ import type {
     CreateUser,
     OtpFields,
 } from "@/components/modules/users/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
 import type { EnableOtpResponse } from "@/components/modules/auth/lib/interface";
 import type { SimpleMessageData } from "@/lib/interface";
 import type { ApiResult } from "@/lib/api/types";
@@ -43,7 +46,12 @@ export const enableOtp = createAsyncThunk<
     { silent?: boolean } | void,
     { state: RootState }
 >("users/enableOtp", async (options, { getState, dispatch, signal }) => {
-    await dispatch(refreshAccessToken());
+    const refresh = await dispatch(refreshAccessToken(options));
+    if (!refreshAccessToken.fulfilled.match(refresh))
+        return { kind: "aborted" };
+    if (refresh.payload.kind !== "success") return refresh.payload;
+    if (!getState().auth.login.token || isLogoutInProgress())
+        return { kind: "aborted" };
     const result = await usersApi.enableOtp(
         getState().auth.login.token,
         signal,
@@ -59,7 +67,12 @@ export const verifyOtp = createAsyncThunk<
 >(
     "users/verifyOtp",
     async ({ otp, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await usersApi.verifyOtp(
             otp,
             getState().auth.login.token,
@@ -77,7 +90,12 @@ export const disableOtp = createAsyncThunk<
 >(
     "users/disableOtp",
     async ({ otp, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await usersApi.disableOtp(
             otp,
             getState().auth.login.token,
@@ -95,7 +113,12 @@ export const create = createAsyncThunk<
 >(
     "users/create",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await usersApi.create(
             input,
             getState().auth.login.token,
@@ -113,7 +136,12 @@ export const list = createAsyncThunk<
 >(
     "users/list",
     async ({ query, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await usersApi.list(
             query,
             getState().auth.login.token,

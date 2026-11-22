@@ -51,6 +51,8 @@ function notifyAuthResult(
 }
 
 interface AuthState {
+    sessionExpired: boolean;
+    sessionExpiryNotified: boolean;
     login: {
         user: User | null;
         claims: Claims | null;
@@ -65,6 +67,8 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
+    sessionExpired: false,
+    sessionExpiryNotified: false,
     login: {
         claims: null,
         user: null,
@@ -104,6 +108,10 @@ export const loginUserRequest = createAsyncThunk(
 let logoutAndRevokeInFlight: Promise<void> | null = null;
 let authGeneration = 0;
 
+export function isLogoutInProgress(): boolean {
+    return logoutAndRevokeInFlight !== null;
+}
+
 export const logoutAndRevokeRefreshToken = createAsyncThunk(
     "auth/logoutAndRevokeRefreshToken",
     async (options: { silent?: boolean } | void, { dispatch }) => {
@@ -131,16 +139,32 @@ export const logoutAndRevokeRefreshToken = createAsyncThunk(
     },
 );
 
-let refreshInFlight: Promise<void> | null = null;
+type RefreshFailure = Exclude<ApiResult<never>, { kind: "success" }>;
+type RefreshOutcome = { kind: "success" } | RefreshFailure;
+type SharedRefresh = { outcome: RefreshOutcome; notified: boolean };
+
+let refreshInFlight: Promise<SharedRefresh> | null = null;
 
 export const refreshAccessToken = createAsyncThunk(
     "auth/refreshAccessToken",
-    async (_: void, { getState, dispatch }) => {
+    async (
+        options: { silent?: boolean } | void,
+        { getState, dispatch },
+    ): Promise<RefreshOutcome> => {
         if (logoutAndRevokeInFlight) {
             await logoutAndRevokeInFlight;
-            return;
+            return { kind: "aborted" };
         }
         const rootState = getState() as RootState;
+
+        if (rootState.auth.sessionExpired) {
+            const failure: RefreshFailure = { kind: "http_error", status: 401 };
+            if (!options?.silent && !rootState.auth.sessionExpiryNotified) {
+                dispatch(markSessionExpiryNotified());
+                notifyApiError(failure);
+            }
+            return failure;
+        }
 
         const token = rootState.auth.login.token;
         const expiresAt = rootState.auth.login.claims?.exp;
@@ -150,30 +174,79 @@ export const refreshAccessToken = createAsyncThunk(
             !expiresAt ||
             expiresAt - Math.floor(Date.now() / 1000) < 30;
 
-        if (!expiredOrNearExpiry) return;
+        if (!expiredOrNearExpiry) return { kind: "success" };
 
+        const generation = authGeneration;
         if (!refreshInFlight) {
-            const generation = authGeneration;
-            refreshInFlight = (async () => {
+            refreshInFlight = (async (): Promise<SharedRefresh> => {
                 try {
                     const response = await authApi.refresh();
-                    if (generation !== authGeneration) return;
+                    if (generation !== authGeneration)
+                        return {
+                            outcome: { kind: "aborted" },
+                            notified: false,
+                        };
                     if (
                         response.kind === "success" &&
                         response.status === 200
                     ) {
                         dispatch(loginUser(response.data.data));
-                    } else {
-                        dispatch(logoutUser());
+                        return {
+                            outcome: { kind: "success" },
+                            notified: false,
+                        };
                     }
+                    const failure: RefreshFailure =
+                        response.kind === "success"
+                            ? {
+                                  kind: "invalid_response",
+                                  status: response.status,
+                              }
+                            : response.kind === "http_error" &&
+                                response.status === 401
+                              ? { kind: "http_error", status: 401 }
+                              : response;
+                    dispatch(logoutUser());
+                    if (failure.kind === "http_error" && failure.status === 401)
+                        dispatch(markSessionExpired());
+                    return { outcome: failure, notified: false };
                 } catch {
-                    if (generation === authGeneration) dispatch(logoutUser());
+                    if (generation !== authGeneration)
+                        return {
+                            outcome: { kind: "aborted" },
+                            notified: false,
+                        };
+                    dispatch(logoutUser());
+                    return {
+                        outcome: { kind: "network_error", offline: false },
+                        notified: false,
+                    };
                 } finally {
                     refreshInFlight = null;
                 }
             })();
         }
-        await refreshInFlight;
+        const shared = await refreshInFlight;
+        if (generation !== authGeneration) return { kind: "aborted" };
+        if (
+            shared.outcome.kind !== "success" &&
+            !options?.silent &&
+            !shared.notified
+        ) {
+            if (
+                shared.outcome.kind === "http_error" &&
+                shared.outcome.status === 401
+            ) {
+                if (!(getState() as RootState).auth.sessionExpiryNotified) {
+                    dispatch(markSessionExpiryNotified());
+                    notifyApiError(shared.outcome);
+                }
+            } else {
+                notifyApiError(shared.outcome);
+            }
+            shared.notified = true;
+        }
+        return shared.outcome;
     },
 );
 
@@ -183,9 +256,13 @@ export const get_claims = createAsyncThunk(
         options: { silent?: boolean } | void,
         { getState, dispatch, signal },
     ) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken(options));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" } as const;
+        if (refresh.payload.kind !== "success") return refresh.payload;
         const rootState = getState() as RootState;
         const token = rootState.auth.login.token;
+        if (!token || isLogoutInProgress()) return { kind: "aborted" } as const;
         const result = await authApi.get_claims(token, signal);
         if (!options?.silent) notifyApiError(result);
         return result;
@@ -240,6 +317,8 @@ const authSlice = createSlice({
     initialState,
     reducers: {
         loginUser(state, action: PayloadAction<LoginData>) {
+            state.sessionExpired = false;
+            state.sessionExpiryNotified = false;
             state.login.claims = action.payload.claims;
             state.login.user = action.payload.user;
             state.login.token = action.payload.token;
@@ -248,12 +327,20 @@ const authSlice = createSlice({
                 action.payload.claims.active_tenant !== null;
         },
         logoutUser(state) {
+            state.sessionExpired = false;
+            state.sessionExpiryNotified = false;
             state.login.claims = null;
             state.login.user = null;
             state.login.token = null;
             state.login.status = "idle";
             state.login.isLoggedIn = false;
             state.login.hasActiveDatabase = false;
+        },
+        markSessionExpired(state) {
+            state.sessionExpired = true;
+        },
+        markSessionExpiryNotified(state) {
+            state.sessionExpiryNotified = true;
         },
         updateToken(state, action: PayloadAction<NewTokenResponse>) {
             state.login.token = action.payload.token;
@@ -271,4 +358,5 @@ const authSlice = createSlice({
 
 export const { logoutUser, updateToken, loginUser, chMfaStatus } =
     authSlice.actions;
+const { markSessionExpired, markSessionExpiryNotified } = authSlice.actions;
 export default authSlice.reducer;

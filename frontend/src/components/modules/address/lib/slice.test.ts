@@ -26,11 +26,19 @@ import { select_list } from "./slice";
 
 vi.mock("./service", () => ({ select_list: vi.fn() }));
 vi.mock("@/lib/api/notifyApiErrors", () => ({ notifyApiError: vi.fn() }));
-vi.mock("@/components/modules/auth/lib/slice", () => ({
-    refreshAccessToken:
-        () => async (dispatch: (action: { type: string }) => void) =>
-            dispatch({ type: "test/refreshed" }),
-}));
+vi.mock("@/components/modules/auth/lib/slice", async () => {
+    const { createAsyncThunk } = await import("@reduxjs/toolkit");
+    return {
+        isLogoutInProgress: () => false,
+        refreshAccessToken: createAsyncThunk(
+            "auth/refreshAccessToken",
+            async (_, { dispatch }) => {
+                dispatch({ type: "test/refreshed" });
+                return { kind: "success" as const };
+            },
+        ),
+    };
+});
 
 function makeStore() {
     const initialState = { auth: { login: { token: "old" } } } as RootState;

@@ -30,7 +30,10 @@ import type {
     ServiceUserInput,
     UpdateServiceResponse,
 } from "@/components/modules/services/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
 import type { ApiResult } from "@/lib/api/types";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
 import type { SelectOptionListResponse } from "@/lib/interface";
@@ -50,7 +53,12 @@ export const create = createAsyncThunk<
 >(
     "services/create",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await servicesApi.create(input, token, signal);
         if (!silent) notifyApiError(result);
@@ -65,7 +73,12 @@ export const deleteItem = createAsyncThunk<
 >(
     "services/deleteItem",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await servicesApi.deleteItem(uuid, token, signal);
         if (!silent) notifyApiError(result);
@@ -80,7 +93,12 @@ export const update = createAsyncThunk<
 >(
     "services/update",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await servicesApi.update(input, token, signal);
         if (!silent) notifyApiError(result);
@@ -95,7 +113,12 @@ export const list = createAsyncThunk<
 >(
     "services/list",
     async ({ query, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await servicesApi.list(query, token, signal);
         if (!silent) notifyApiError(result);
@@ -110,7 +133,12 @@ export const get = createAsyncThunk<
 >(
     "services/get",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await servicesApi.get(uuid, token, signal);
         if (!silent) notifyApiError(result);
@@ -125,7 +153,12 @@ export const get_resolved = createAsyncThunk<
 >(
     "services/get_resolved",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await servicesApi.get_resolved(uuid, token, signal);
         if (!silent) notifyApiError(result);
@@ -140,7 +173,12 @@ export const select_list = createAsyncThunk<
 >(
     "services/select_list",
     async ({ list, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await servicesApi.select_list(list, token, signal);
         if (!silent) notifyApiError(result);
@@ -155,7 +193,12 @@ export const print = createAsyncThunk<
 >(
     "services/print",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await servicesApi.print(uuid, token, signal);
         if (!silent) notifyApiError(result);

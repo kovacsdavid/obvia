@@ -29,7 +29,10 @@ import type {
     InventoryMovementUserInput,
     PaginatedInventoryMovementResolvedListResponse,
 } from "@/components/modules/inventory_movements/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
 import type { SelectOptionListResponse } from "@/lib/interface";
 import type { ApiResult } from "@/lib/api/types";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
@@ -49,7 +52,12 @@ export const get_resolved = createAsyncThunk<
 >(
     "inventory_movements/get_resolved",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await inventoryMovementsApi.get_resolved(
             uuid,
             getState().auth.login.token,
@@ -67,7 +75,12 @@ export const get = createAsyncThunk<
 >(
     "inventory_movements/get",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await inventoryMovementsApi.get(
             uuid,
             getState().auth.login.token,
@@ -85,7 +98,12 @@ export const create = createAsyncThunk<
 >(
     "inventory_movements/create",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await inventoryMovementsApi.create(
             input,
             getState().auth.login.token,
@@ -103,7 +121,12 @@ export const deleteItem = createAsyncThunk<
 >(
     "inventory_movements/deleteItem",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await inventoryMovementsApi.deleteItem(
             uuid,
             getState().auth.login.token,
@@ -121,7 +144,12 @@ export const select_list = createAsyncThunk<
 >(
     "inventory_movements/select_list",
     async ({ list, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await inventoryMovementsApi.select_list(
             list,
             getState().auth.login.token,
@@ -142,7 +170,12 @@ export const list = createAsyncThunk<
         { inventoryId, query, silent = false },
         { getState, dispatch, signal },
     ) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await inventoryMovementsApi.list(
             { inventoryId, query },
             getState().auth.login.token,
@@ -160,7 +193,12 @@ export const print = createAsyncThunk<
 >(
     "inventory_movements/print",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const result = await inventoryMovementsApi.print(
             uuid,
             getState().auth.login.token,

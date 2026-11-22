@@ -111,9 +111,48 @@ describe("auth session thunks", () => {
             token: null,
             isLoggedIn: false,
         });
-        expect(notifyApiError).not.toHaveBeenCalled();
+        expect(notifyApiError).toHaveBeenCalledExactlyOnceWith({
+            kind: "network_error",
+            offline: false,
+        });
         await app.dispatch(refreshAccessToken());
         expect(app.getState().auth.login.token).toBe("fresh");
+    });
+
+    it("reports an expired session once for concurrent and later callers", async () => {
+        let resolve!: (value: ApiResult<{ data: LoginData }>) => void;
+        vi.mocked(api.refresh).mockReturnValue(
+            new Promise((done) => {
+                resolve = done;
+            }),
+        );
+        const app = store();
+        app.dispatch(
+            loginUser({
+                ...loginData,
+                claims: { ...loginData.claims, exp: 1 },
+            }),
+        );
+        const silent = app.dispatch(refreshAccessToken({ silent: true }));
+        const first = app.dispatch(refreshAccessToken());
+        const second = app.dispatch(refreshAccessToken());
+        resolve({
+            kind: "http_error",
+            status: 401,
+            body: { error: { message: "expired" } },
+        });
+        const results = await Promise.all([silent, first, second]);
+        expect(results.map((result) => result.payload)).toEqual([
+            { kind: "http_error", status: 401 },
+            { kind: "http_error", status: 401 },
+            { kind: "http_error", status: 401 },
+        ]);
+        await app.dispatch(refreshAccessToken());
+        expect(api.refresh).toHaveBeenCalledOnce();
+        expect(notifyApiError).toHaveBeenCalledExactlyOnceWith({
+            kind: "http_error",
+            status: 401,
+        });
     });
 
     it("waits for refresh before revoking, coalesces logout, and never restores the old session", async () => {

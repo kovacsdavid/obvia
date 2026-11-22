@@ -20,8 +20,19 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as InventoryReservationsApi from "@/components/modules/inventory_reservations/lib/service.ts";
 import type { RootState } from "@/store";
-import type { InventoryReservationUserInput } from "@/components/modules/inventory_reservations/lib/interface.ts";
+import type {
+    CreateInventoryReservationResponse,
+    DeleteInventoryReservationResponse,
+    InventoryReservationError,
+    InventoryReservationResolvedResponse,
+    InventoryReservationResponse,
+    InventoryReservationUserInput,
+    PaginatedInventoryReservationResolvedListResponse,
+} from "@/components/modules/inventory_reservations/lib/interface.ts";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type { SelectOptionListResponse } from "@/lib/interface";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
 interface InventoryReservationsState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,82 +42,132 @@ const initialState: InventoryReservationsState = {
     status: "idle",
 };
 
-export const get_resolved = createAsyncThunk(
+export const get_resolved = createAsyncThunk<
+    ApiResult<InventoryReservationResolvedResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_reservations/get_resolved",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await InventoryReservationsApi.get_resolved(uuid, token);
+        const result = await InventoryReservationsApi.get_resolved(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get = createAsyncThunk(
+export const get = createAsyncThunk<
+    ApiResult<InventoryReservationResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_reservations/get",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await InventoryReservationsApi.get(uuid, token);
+        const result = await InventoryReservationsApi.get(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<CreateInventoryReservationResponse, InventoryReservationError>,
+    { input: InventoryReservationUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_reservations/create",
-    async (
-        requestData: InventoryReservationUserInput,
-        { getState, dispatch },
-    ) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await InventoryReservationsApi.create(requestData, token);
+        const result = await InventoryReservationsApi.create(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteItem = createAsyncThunk(
+export const deleteItem = createAsyncThunk<
+    ApiResult<DeleteInventoryReservationResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_reservations/deleteItem",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await InventoryReservationsApi.deleteItem(uuid, token);
+        const result = await InventoryReservationsApi.deleteItem(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const select_list = createAsyncThunk(
+export const select_list = createAsyncThunk<
+    ApiResult<SelectOptionListResponse>,
+    { list: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_reservations/select_list",
-    async (list: string, { getState, dispatch }) => {
+    async ({ list, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await InventoryReservationsApi.select_list(list, token);
+        const result = await InventoryReservationsApi.select_list(
+            list,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedInventoryReservationResolvedListResponse>,
+    { inventoryId: string; query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_reservations/list",
     async (
-        params: {
-            inventoryId: string;
-            query: string | null;
-        },
-        { getState, dispatch },
+        { inventoryId, query, silent = false },
+        { getState, dispatch, signal },
     ) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await InventoryReservationsApi.list(params, token);
+        const result = await InventoryReservationsApi.list(
+            { inventoryId, query },
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const print = createAsyncThunk(
+export const print = createAsyncThunk<
+    ApiResult<Uint8Array<ArrayBuffer> | null>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_reservations/print",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await InventoryReservationsApi.print(uuid, token);
+        const result = await InventoryReservationsApi.print(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

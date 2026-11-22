@@ -109,7 +109,8 @@ beforeEach(() => {
                     : [];
         if (
             action.kind.startsWith("task/") ||
-            action.kind.startsWith("service/")
+            action.kind.startsWith("service/") ||
+            action.kind.startsWith("tax/")
         ) {
             return {
                 unwrap: async () => ({ kind: "success", data: { data } }),
@@ -127,6 +128,39 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("tax editor mode", () => {
+    it("shows and clears backend field errors without navigating", async () => {
+        const fields = {
+            id: null,
+            rate: null,
+            description: "Required",
+            country_code: null,
+            tax_category: null,
+            is_rate_applicable: null,
+            legal_text: null,
+            reporting_code: null,
+            is_default: null,
+            status: null,
+        };
+        mocks.dispatch.mockImplementation((action: { kind: string }) => ({
+            unwrap: async () =>
+                action.kind === "tax/create"
+                    ? {
+                          kind: "http_error",
+                          status: 422,
+                          body: { error: { message: "Invalid", fields } },
+                      }
+                    : { kind: "success", data: { data: [] } },
+        }));
+        render(<TaxesEdit />);
+        fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
+        expect(await screen.findByText("Required")).toBeInTheDocument();
+        expect(mocks.navigate).not.toHaveBeenCalled();
+        fireEvent.change(screen.getByLabelText("Megnevezés"), {
+            target: { value: "VAT" },
+        });
+        expect(screen.queryByText("Required")).not.toBeInTheDocument();
+    });
+
     it("creates independently of the enclosing route", async () => {
         mocks.id = "service-id";
         const onSuccess = vi.fn();
@@ -138,10 +172,12 @@ describe("tax editor mode", () => {
         await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(tax));
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: "tax/create",
-            payload: expect.objectContaining({
-                id: null,
-                description: "New tax",
-            }),
+            payload: {
+                input: expect.objectContaining({
+                    id: null,
+                    description: "New tax",
+                }),
+            },
         });
         expect(mocks.dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ kind: "tax/get" }),
@@ -162,7 +198,7 @@ describe("tax editor mode", () => {
         );
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: "tax/get",
-            payload: "tax-id",
+            payload: { uuid: "tax-id" },
         });
         fireEvent.click(screen.getByRole("button", { name: "Módosítás" }));
         await waitFor(() =>
@@ -170,7 +206,7 @@ describe("tax editor mode", () => {
         );
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: "tax/update",
-            payload: expect.objectContaining({ id: "tax-id" }),
+            payload: { input: expect.objectContaining({ id: "tax-id" }) },
         });
     });
 
@@ -182,7 +218,7 @@ describe("tax editor mode", () => {
         );
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: "tax/create",
-            payload: expect.objectContaining({ id: null }),
+            payload: { input: expect.objectContaining({ id: null }) },
         });
     });
 });
@@ -224,7 +260,7 @@ describe.each([
         );
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: "tax/create",
-            payload: expect.objectContaining({ id: null }),
+            payload: { input: expect.objectContaining({ id: null }) },
         });
         expect(mocks.dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ kind: "tax/get" }),

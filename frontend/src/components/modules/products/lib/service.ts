@@ -17,36 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    globalRequestTimeout,
-    unexpectedError,
-    unexpectedFormError,
-} from "@/services/utils/consts.ts";
-import {
-    type CreateProductResponse,
-    type DeleteProductResponse,
-    type PaginatedProductResolvedListResponse,
-    type ProductResolvedResponse,
-    type ProductResponse,
-    type ProductUserInput,
-    type UpdateProductResponse,
-} from "@/components/modules/products/lib/interface.ts";
-import {
-    isSelectOptionListResponse,
-    type ProcessedJsonResponse,
-    ProcessJsonResponse,
-    type SelectOptionListResponse,
-    type ProcessedBytesResponse,
-    ProcessBytesResponse,
-} from "@/lib/interface.ts";
+import type {
+    CreateProductResponse,
+    DeleteProductResponse,
+    PaginatedProductResolvedListResponse,
+    ProductError,
+    ProductResolvedResponse,
+    ProductResponse,
+    ProductUserInput,
+    UpdateProductResponse,
+} from "./interface";
 import {
     isCreateProductResponse,
     isDeleteProductResponse,
     isPaginatedProductResolvedListResponse,
+    isProductError,
     isProductResolvedResponse,
     isProductResponse,
     isUpdateProductResponse,
-} from "@/components/modules/products/lib/guards.ts";
+} from "./guards";
+import {
+    isSelectOptionListResponse,
+    type SelectOptionListResponse,
+} from "@/lib/interface";
+import { apiRequest } from "@/lib/api/request";
+import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
     {
@@ -58,88 +53,22 @@ export async function create(
         status,
     }: ProductUserInput,
     token: string | null,
-): Promise<ProcessedJsonResponse<CreateProductResponse>> {
-    return await fetch(`/api/products/create`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<CreateProductResponse, ProductError>> {
+    return apiRequest("/api/products/create", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-        body: JSON.stringify({
+        token,
+        signal,
+        guard: isCreateProductResponse,
+        formErrorGuard: isProductError,
+        body: {
             id,
             name,
             description,
             unit_of_measure_id: unitOfMeasureId,
             new_unit_of_measure: newUnitOfMeasure,
             status,
-        }),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isCreateProductResponse)) ??
-            unexpectedFormError
-        );
-    });
-}
-
-export async function list(
-    query: string | null,
-    token: string | null,
-): Promise<ProcessedJsonResponse<PaginatedProductResolvedListResponse>> {
-    const uri =
-        query === null ? `/api/products/list` : `/api/products/list?q=${query}`;
-    return await fetch(uri, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(
-                response,
-                isPaginatedProductResolvedListResponse,
-            )) ?? unexpectedError
-        );
-    });
-}
-
-export async function select_list(
-    list: string,
-    token: string | null,
-): Promise<ProcessedJsonResponse<SelectOptionListResponse>> {
-    return await fetch(`/api/products/select_list?list=${list}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isSelectOptionListResponse)) ??
-            unexpectedError
-        );
-    });
-}
-
-export async function get_resolved(
-    uuid: string,
-    token: string | null,
-): Promise<ProcessedJsonResponse<ProductResolvedResponse>> {
-    return await fetch(`/api/products/get_resolved?uuid=${uuid}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isProductResolvedResponse)) ??
-            unexpectedError
-        );
     });
 }
 
@@ -153,80 +82,102 @@ export async function update(
         status,
     }: ProductUserInput,
     token: string | null,
-): Promise<ProcessedJsonResponse<UpdateProductResponse>> {
-    return await fetch(`/api/products/update`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<UpdateProductResponse, ProductError>> {
+    return apiRequest("/api/products/update", {
         method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-        body: JSON.stringify({
+        token,
+        signal,
+        guard: isUpdateProductResponse,
+        formErrorGuard: isProductError,
+        body: {
             id,
             name,
             description,
             unit_of_measure_id: unitOfMeasureId,
             new_unit_of_measure: newUnitOfMeasure,
             status,
-        }),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isUpdateProductResponse)) ??
-            unexpectedFormError
-        );
+        },
+    });
+}
+
+export async function list(
+    query: string | null,
+    token: string | null,
+    signal?: AbortSignal,
+): Promise<ApiResult<PaginatedProductResolvedListResponse>> {
+    const uri =
+        query === null ? "/api/products/list" : `/api/products/list?q=${query}`;
+    return apiRequest(uri, {
+        method: "GET",
+        token,
+        signal,
+        guard: isPaginatedProductResolvedListResponse,
+    });
+}
+
+export async function select_list(
+    list: string,
+    token: string | null,
+    signal?: AbortSignal,
+): Promise<ApiResult<SelectOptionListResponse>> {
+    return apiRequest(`/api/products/select_list?list=${list}`, {
+        method: "GET",
+        token,
+        signal,
+        guard: isSelectOptionListResponse,
+    });
+}
+
+export async function get_resolved(
+    uuid: string,
+    token: string | null,
+    signal?: AbortSignal,
+): Promise<ApiResult<ProductResolvedResponse>> {
+    return apiRequest(`/api/products/get_resolved?uuid=${uuid}`, {
+        method: "GET",
+        token,
+        signal,
+        guard: isProductResolvedResponse,
     });
 }
 
 export async function get(
     uuid: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<ProductResponse>> {
-    return await fetch(`/api/products/get?uuid=${uuid}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<ProductResponse>> {
+    return apiRequest(`/api/products/get?uuid=${uuid}`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isProductResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        guard: isProductResponse,
     });
 }
 
 export async function deleteItem(
     uuid: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<DeleteProductResponse>> {
-    return await fetch(`/api/products/delete?uuid=${uuid}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<DeleteProductResponse>> {
+    return apiRequest(`/api/products/delete?uuid=${uuid}`, {
         method: "DELETE",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isDeleteProductResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        guard: isDeleteProductResponse,
     });
 }
 
 export async function print(
     uuid: string,
     token: string | null,
-): Promise<ProcessedBytesResponse> {
-    return await fetch(`/api/products/print?uuid=${uuid}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<Uint8Array<ArrayBuffer> | null>> {
+    return apiRequest(`/api/products/print?uuid=${uuid}`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return ProcessBytesResponse(response);
+        token,
+        signal,
+        guard: (data): data is Uint8Array<ArrayBuffer> =>
+            data instanceof Uint8Array,
     });
 }

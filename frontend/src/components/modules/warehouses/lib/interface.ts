@@ -33,6 +33,14 @@ export interface WarehouseUserInput {
     status: string;
 }
 
+export interface WarehouseError {
+    id: string | null;
+    name: string | null;
+    contact_name: string | null;
+    contact_phone: string | null;
+    status: string | null;
+}
+
 export interface Warehouse {
     id: string;
     name: string;

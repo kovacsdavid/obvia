@@ -35,6 +35,16 @@ export interface InventoryReservationUserInput {
     status: string;
 }
 
+export interface InventoryReservationError {
+    id: string | null;
+    inventory_id: string | null;
+    quantity: string | null;
+    reference_type: string | null;
+    reference_id: string | null;
+    reserved_until: string | null;
+    status: string | null;
+}
+
 export interface InventoryReservation {
     id: string;
     inventory_id: string;

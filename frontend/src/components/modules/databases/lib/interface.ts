@@ -34,6 +34,19 @@ export interface CreateDatabase {
     name: string;
 }
 
+export interface DatabaseError {
+    name: string | null;
+}
+
+export function isDatabaseError(data: unknown): data is DatabaseError {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "name" in data &&
+        (data.name === null || typeof data.name === "string")
+    );
+}
+
 export type CreateDatabaseResponse = CommonResponse<Database, FormError>;
 
 export function isCreateDatabaseResponse(

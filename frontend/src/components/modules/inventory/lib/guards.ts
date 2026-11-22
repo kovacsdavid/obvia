@@ -28,6 +28,7 @@ import type {
     CreateInventoryResponse,
     DeleteInventoryResponse,
     Inventory,
+    InventoryError,
     InventoryResolved,
     InventoryResolvedList,
     InventoryResolvedResponse,
@@ -35,6 +36,23 @@ import type {
     PaginatedInventoryResolvedListResponse,
     UpdateInventoryResponse,
 } from "@/components/modules/inventory/lib/interface.ts";
+
+export function isInventoryError(data: unknown): data is InventoryError {
+    if (typeof data !== "object" || data === null) return false;
+    return [
+        "id",
+        "product_id",
+        "warehouse_id",
+        "minimum_stock",
+        "maximum_stock",
+        "currency_code",
+        "status",
+    ].every((key) => {
+        if (!(key in data)) return false;
+        const value = (data as Record<string, unknown>)[key];
+        return value === null || typeof value === "string";
+    });
+}
 
 export function isCreateInventoryResponse(
     data: unknown,

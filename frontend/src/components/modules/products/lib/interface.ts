@@ -34,6 +34,15 @@ export interface ProductUserInput {
     status: string;
 }
 
+export interface ProductError {
+    id: string | null;
+    name: string | null;
+    description: string | null;
+    unit_of_measure_id: string | null;
+    new_unit_of_measure: string | null;
+    status: string | null;
+}
+
 export interface Product {
     id: string;
     name: string;

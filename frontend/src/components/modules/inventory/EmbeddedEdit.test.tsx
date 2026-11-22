@@ -66,21 +66,34 @@ const inventory = {
     id: "new-inventory",
     product_id: "product",
     warehouse_id: "warehouse",
+    quantity_on_hand: "0",
+    quantity_reserved: "0",
+    quantity_available: "0",
     minimum_stock: null,
     maximum_stock: null,
     currency_code: "HUF",
     status: "active",
+    created_by_id: "user",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    deleted_at: null,
 };
 const parent = {
+    id: parentId,
     inventory_id: "old-inventory",
     movement_type: "in",
     quantity: "3",
     unit_price: "1",
+    total_price: "3",
     tax_id: "tax",
     reference_type: "",
     reference_id: "",
     reserved_until: null,
     status: "active",
+    movement_date: "2026-01-01T00:00:00Z",
+    created_by_id: "user",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
 };
 
 beforeEach(() => {
@@ -88,7 +101,7 @@ beforeEach(() => {
     mocks.dispatch.mockReset();
     mocks.navigate.mockReset();
     mocks.dispatch.mockImplementation(
-        (action: { kind: string; payload: unknown }) => {
+        (action: { kind: string; payload: { list?: string } }) => {
             const data =
                 action.kind === "inventory/get" ||
                 action.kind === "inventory/create"
@@ -98,7 +111,7 @@ beforeEach(() => {
                       ? parent
                       : (action.kind === "movement/list" ||
                               action.kind === "reservation/list") &&
-                          action.payload === "inventory"
+                          action.payload.list === "inventory"
                         ? [
                               {
                                   value: "new-inventory",
@@ -110,13 +123,18 @@ beforeEach(() => {
                               },
                           ]
                         : [];
-            return Promise.resolve({
-                kind: action.kind,
-                payload: {
-                    statusCode: action.kind.endsWith("/create") ? 201 : 200,
-                    jsonData: { data },
-                },
-            });
+            const result = {
+                kind: "success",
+                status: action.kind.endsWith("/create") ? 201 : 200,
+                data: { data },
+            };
+            return Object.assign(
+                Promise.resolve({
+                    kind: action.kind,
+                    payload: result,
+                }),
+                { unwrap: () => Promise.resolve(result), abort: vi.fn() },
+            );
         },
     );
 });
@@ -129,7 +147,7 @@ describe("inventory editor mode", () => {
         await waitFor(() =>
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: "inventory/get",
-                payload: parentId,
+                payload: { uuid: parentId },
             }),
         );
         fireEvent.click(screen.getByRole("button", { name: "Módosítás" }));
@@ -138,7 +156,7 @@ describe("inventory editor mode", () => {
         );
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: "inventory/update",
-            payload: expect.objectContaining({ id: parentId }),
+            payload: { input: expect.objectContaining({ id: parentId }) },
         });
     });
 
@@ -150,8 +168,48 @@ describe("inventory editor mode", () => {
         );
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: "inventory/create",
-            payload: expect.objectContaining({ id: null }),
+            payload: { input: expect.objectContaining({ id: null }) },
         });
+    });
+
+    it("shows API field errors without completing creation", async () => {
+        const dispatch = mocks.dispatch.getMockImplementation()!;
+        mocks.dispatch.mockImplementation(
+            (action: { kind: string; payload: { list?: string } }) => {
+                if (action.kind !== "inventory/create") return dispatch(action);
+                const result = {
+                    kind: "http_error",
+                    status: 422,
+                    body: {
+                        error: {
+                            message: "Invalid",
+                            fields: {
+                                id: null,
+                                product_id: "Choose a product",
+                                warehouse_id: null,
+                                minimum_stock: null,
+                                maximum_stock: null,
+                                currency_code: null,
+                                status: null,
+                            },
+                        },
+                    },
+                };
+                return Object.assign(
+                    Promise.resolve({ kind: action.kind, payload: result }),
+                    {
+                        unwrap: () => Promise.resolve(result),
+                        abort: vi.fn(),
+                    },
+                );
+            },
+        );
+        const onSuccess = vi.fn();
+        render(<InventoryEdit createOnly onSuccess={onSuccess} />);
+        fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
+        expect(await screen.findByText("Choose a product")).toBeInTheDocument();
+        expect(onSuccess).not.toHaveBeenCalled();
+        expect(mocks.navigate).not.toHaveBeenCalled();
     });
 });
 
@@ -186,7 +244,7 @@ describe.each([
         );
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: "inventory/create",
-            payload: expect.objectContaining({ id: null }),
+            payload: { input: expect.objectContaining({ id: null }) },
         });
         expect(mocks.dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ kind: "inventory/get" }),
@@ -198,7 +256,7 @@ describe.each([
             mocks.dispatch.mock.calls.filter(
                 ([action]) =>
                     action.kind === `${label}/list` &&
-                    action.payload === "inventory",
+                    action.payload.list === "inventory",
             ),
         ).toHaveLength(2);
         expect(screen.getByLabelText("Mennyiség")).toHaveValue("42,00");
@@ -210,9 +268,11 @@ describe.each([
         await waitFor(() =>
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: `${label}/create`,
-                payload: expect.objectContaining({
-                    inventoryId: "new-inventory",
-                }),
+                payload: {
+                    input: expect.objectContaining({
+                        inventoryId: "new-inventory",
+                    }),
+                },
             }),
         );
     });

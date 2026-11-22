@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -27,7 +27,6 @@ import {
     select_list,
 } from "@/components/modules/inventory_reservations/lib/slice.ts";
 import { useNavigate, useParams } from "react-router";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import {
     Select,
     SelectContent,
@@ -36,10 +35,12 @@ import {
     SelectValue,
 } from "@/components/ui/select.tsx";
 import { type SelectOptionList } from "@/lib/interface.ts";
-import { useSelectList } from "@/hooks/use_select_list.ts";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
 import type { Inventory } from "../inventory/lib/interface";
+import type { InventoryReservationError } from "./lib/interface";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { toast } from "@/components/ui/toast-lib";
 import { Plus } from "lucide-react";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
 import {
@@ -67,9 +68,8 @@ export default function Edit() {
         React.useState<SelectOptionList>([]);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { setListResponse } = useSelectList();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] =
+        React.useState<InventoryReservationError | null>(null);
     const id = React.useMemo(() => params["id"] ?? "", [params]);
     const [openNewInventoryDialog, setOpenNewInventoryDialog] =
         React.useState(false);
@@ -83,147 +83,118 @@ export default function Edit() {
         async (newReferenceType: string) => {
             setReferenceType(newReferenceType);
             setReferenceIdList([]);
-            return dispatch(select_list(newReferenceType)).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setReferenceIdList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
+            const result = await dispatch(
+                select_list({ list: newReferenceType }),
+            ).unwrap();
+            handleApiResult(result, {
+                onSuccess: ({ data }) => setReferenceIdList(data ?? []),
             });
         },
-        [dispatch, setErrors, setListResponse, unexpectedError],
+        [dispatch],
     );
 
     const loadLists = useCallback(async () => {
         if (!routeInventoryId) {
-            return Promise.all([
-                dispatch(select_list("inventory")).then((response) => {
-                    if (select_list.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            setListResponse(
-                                response.payload,
-                                setInventoryIdList,
-                                setErrors,
-                            );
-                        } else {
-                            unexpectedError(response.payload.statusCode);
-                        }
-                    } else {
-                        unexpectedError();
-                    }
-                }),
-            ]);
+            const result = await dispatch(
+                select_list({ list: "inventory" }),
+            ).unwrap();
+            handleApiResult(result, {
+                onSuccess: ({ data }) => setInventoryIdList(data ?? []),
+            });
         }
-    }, [
-        dispatch,
-        routeInventoryId,
-        setErrors,
-        setListResponse,
-        unexpectedError,
-    ]);
+    }, [dispatch, routeInventoryId]);
 
     const handleEditInventorySuccess = (inventory: Inventory) => {
-        loadLists().then(() => {
-            setTimeout(() => {
-                setInventoryId(inventory.id);
-            }, 0);
-            setOpenNewInventoryDialog(false);
-        });
+        loadLists()
+            .then(() => {
+                setTimeout(() => {
+                    setInventoryId(inventory.id);
+                }, 0);
+                setOpenNewInventoryDialog(false);
+            })
+            .catch(() => undefined);
     };
 
     useEffect(() => {
-        loadLists().then(() => {
-            if (typeof id === "string" && id.length === 36) {
-                dispatch(get(id)).then(async (response) => {
-                    if (get.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            if (
-                                typeof response.payload.jsonData?.data !==
-                                "undefined"
-                            ) {
-                                const data = response.payload.jsonData.data;
-                                setInventoryId(data.inventory_id);
-                                quantity.setValue(
-                                    data.quantity
-                                        ? data.quantity.toString()
-                                        : "",
-                                );
-                                handleReferenceTypeChange(
-                                    data.reference_type ?? "",
-                                ).then(() => {
-                                    setReferenceId(data.reference_id ?? "");
-                                });
-                                setReservedUntil(data.reserved_until);
-                                setStatus(data.status);
-                            }
-                        } else if (
-                            typeof response.payload.jsonData?.error !==
-                            "undefined"
-                        ) {
-                            setErrors({
-                                message:
-                                    response.payload.jsonData.error.message,
-                                fields: {},
+        loadLists()
+            .then(() => {
+                if (typeof id === "string" && id.length === 36) {
+                    dispatch(get({ uuid: id }))
+                        .unwrap()
+                        .then((result) => {
+                            handleApiResult(result, {
+                                onSuccess: ({ data }) => {
+                                    if (data) {
+                                        setInventoryId(data.inventory_id);
+                                        quantity.setValue(
+                                            data.quantity
+                                                ? data.quantity.toString()
+                                                : "",
+                                        );
+                                        handleReferenceTypeChange(
+                                            data.reference_type ?? "",
+                                        )
+                                            .then(() => {
+                                                setReferenceId(
+                                                    data.reference_id ?? "",
+                                                );
+                                            })
+                                            .catch(() => undefined);
+                                        setReservedUntil(data.reserved_until);
+                                        setStatus(data.status);
+                                    }
+                                },
                             });
-                        } else {
-                            unexpectedError(response.payload.statusCode);
-                        }
-                    } else {
-                        unexpectedError();
-                    }
-                });
-            }
-        });
+                        })
+                        .catch(() => undefined);
+                }
+            })
+            .catch(() => undefined);
         // quantity is intentionally omitted to avoid infinite loops
         // They are only used to set initial values and don't need to trigger re-runs
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        dispatch,
-        handleReferenceTypeChange,
-        id,
-        loadLists,
-        setErrors,
-        unexpectedError,
-    ]);
+    }, [dispatch, handleReferenceTypeChange, id, loadLists]);
+
+    const resetError = (field: keyof InventoryReservationError) => {
+        setErrors((previous) =>
+            previous ? { ...previous, [field]: null } : previous,
+        );
+    };
+    const isInvalidField = (field: keyof InventoryReservationError) =>
+        typeof errors?.[field] === "string";
 
     const handleSubmit = useCallback(
         (e: React.SubmitEvent) => {
             e.preventDefault();
             dispatch(
                 create({
-                    id: id || null,
-                    inventoryId,
-                    quantity: !isNaN(quantity.getNumericValue())
-                        ? quantity.getNumericValue().toString()
-                        : "",
-                    referenceType,
-                    referenceId,
-                    reservedUntil,
-                    status,
+                    input: {
+                        id: id || null,
+                        inventoryId,
+                        quantity: !isNaN(quantity.getNumericValue())
+                            ? quantity.getNumericValue().toString()
+                            : "",
+                        referenceType,
+                        referenceId,
+                        reservedUntil,
+                        status,
+                    },
                 }),
-            ).then(async (response) => {
-                if (create.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 201) {
-                        navigate(-1);
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setErrors(response.payload.jsonData.error);
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            });
+            )
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: () => {
+                            toast.add({
+                                type: "success",
+                                title: "A mentés sikeresen megtörtént!",
+                            });
+                            navigate(-1);
+                        },
+                        onFieldErrors: setErrors,
+                    });
+                })
+                .catch(() => undefined);
         },
         [
             dispatch,
@@ -235,14 +206,11 @@ export default function Edit() {
             reservedUntil,
             status,
             navigate,
-            setErrors,
-            unexpectedError,
         ],
     );
 
     return (
         <>
-            <GlobalError error={errors} />
             <Dialog
                 open={openNewInventoryDialog}
                 onOpenChange={setOpenNewInventoryDialog}
@@ -333,9 +301,8 @@ export default function Edit() {
                                                     )}
                                                 </SelectContent>
                                             </Select>
-                                            <FieldError
-                                                error={errors}
-                                                field={"inventory_id"}
+                                            <FieldErrorV2
+                                                error={errors?.inventory_id}
                                             />
                                         </Field>
                                     </>
@@ -363,10 +330,7 @@ export default function Edit() {
                                             "quantity",
                                         )}
                                     />
-                                    <FieldError
-                                        error={errors}
-                                        field={"quantity"}
-                                    />
+                                    <FieldErrorV2 error={errors?.quantity} />
                                 </Field>
 
                                 <Field
@@ -381,7 +345,9 @@ export default function Edit() {
                                         value={referenceType ?? ""}
                                         onValueChange={(val) => {
                                             resetError("reference_type");
-                                            handleReferenceTypeChange(val);
+                                            handleReferenceTypeChange(
+                                                val,
+                                            ).catch(() => undefined);
                                         }}
                                     >
                                         <SelectTrigger
@@ -398,9 +364,8 @@ export default function Edit() {
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <FieldError
-                                        error={errors}
-                                        field={"reference_type"}
+                                    <FieldErrorV2
+                                        error={errors?.reference_type}
                                     />
                                 </Field>
 
@@ -447,9 +412,8 @@ export default function Edit() {
                                             )}
                                         </SelectContent>
                                     </Select>
-                                    <FieldError
-                                        error={errors}
-                                        field={"reference_id"}
+                                    <FieldErrorV2
+                                        error={errors?.reference_id}
                                     />
                                 </Field>
 
@@ -473,9 +437,8 @@ export default function Edit() {
                                             "reserved_until",
                                         )}
                                     />
-                                    <FieldError
-                                        error={errors}
-                                        field={"reserved_until"}
+                                    <FieldErrorV2
+                                        error={errors?.reserved_until}
                                     />
                                 </Field>
 
@@ -513,10 +476,7 @@ export default function Edit() {
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <FieldError
-                                        error={errors}
-                                        field={"status"}
-                                    />
+                                    <FieldErrorV2 error={errors?.status} />
                                 </Field>
                             </FieldGroup>
                         </FieldSet>

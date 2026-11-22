@@ -24,13 +24,14 @@ import { updateToken } from "@/components/modules/auth/lib/slice.ts";
 export function useActivateDatabase() {
     const dispatch = useAppDispatch();
     return async (new_tenant_id: string): Promise<boolean> => {
-        return dispatch(activate(new_tenant_id)).then(async (response) => {
+        return dispatch(activate({ uuid: new_tenant_id })).then((response) => {
             if (
                 activate.fulfilled.match(response) &&
-                response.payload.statusCode === 200 &&
-                typeof response.payload.jsonData?.data !== "undefined"
+                response.payload.kind === "success" &&
+                response.payload.status === 200 &&
+                typeof response.payload.data.data !== "undefined"
             ) {
-                dispatch(updateToken(response.payload.jsonData.data));
+                dispatch(updateToken(response.payload.data.data));
                 return true;
             }
             return false;

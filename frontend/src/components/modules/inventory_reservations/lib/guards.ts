@@ -28,12 +28,29 @@ import type {
     CreateInventoryReservationResponse,
     DeleteInventoryReservationResponse,
     InventoryReservation,
+    InventoryReservationError,
     InventoryReservationResolved,
     InventoryReservationResolvedList,
     InventoryReservationResolvedResponse,
     InventoryReservationResponse,
     PaginatedInventoryReservationResolvedListResponse,
 } from "@/components/modules/inventory_reservations/lib/interface.ts";
+
+export function isInventoryReservationError(
+    data: unknown,
+): data is InventoryReservationError {
+    if (typeof data !== "object" || data === null) return false;
+    const fields = data as Record<string, unknown>;
+    return [
+        "id",
+        "inventory_id",
+        "quantity",
+        "reference_type",
+        "reference_id",
+        "reserved_until",
+        "status",
+    ].every((key) => fields[key] === null || typeof fields[key] === "string");
+}
 
 export function isInventoryReservationResolved(
     data: unknown,

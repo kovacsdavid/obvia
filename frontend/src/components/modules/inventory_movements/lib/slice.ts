@@ -20,8 +20,19 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as inventoryMovementsApi from "@/components/modules/inventory_movements/lib/service.ts";
 import type { RootState } from "@/store";
-import type { InventoryMovementUserInput } from "@/components/modules/inventory_movements/lib/interface.ts";
+import type {
+    CreateInventoryMovementResponse,
+    DeleteInventoryMovementResponse,
+    InventoryMovementError,
+    InventoryMovementResolvedResponse,
+    InventoryMovementResponse,
+    InventoryMovementUserInput,
+    PaginatedInventoryMovementResolvedListResponse,
+} from "@/components/modules/inventory_movements/lib/interface.ts";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type { SelectOptionListResponse } from "@/lib/interface";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
 interface InventoryMovementsState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,79 +42,132 @@ const initialState: InventoryMovementsState = {
     status: "idle",
 };
 
-export const get_resolved = createAsyncThunk(
+export const get_resolved = createAsyncThunk<
+    ApiResult<InventoryMovementResolvedResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_movements/get_resolved",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryMovementsApi.get_resolved(uuid, token);
+        const result = await inventoryMovementsApi.get_resolved(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get = createAsyncThunk(
+export const get = createAsyncThunk<
+    ApiResult<InventoryMovementResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_movements/get",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryMovementsApi.get(uuid, token);
+        const result = await inventoryMovementsApi.get(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<CreateInventoryMovementResponse, InventoryMovementError>,
+    { input: InventoryMovementUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_movements/create",
-    async (requestData: InventoryMovementUserInput, { getState, dispatch }) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryMovementsApi.create(requestData, token);
+        const result = await inventoryMovementsApi.create(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteItem = createAsyncThunk(
+export const deleteItem = createAsyncThunk<
+    ApiResult<DeleteInventoryMovementResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_movements/deleteItem",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryMovementsApi.deleteItem(uuid, token);
+        const result = await inventoryMovementsApi.deleteItem(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const select_list = createAsyncThunk(
+export const select_list = createAsyncThunk<
+    ApiResult<SelectOptionListResponse>,
+    { list: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_movements/select_list",
-    async (list: string, { getState, dispatch }) => {
+    async ({ list, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryMovementsApi.select_list(list, token);
+        const result = await inventoryMovementsApi.select_list(
+            list,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedInventoryMovementResolvedListResponse>,
+    { inventoryId: string; query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_movements/list",
     async (
-        params: {
-            inventoryId: string;
-            query: string | null;
-        },
-        { getState, dispatch },
+        { inventoryId, query, silent = false },
+        { getState, dispatch, signal },
     ) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryMovementsApi.list(params, token);
+        const result = await inventoryMovementsApi.list(
+            { inventoryId, query },
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const print = createAsyncThunk(
+export const print = createAsyncThunk<
+    ApiResult<Uint8Array<ArrayBuffer> | null>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory_movements/print",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryMovementsApi.print(uuid, token);
+        const result = await inventoryMovementsApi.print(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

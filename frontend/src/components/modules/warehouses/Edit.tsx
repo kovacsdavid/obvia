@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
@@ -33,10 +33,9 @@ import {
     SelectValue,
 } from "@/components/ui/select.tsx";
 import { useNavigate } from "react-router";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
-import type { Warehouse } from "./lib/interface";
+import type { Warehouse, WarehouseError } from "./lib/interface";
 import {
     Field,
     FieldGroup,
@@ -44,6 +43,8 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { toast } from "@/components/ui/toast-lib";
 
 interface EditProps {
     showCard?: boolean;
@@ -62,43 +63,37 @@ export default function Edit({
     const [contactName, setContactName] = React.useState("");
     const [contactPhone, setContactPhone] = React.useState("");
     const [status, setStatus] = React.useState("active");
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = React.useState<WarehouseError | null>(null);
+    const isInvalidField = (field: keyof WarehouseError) => !!errors?.[field];
+    const resetError = (field: keyof WarehouseError) => {
+        setErrors((previous) =>
+            previous ? { ...previous, [field]: null } : null,
+        );
+    };
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const params = useParams();
     const id = createOnly ? null : (params["id"] ?? null);
 
-    const handleCreate = useCallback(() => {
-        dispatch(
+    const handleCreate = useCallback(async () => {
+        const result = await dispatch(
             create({
-                id,
-                name,
-                contactName,
-                contactPhone,
-                status,
+                input: { id, name, contactName, contactPhone, status },
             }),
-        ).then(async (response) => {
-            if (create.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    if (
-                        typeof onSuccess === "function" &&
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        onSuccess(response.payload.jsonData.data);
-                    } else {
-                        navigate("/raktar/lista");
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
+        ).unwrap();
+        handleApiResult(result, {
+            onSuccess: ({ data }) => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                if (typeof onSuccess === "function" && data) {
+                    onSuccess(data);
                 } else {
-                    unexpectedError(response.payload.statusCode);
+                    navigate("/raktar/lista");
                 }
-            } else {
-                unexpectedError();
-            }
+            },
+            onFieldErrors: setErrors,
         });
     }, [
         contactName,
@@ -110,7 +105,6 @@ export default function Edit({
         onSuccess,
         setErrors,
         status,
-        unexpectedError,
     ]);
 
     const handleCancel = useCallback(
@@ -125,29 +119,21 @@ export default function Edit({
         [navigate, onCancel],
     );
 
-    const handleUpdate = useCallback(() => {
-        dispatch(
+    const handleUpdate = useCallback(async () => {
+        const result = await dispatch(
             update({
-                id,
-                name,
-                contactName,
-                contactPhone,
-                status,
+                input: { id, name, contactName, contactPhone, status },
             }),
-        ).then(async (response) => {
-            if (update.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    navigate("/raktar/lista");
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
+        ).unwrap();
+        handleApiResult(result, {
+            onSuccess: () => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                navigate("/raktar/lista");
+            },
+            onFieldErrors: setErrors,
         });
     }, [
         contactName,
@@ -158,40 +144,27 @@ export default function Edit({
         navigate,
         setErrors,
         status,
-        unexpectedError,
     ]);
 
     useEffect(() => {
         if (typeof id === "string") {
-            dispatch(get(id)).then(async (response) => {
-                if (get.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        if (
-                            typeof response.payload.jsonData?.data !==
-                            "undefined"
-                        ) {
-                            const data = response.payload.jsonData.data;
-                            setName(data.name);
-                            setContactName(data.contact_name ?? "");
-                            setContactPhone(data.contact_phone ?? "");
-                            setStatus(data.status ?? "");
-                        }
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setErrors({
-                            message: response.payload.jsonData.error.message,
-                            fields: {},
-                        });
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            });
+            dispatch(get({ uuid: id }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (data) {
+                                setName(data.name);
+                                setContactName(data.contact_name ?? "");
+                                setContactPhone(data.contact_phone ?? "");
+                                setStatus(data.status ?? "");
+                            }
+                        },
+                    });
+                })
+                .catch(() => undefined);
         }
-    }, [dispatch, id, setErrors, unexpectedError]);
+    }, [dispatch, id]);
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -204,7 +177,6 @@ export default function Edit({
 
     return (
         <>
-            <GlobalError error={errors} />
             <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
                 <form
                     onSubmit={handleSubmit}
@@ -229,7 +201,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("name")}
                                 />
-                                <FieldError error={errors} field={"name"} />
+                                <FieldErrorV2 error={errors?.name} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("contact_name")}
@@ -250,10 +222,7 @@ export default function Edit({
                                         "contact_name",
                                     )}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"contact_name"}
-                                />
+                                <FieldErrorV2 error={errors?.contact_name} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("contact_phone")}
@@ -274,10 +243,7 @@ export default function Edit({
                                         "contact_phone",
                                     )}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"contact_phone"}
-                                />
+                                <FieldErrorV2 error={errors?.contact_phone} />
                             </Field>
                             <Field data-invalid={isInvalidField("status")}>
                                 <FieldLabel htmlFor="status">
@@ -311,7 +277,7 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"status"} />
+                                <FieldErrorV2 error={errors?.status} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

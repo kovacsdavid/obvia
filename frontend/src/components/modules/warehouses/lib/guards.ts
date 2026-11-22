@@ -30,11 +30,25 @@ import type {
     PaginatedWarehouseResolvedListResponse,
     UpdateWarehouseResponse,
     Warehouse,
+    WarehouseError,
     WarehouseResolved,
     WarehouseResolvedList,
     WarehouseResolvedResponse,
     WarehouseResponse,
 } from "@/components/modules/warehouses/lib/interface.ts";
+
+export function isWarehouseError(data: unknown): data is WarehouseError {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        ["id", "name", "contact_name", "contact_phone", "status"].every(
+            (key) =>
+                key in data &&
+                (data[key as keyof typeof data] === null ||
+                    typeof data[key as keyof typeof data] === "string"),
+        )
+    );
+}
 
 export function isCreateWarehouseResponse(
     data: unknown,

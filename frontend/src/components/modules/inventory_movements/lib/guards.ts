@@ -28,12 +28,35 @@ import type {
     CreateInventoryMovementResponse,
     DeleteInventoryMovementResponse,
     InventoryMovement,
+    InventoryMovementError,
     InventoryMovementResolved,
     InventoryMovementResolvedList,
     InventoryMovementResolvedResponse,
     InventoryMovementResponse,
     PaginatedInventoryMovementResolvedListResponse,
 } from "@/components/modules/inventory_movements/lib/interface.ts";
+
+export function isInventoryMovementError(
+    data: unknown,
+): data is InventoryMovementError {
+    if (typeof data !== "object" || data === null) return false;
+    const fields = data as Record<string, unknown>;
+    return [
+        "id",
+        "inventory_id",
+        "movement_type",
+        "quantity",
+        "reference_type",
+        "reference_id",
+        "unit_price",
+        "total_price",
+        "tax_id",
+    ].every(
+        (key) =>
+            key in fields &&
+            (fields[key] === null || typeof fields[key] === "string"),
+    );
+}
 
 export function isInventoryMovementResolved(
     data: unknown,

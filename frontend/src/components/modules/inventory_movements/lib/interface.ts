@@ -37,6 +37,18 @@ export interface InventoryMovementUserInput {
     taxId: string;
 }
 
+export interface InventoryMovementError {
+    id: string | null;
+    inventory_id: string | null;
+    movement_type: string | null;
+    quantity: string | null;
+    reference_type: string | null;
+    reference_id: string | null;
+    unit_price: string | null;
+    total_price: string | null;
+    tax_id: string | null;
+}
+
 export interface InventoryMovement {
     id: string;
     inventory_id: string;

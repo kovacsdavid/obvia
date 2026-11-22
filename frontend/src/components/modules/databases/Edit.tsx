@@ -47,8 +47,7 @@ export default function Edit({
     const [name, setName] = React.useState("");
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const { errors, setErrors, isInvalidField, resetError } = useFormError();
     const params = useParams();
     const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -56,45 +55,25 @@ export default function Edit({
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
-        dispatch(
-            create({
-                name,
-            }),
-        ).then(async (response) => {
-            if (create.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    if (
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        activateDatabase(
-                            response.payload.jsonData.data.id,
-                        ).then((isOk) => {
-                            if (isOk) {
-                                if (
-                                    typeof onSuccess === "function" &&
-                                    typeof response.payload.jsonData?.data !==
-                                        "undefined"
-                                ) {
-                                    onSuccess(response.payload.jsonData.data);
-                                } else {
-                                    navigate("/adatbazis/lista");
-                                }
-                            } else {
-                                unexpectedError();
-                            }
-                        });
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
+        const response = await dispatch(create({ input: { name } }));
+        if (!create.fulfilled.match(response)) return;
+        const result = response.payload;
+        if (result.kind === "http_error" && result.body?.error.fields) {
+            setErrors({
+                message: result.body.error.message,
+                fields: { ...result.body.error.fields },
+            });
+        } else if (
+            result.kind === "success" &&
+            result.status === 201 &&
+            result.data.data
+        ) {
+            const database = result.data.data;
+            if (await activateDatabase(database.id)) {
+                if (typeof onSuccess === "function") onSuccess(database);
+                else navigate("/adatbazis/lista");
             }
-        });
+        }
     };
 
     return (

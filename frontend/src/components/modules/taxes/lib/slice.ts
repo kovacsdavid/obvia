@@ -20,8 +20,20 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as taxesApi from "@/components/modules/taxes/lib/service.ts";
 import type { RootState } from "@/store";
-import type { TaxUserInput } from "@/components/modules/taxes/lib/interface.ts";
+import type {
+    CreateTaxResponse,
+    DeleteTaxResponse,
+    PaginatedTaxResolvedListResponse,
+    TaxError,
+    TaxResolvedResponse,
+    TaxResponse,
+    TaxUserInput,
+    UpdateTaxResponse,
+} from "@/components/modules/taxes/lib/interface.ts";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { SelectOptionListResponse } from "@/lib/interface";
 
 interface TaxesState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,83 +43,147 @@ const initialState: TaxesState = {
     status: "idle",
 };
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<CreateTaxResponse, TaxError>,
+    { input: TaxUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "taxes/create",
-    async (requestData: TaxUserInput, { getState, dispatch }) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await taxesApi.create(requestData, token);
+        const result = await taxesApi.create(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteItem = createAsyncThunk(
+export const deleteItem = createAsyncThunk<
+    ApiResult<DeleteTaxResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "taxes/deleteItem",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await taxesApi.deleteItem(uuid, token);
+        const result = await taxesApi.deleteItem(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const update = createAsyncThunk(
+export const update = createAsyncThunk<
+    ApiResult<UpdateTaxResponse, TaxError>,
+    { input: TaxUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "taxes/update",
-    async (requestData: TaxUserInput, { getState, dispatch }) => {
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await taxesApi.update(requestData, token);
+        const result = await taxesApi.update(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedTaxResolvedListResponse>,
+    { query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "taxes/list",
-    async (query: string | null, { getState, dispatch }) => {
+    async ({ query, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await taxesApi.list(query, token);
+        const result = await taxesApi.list(
+            query,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get = createAsyncThunk(
+export const get = createAsyncThunk<
+    ApiResult<TaxResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "taxes/get",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await taxesApi.get(uuid, token);
+        const result = await taxesApi.get(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get_resolved = createAsyncThunk(
+export const get_resolved = createAsyncThunk<
+    ApiResult<TaxResolvedResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "taxes/get_resolved",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await taxesApi.get_resolved(uuid, token);
+        const result = await taxesApi.get_resolved(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const select_list = createAsyncThunk(
+export const select_list = createAsyncThunk<
+    ApiResult<SelectOptionListResponse>,
+    { list: string; silent?: boolean },
+    { state: RootState }
+>(
     "taxes/select_list",
-    async (list: string, { getState, dispatch }) => {
+    async ({ list, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await taxesApi.select_list(list, token);
+        const result = await taxesApi.select_list(
+            list,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const print = createAsyncThunk(
+export const print = createAsyncThunk<
+    ApiResult<Uint8Array<ArrayBuffer> | null>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "taxes/print",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await taxesApi.print(uuid, token);
+        const result = await taxesApi.print(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

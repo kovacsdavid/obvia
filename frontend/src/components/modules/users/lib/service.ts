@@ -17,121 +17,94 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    globalRequestTimeout,
-    unexpectedError,
-} from "@/services/utils/consts.ts";
-import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
-import {
-    ProcessJsonResponse,
-    type ProcessedJsonResponse,
-} from "@/lib/interface.ts";
 import type {
-    DisableOtpResponse,
-    EnableOtpResponse,
-    VerifyOtpResponse,
-} from "../../auth/lib/interface";
+    CreateUser,
+    OtpFields,
+} from "@/components/modules/users/lib/interface.ts";
+import type { EnableOtpResponse } from "../../auth/lib/interface";
+import { isEnableOtpResponse } from "../../auth/lib/guards";
 import {
-    isDisableOtpResponse,
-    isEnableOtpResponse,
-    isVerifyOtpResponse,
-} from "../../auth/lib/guards";
+    isOtpFields,
+    isOtpMessageResponse,
+    isUnimplementedResponse,
+} from "./guards";
+import type { SimpleMessageData } from "@/lib/interface";
+import { apiRequest } from "@/lib/api/request";
+import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
     { email, lastName, firstName, phone, status }: CreateUser,
     token: string | null,
-): Promise<Response> {
-    return await fetch(`/api/users/create`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<never>> {
+    return apiRequest(`/api/users/create`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-        body: JSON.stringify({
+        token,
+        signal,
+        guard: isUnimplementedResponse,
+        body: {
             email,
             last_name: lastName,
             first_name: firstName,
             phone,
             status,
-        }),
+        },
     });
 }
 
 export async function list(
     query: string | null,
     token: string | null,
-): Promise<Response> {
+    signal?: AbortSignal,
+): Promise<ApiResult<never>> {
     const uri =
         query === null ? `/api/users/list` : `/api/users/list?q=${query}`;
-    return await fetch(uri, {
+    return apiRequest(uri, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
+        token,
+        signal,
+        guard: isUnimplementedResponse,
     });
 }
 
 export async function enableOtp(
     token: string | null,
-): Promise<ProcessedJsonResponse<EnableOtpResponse>> {
-    return await fetch(`/api/users/otp/enable`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<EnableOtpResponse>> {
+    return apiRequest(`/api/users/otp/enable`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isEnableOtpResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        guard: isEnableOtpResponse,
     });
 }
 
 export async function verifyOtp(
     otp: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<VerifyOtpResponse>> {
-    return await fetch(`/api/users/otp/verify`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<{ data: SimpleMessageData }, OtpFields>> {
+    return apiRequest(`/api/users/otp/verify`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-            otp,
-        }),
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isVerifyOtpResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        body: { otp },
+        guard: isOtpMessageResponse,
+        formErrorGuard: isOtpFields,
     });
 }
 
 export async function disableOtp(
     otp: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<DisableOtpResponse>> {
-    return await fetch(`/api/users/otp/disable`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<{ data: SimpleMessageData }, OtpFields>> {
+    return apiRequest(`/api/users/otp/disable`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-            otp,
-        }),
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isDisableOtpResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        body: { otp },
+        guard: isOtpMessageResponse,
+        formErrorGuard: isOtpFields,
     });
 }

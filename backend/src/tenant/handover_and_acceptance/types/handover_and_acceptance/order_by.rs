@@ -58,16 +58,24 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let order_by = "created_at"
-            .parse::<ValueObjectRequired<OrderBy>>()
-            .unwrap();
-        assert_eq!(order_by.as_str().unwrap(), "created_at");
+        for field in ["created_at", "updated_at"] {
+            let order_by = field.parse::<ValueObjectRequired<OrderBy>>().unwrap();
+            assert_eq!(order_by.as_str().unwrap(), field);
+        }
     }
 
     #[test]
     fn test_invalid_order_by() {
-        let order_by = "invalid".parse::<ValueObjectRequired<OrderBy>>();
-        assert!(order_by.is_err());
+        for field in [
+            "invalid",
+            "display_id",
+            "customer",
+            "item_make",
+            "item_model",
+            "received_at",
+        ] {
+            assert!(field.parse::<ValueObjectRequired<OrderBy>>().is_err());
+        }
     }
 
     #[test]

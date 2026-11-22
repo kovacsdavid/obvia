@@ -539,6 +539,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
+        assert_list_success("").await;
+    }
+
+    #[tokio::test]
+    async fn test_list_success_with_display_id_filter() {
+        assert_list_success(
+            "filtering:display_id-DEMO-AT-2026-1 ordering:created_at-asc paging:1-25",
+        )
+        .await;
+    }
+
+    async fn assert_list_success(query: &str) {
         let active_tenant_id = Uuid::now_v7();
         let handover_and_acceptance_id = Uuid::now_v7();
 
@@ -555,16 +567,31 @@ mod tests {
         .build()
         .unwrap();
 
+        let expected_query = query
+            .parse::<ResourceQuery<
+                handover_and_acceptance::types::OrderBy,
+                handover_and_acceptance::types::FilterBy,
+            >>()
+            .unwrap();
+        if !query.is_empty() {
+            assert_eq!(expected_query.filtering().filter_by(), Some("display_id"));
+            assert_eq!(
+                expected_query.filtering().value_unchecked(),
+                Some("DEMO-AT-2026-1")
+            );
+            assert_eq!(
+                expected_query.ordering().order_by().as_deref(),
+                Some("created_at")
+            );
+            assert_eq!(expected_query.paging().page(), Some(1));
+            assert_eq!(expected_query.paging().limit(), Some(25));
+        }
+
         let mut handover_and_acceptance_repo = MockRepository::new();
         handover_and_acceptance_repo
             .expect_get_paged()
             .times(1)
-            .with(eq(""
-                .parse::<ResourceQuery<
-                    handover_and_acceptance::types::OrderBy,
-                    handover_and_acceptance::types::FilterBy,
-                >>()
-                .unwrap()))
+            .with(eq(expected_query))
             .returning({
                 let handover_and_acceptance_resolved = handover_and_acceptance_full.clone();
                 move |_| {
@@ -597,7 +624,10 @@ mod tests {
             )
             .header("Content-Type", "application/json")
             .method("GET")
-            .uri("/api/handover_and_acceptance/list")
+            .uri(format!(
+                "/api/handover_and_acceptance/list?q={}",
+                query.replace(' ', "%20")
+            ))
             .body("".to_string())
             .unwrap();
 

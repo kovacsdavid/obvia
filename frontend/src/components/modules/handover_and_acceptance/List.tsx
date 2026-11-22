@@ -196,47 +196,12 @@ export default function List() {
                     <TableHeader>
                         <TableRow>
                             <TableHead />
-                            <SortableTableHead
-                                field="display_id"
-                                orderBy={orderBy}
-                                order={order}
-                                onOrderSelect={orderSelect}
-                            >
-                                Azonosító
-                            </SortableTableHead>
-                            <SortableTableHead
-                                field="customer"
-                                orderBy={orderBy}
-                                order={order}
-                                onOrderSelect={orderSelect}
-                            >
-                                Vevő
-                            </SortableTableHead>
-                            <SortableTableHead
-                                field="item_make"
-                                orderBy={orderBy}
-                                order={order}
-                                onOrderSelect={orderSelect}
-                            >
-                                Gyártó
-                            </SortableTableHead>
-                            <SortableTableHead
-                                field="item_model"
-                                orderBy={orderBy}
-                                order={order}
-                                onOrderSelect={orderSelect}
-                            >
-                                Típus
-                            </SortableTableHead>
                             <TableHead>Azonosító</TableHead>
-                            <SortableTableHead
-                                field="received_at"
-                                orderBy={orderBy}
-                                order={order}
-                                onOrderSelect={orderSelect}
-                            >
-                                Átvétel
-                            </SortableTableHead>
+                            <TableHead>Vevő</TableHead>
+                            <TableHead>Gyártó</TableHead>
+                            <TableHead>Típus</TableHead>
+                            <TableHead>Azonosító</TableHead>
+                            <TableHead>Átvétel</TableHead>
                             <SortableTableHead
                                 field="created_at"
                                 orderBy={orderBy}

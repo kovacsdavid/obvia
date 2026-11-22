@@ -127,8 +127,10 @@ export default function Edit({
     const [openNewCustomerDialog, setOpenNewCustomerDialog] =
         React.useState(false);
 
+    const itemModelsRequestRef = React.useRef(0);
     const loadItemModels = useCallback(
         async (makeId: string) => {
+            const requestId = ++itemModelsRequestRef.current;
             setItemModelsList([]);
             if (!makeId || makeId === "other") {
                 return;
@@ -137,7 +139,11 @@ export default function Edit({
                 selectHandoverList({ list: "item_models", param: makeId }),
             ).unwrap();
             handleApiResult(result, {
-                onSuccess: ({ data }) => setItemModelsList(data ?? []),
+                onSuccess: ({ data }) => {
+                    if (requestId === itemModelsRequestRef.current) {
+                        setItemModelsList(data ?? []);
+                    }
+                },
             });
         },
         [dispatch],

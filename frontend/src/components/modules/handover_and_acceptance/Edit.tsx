@@ -49,21 +49,21 @@ import {
 import { select_list as selectHandoverList } from "@/components/modules/handover_and_acceptance/lib/slice.ts";
 import type { Customer } from "@/components/modules/customers/lib/interface.ts";
 import type {
+    HandoverAndAcceptance,
     HandoverAndAcceptanceError,
-    HandoverAndAcceptanceFull,
-} from "./lib/interface.ts";
+} from "@/components/modules/handover_and_acceptance/lib/interface.ts";
 import type { SelectOptionList } from "@/lib/interface.ts";
 import {
     formatReceiptTime,
     resolveReceiptTime,
     validReceiptTimeZone,
-} from "./lib/receivedAt";
+} from "@/components/modules/handover_and_acceptance/lib/receivedAt";
 import { handleApiResult } from "@/lib/api/handleApiResult";
 import { toast } from "@/components/ui/toast-lib";
 
 interface EditProps {
     showCard?: boolean;
-    onSuccess?: (handover: HandoverAndAcceptanceFull) => void;
+    onSuccess?: (handover: HandoverAndAcceptance) => void;
     onCancel?: () => void;
 }
 
@@ -305,7 +305,7 @@ export default function Edit({
                         title: "A mentés sikeresen megtörtént!",
                     });
                     if (typeof onSuccess === "function" && data) {
-                        onSuccess(data as unknown as HandoverAndAcceptanceFull);
+                        onSuccess(data);
                     } else {
                         navigate("/atadas-atvetel/lista");
                     }

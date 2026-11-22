@@ -147,6 +147,15 @@ describe("database UI flows", () => {
             "aria-invalid",
             "true",
         );
+        expect(screen.queryByText("Invalid")).not.toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText("Adatbázis neve"), {
+            target: { value: "Company" },
+        });
+        expect(screen.queryByText("Required")).not.toBeInTheDocument();
+        expect(screen.getByLabelText("Adatbázis neve")).toHaveAttribute(
+            "aria-invalid",
+            "false",
+        );
         expect(mocks.dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ kind: "activate" }),
         );

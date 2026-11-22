@@ -21,13 +21,21 @@ import { refreshAccessToken } from "@/components/modules/auth/lib/slice";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import * as addressApi from "@/components/modules/address/lib/service";
 import type { RootState } from "@/store";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { SelectOptionListResponse } from "@/lib/interface";
 
-export const select_list = createAsyncThunk(
-    "taxes/select_list",
-    async (list: string, { getState, dispatch }) => {
+export const select_list = createAsyncThunk<
+    ApiResult<SelectOptionListResponse>,
+    { list: string; silent?: boolean },
+    { state: RootState }
+>(
+    "address/select_list",
+    async ({ list, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await addressApi.select_list(list, token);
+        const token = getState().auth.login.token;
+        const result = await addressApi.select_list(list, token, signal);
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );

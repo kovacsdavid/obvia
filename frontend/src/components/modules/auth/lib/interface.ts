@@ -64,6 +64,19 @@ export interface NewPasswordRequest {
     password_confirm: string;
 }
 
+export type RegisterFields = Record<
+    "first_name" | "last_name" | "email" | "password" | "password_confirm",
+    string | null
+>;
+export type LoginFields = Partial<
+    Record<"email" | "password" | "otp", string | null>
+>;
+export type ForgottenPasswordFields = Record<"email", string | null>;
+export type NewPasswordFields = Record<
+    "token" | "password" | "password_confirm",
+    string | null
+>;
+
 export interface Claims {
     /** The subject of the token, which represents the user's unique identifier */
     sub: string;

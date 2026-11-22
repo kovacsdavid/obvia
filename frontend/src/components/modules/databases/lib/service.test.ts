@@ -28,6 +28,8 @@ const claims = {
     iss: "issuer",
     aud: "audience",
     jti: "id",
+    loc: "hu-HU",
+    tz: "Europe/Budapest",
     family_id: null,
     active_tenant: "tenant",
 };

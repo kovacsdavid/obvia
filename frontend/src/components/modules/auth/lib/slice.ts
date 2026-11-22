@@ -34,6 +34,21 @@ import type {
 } from "@/components/modules/auth/lib/interface.ts";
 import type { RootState } from "@/store";
 import type { NewTokenResponse } from "@/components/modules/databases/lib/interface.ts";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { ApiResult } from "@/lib/api/types";
+
+function notifyAuthResult(
+    result: ApiResult<unknown, unknown>,
+    expectedStatus: number,
+    silent = false,
+) {
+    if (silent) return;
+    notifyApiError(
+        result.kind === "success" && result.status !== expectedStatus
+            ? { kind: "invalid_response", status: result.status }
+            : result,
+    );
+}
 
 interface AuthState {
     login: {
@@ -65,28 +80,47 @@ const initialState: AuthState = {
 
 export const registerUserRequest = createAsyncThunk(
     "auth/registerUserRequest",
-    async (userData: RegisterRequest) => {
-        return await authApi.register(userData);
+    async (userData: RegisterRequest & { silent?: boolean }, { signal }) => {
+        const result = await authApi.register(userData, signal);
+        notifyAuthResult(result, 201, userData.silent);
+        return result;
     },
 );
 
 export const loginUserRequest = createAsyncThunk(
     "auth/loginUserRequest",
-    async (credentials: LoginRequest) => {
-        return await authApi.login(credentials);
+    async (credentials: LoginRequest & { silent?: boolean }, { signal }) => {
+        const result = await authApi.login(credentials, signal);
+        if (!(
+            result.kind === "http_error" &&
+            result.body?.error.message === "totp-required"
+        )) {
+            notifyAuthResult(result, 200, credentials.silent);
+        }
+        return result;
     },
 );
 
 let logoutAndRevokeInFlight: Promise<void> | null = null;
+let authGeneration = 0;
 
 export const logoutAndRevokeRefreshToken = createAsyncThunk(
     "auth/logoutAndRevokeRefreshToken",
-    async (_: void, { dispatch }) => {
+    async (options: { silent?: boolean } | void, { dispatch }) => {
         if (!logoutAndRevokeInFlight) {
+            authGeneration += 1;
             logoutAndRevokeInFlight = (async () => {
                 try {
-                    await authApi.logout();
-                    dispatch(logoutUser());
+                    if (refreshInFlight) await refreshInFlight;
+                    const result = await authApi.logout();
+                    if (!options?.silent) notifyApiError(result);
+                } catch (error) {
+                    if (!options?.silent)
+                        notifyApiError({
+                            kind: "network_error",
+                            offline: false,
+                        });
+                    throw error;
                 } finally {
                     logoutAndRevokeInFlight = null;
                     dispatch(logoutUser());
@@ -102,6 +136,10 @@ let refreshInFlight: Promise<void> | null = null;
 export const refreshAccessToken = createAsyncThunk(
     "auth/refreshAccessToken",
     async (_: void, { getState, dispatch }) => {
+        if (logoutAndRevokeInFlight) {
+            await logoutAndRevokeInFlight;
+            return;
+        }
         const rootState = getState() as RootState;
 
         const token = rootState.auth.login.token;
@@ -115,17 +153,21 @@ export const refreshAccessToken = createAsyncThunk(
         if (!expiredOrNearExpiry) return;
 
         if (!refreshInFlight) {
+            const generation = authGeneration;
             refreshInFlight = (async () => {
                 try {
                     const response = await authApi.refresh();
+                    if (generation !== authGeneration) return;
                     if (
-                        response.statusCode === 200 &&
-                        typeof response.jsonData?.data !== "undefined"
+                        response.kind === "success" &&
+                        response.status === 200
                     ) {
-                        dispatch(loginUser(response.jsonData?.data));
+                        dispatch(loginUser(response.data.data));
                     } else {
                         dispatch(logoutUser());
                     }
+                } catch {
+                    if (generation === authGeneration) dispatch(logoutUser());
                 } finally {
                     refreshInFlight = null;
                 }
@@ -137,32 +179,59 @@ export const refreshAccessToken = createAsyncThunk(
 
 export const get_claims = createAsyncThunk(
     "auth/get_claims",
-    async (_, { getState, dispatch }) => {
+    async (
+        options: { silent?: boolean } | void,
+        { getState, dispatch, signal },
+    ) => {
         await dispatch(refreshAccessToken());
         const rootState = getState() as RootState;
         const token = rootState.auth.login.token;
-        return await authApi.get_claims(token);
+        const result = await authApi.get_claims(token, signal);
+        if (!options?.silent) notifyApiError(result);
+        return result;
     },
 );
 
 export const verfiy_email = createAsyncThunk(
     "auth/verfiy_email",
-    async (id: string) => {
-        return await authApi.verfiy_email(id);
+    async (input: string | { id: string; silent?: boolean }, { signal }) => {
+        const id = typeof input === "string" ? input : input.id;
+        const result = await authApi.verfiy_email(id, signal);
+        notifyAuthResult(
+            result,
+            200,
+            typeof input === "string" ? false : input.silent,
+        );
+        return result;
     },
 );
 
 export const forgottenPassword = createAsyncThunk(
     "auth/forgottenPassword",
-    async (forgottenPasswordRequest: ForgottenPasswordRequest) => {
-        return await authApi.forgottenPassword(forgottenPasswordRequest);
+    async (
+        forgottenPasswordRequest: ForgottenPasswordRequest & {
+            silent?: boolean;
+        },
+        { signal },
+    ) => {
+        const result = await authApi.forgottenPassword(
+            forgottenPasswordRequest,
+            signal,
+        );
+        notifyAuthResult(result, 200, forgottenPasswordRequest.silent);
+        return result;
     },
 );
 
 export const newPassword = createAsyncThunk(
     "auth/newPassword",
-    async (newPasswordRequest: NewPasswordRequest) => {
-        return await authApi.newPassword(newPasswordRequest);
+    async (
+        newPasswordRequest: NewPasswordRequest & { silent?: boolean },
+        { signal },
+    ) => {
+        const result = await authApi.newPassword(newPasswordRequest, signal);
+        notifyAuthResult(result, 200, newPasswordRequest.silent);
+        return result;
     },
 );
 

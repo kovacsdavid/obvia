@@ -18,13 +18,13 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { registerUserRequest } from "@/components/modules/auth/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { useNavigate } from "react-router";
-import { type ProcessedJsonResponse } from "@/lib/interface.ts";
-import { type RegisterResponse } from "@/components/modules/auth/lib/interface.ts";
-import { useFormError } from "@/hooks/use_form_error.ts";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { RegisterFields } from "@/components/modules/auth/lib/interface";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { useAuth } from "@/hooks/use_auth";
 import {
@@ -43,21 +43,13 @@ export default function Register() {
     const [passwordConfirm, setPasswordConfirm] = useState("");
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = useState<RegisterFields | null>(null);
+    const isInvalidField = (field: keyof RegisterFields) => !!errors?.[field];
+    const resetError = (field: keyof RegisterFields) =>
+        setErrors((previous) =>
+            previous ? { ...previous, [field]: null } : null,
+        );
     const { isLoggedIn } = useAuth();
-
-    const handleRegistrationResponse = async (
-        response: ProcessedJsonResponse<RegisterResponse>,
-    ) => {
-        if (response.statusCode === 201) {
-            navigate("/bejelentkezes");
-        } else if (typeof response.jsonData?.error !== "undefined") {
-            setErrors(response.jsonData.error);
-        } else {
-            unexpectedError(response.statusCode);
-        }
-    };
 
     useEffect(() => {
         if (isLoggedIn) {
@@ -78,15 +70,23 @@ export default function Register() {
             }),
         );
         if (registerUserRequest.fulfilled.match(response)) {
-            await handleRegistrationResponse(response.payload);
+            const result = response.payload;
+            setErrors(null);
+            handleApiResult(result, {
+                onSuccess: () => {
+                    if (result.kind === "success" && result.status === 201)
+                        navigate("/bejelentkezes");
+                },
+                onFieldErrors: setErrors,
+            });
         } else {
-            unexpectedError();
+            if (!response.meta.aborted)
+                notifyApiError({ kind: "network_error", offline: false });
         }
     };
 
     return (
         <>
-            <GlobalError error={errors} />
             <Card className={"max-w-lg mx-auto"}>
                 <CardContent>
                     <form
@@ -115,10 +115,7 @@ export default function Register() {
                                             "last_name",
                                         )}
                                     />
-                                    <FieldError
-                                        error={errors}
-                                        field={"last_name"}
-                                    />
+                                    <FieldErrorV2 error={errors?.last_name} />
                                 </Field>
                                 <Field
                                     data-invalid={isInvalidField("first_name")}
@@ -138,10 +135,7 @@ export default function Register() {
                                             "first_name",
                                         )}
                                     />
-                                    <FieldError
-                                        error={errors}
-                                        field={"first_name"}
-                                    />
+                                    <FieldErrorV2 error={errors?.first_name} />
                                 </Field>
                                 <Field data-invalid={isInvalidField("email")}>
                                     <FieldLabel htmlFor="email">
@@ -158,10 +152,7 @@ export default function Register() {
                                         }}
                                         aria-invalid={isInvalidField("email")}
                                     />
-                                    <FieldError
-                                        error={errors}
-                                        field={"email"}
-                                    />
+                                    <FieldErrorV2 error={errors?.email} />
                                 </Field>
                                 <Field
                                     data-invalid={isInvalidField("password")}
@@ -182,10 +173,7 @@ export default function Register() {
                                             "password",
                                         )}
                                     />
-                                    <FieldError
-                                        error={errors}
-                                        field={"password"}
-                                    />
+                                    <FieldErrorV2 error={errors?.password} />
                                 </Field>
                                 <Field
                                     data-invalid={isInvalidField(
@@ -208,9 +196,8 @@ export default function Register() {
                                             "password_confirm",
                                         )}
                                     />
-                                    <FieldError
-                                        error={errors}
-                                        field={"password_confirm"}
+                                    <FieldErrorV2
+                                        error={errors?.password_confirm}
                                     />
                                 </Field>
                             </FieldGroup>

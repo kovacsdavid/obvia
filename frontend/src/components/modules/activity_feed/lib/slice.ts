@@ -21,63 +21,87 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as activityFeedApi from "@/components/modules/activity_feed/lib/service";
 import type { RootState } from "@/store";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { ApiResult } from "@/lib/api/types";
+import type {
+    CommentError,
+    DeleteCommentResponse,
+    PaginatedActivityFeedResponse,
+    PostCommentResponse,
+} from "./interface";
 
 type ActivityFeedState = object;
 
 const initialState: ActivityFeedState = {};
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedActivityFeedResponse>,
+    { resourceId: string; resourceType: string; silent?: boolean },
+    { state: RootState }
+>(
     "activity_feed/list",
     async (
-        {
-            resourceId,
-            resourceType,
-        }: {
-            resourceId: string;
-            resourceType: string;
-        },
-        { getState, dispatch },
+        { resourceId, resourceType, silent = false },
+        { getState, dispatch, signal },
     ) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await activityFeedApi.list(resourceId, resourceType, token);
+        const token = getState().auth.login.token;
+        const result = await activityFeedApi.list(
+            resourceId,
+            resourceType,
+            token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const postComment = createAsyncThunk(
+export const postComment = createAsyncThunk<
+    ApiResult<PostCommentResponse, CommentError>,
+    {
+        resourceId: string;
+        resourceType: string;
+        comment: string;
+        silent?: boolean;
+    },
+    { state: RootState }
+>(
     "activity_feed/post_comment",
     async (
-        {
-            resourceId,
-            resourceType,
-            comment,
-        }: {
-            resourceId: string;
-            resourceType: string;
-            comment: string;
-        },
-        { getState, dispatch },
+        { resourceId, resourceType, comment, silent = false },
+        { getState, dispatch, signal },
     ) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await activityFeedApi.post_comment(
+        const token = getState().auth.login.token;
+        const result = await activityFeedApi.post_comment(
             resourceId,
             resourceType,
             comment,
             token,
+            signal,
         );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteComment = createAsyncThunk(
+export const deleteComment = createAsyncThunk<
+    ApiResult<DeleteCommentResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "activity_feed/delete_comment",
-    async (uuid: string, { getState, dispatch }) => {
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
         await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await activityFeedApi.delete_comment(uuid, token);
+        const token = getState().auth.login.token;
+        const result = await activityFeedApi.delete_comment(
+            uuid,
+            token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

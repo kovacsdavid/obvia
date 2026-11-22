@@ -19,27 +19,20 @@
 
 import {
     isSelectOptionListResponse,
-    ProcessJsonResponse,
-    type ProcessedJsonResponse,
     type SelectOptionListResponse,
 } from "@/lib/interface";
-import { globalRequestTimeout, unexpectedError } from "@/services/utils/consts";
+import { apiRequest } from "@/lib/api/request";
+import type { ApiResult } from "@/lib/api/types";
 
 export async function select_list(
     list: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<SelectOptionListResponse>> {
-    return await fetch(`/api/address/select_list?list=${list}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<SelectOptionListResponse>> {
+    return apiRequest(`/api/address/select_list?list=${list}`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isSelectOptionListResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        guard: isSelectOptionListResponse,
     });
 }

@@ -20,8 +20,7 @@
 import React, { useState } from "react";
 import {
     Button,
-    FieldError,
-    GlobalError,
+    FieldErrorV2,
     GlobalSuccess,
     GlobalNotification,
     Input,
@@ -38,14 +37,22 @@ import {
     forgottenPassword,
     newPassword,
 } from "@/components/modules/auth/lib/slice.ts";
-import { useFormError } from "@/hooks/use_form_error";
 import { useParams } from "react-router";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type {
+    ForgottenPasswordFields,
+    NewPasswordFields,
+} from "@/components/modules/auth/lib/interface";
 
 export default function ForgottenPassword() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
-    const { errors, setErrors, unexpectedError } = useFormError();
+    const [forgottenErrors, setForgottenErrors] =
+        useState<ForgottenPasswordFields | null>(null);
+    const [newPasswordErrors, setNewPasswordErrors] =
+        useState<NewPasswordFields | null>(null);
     const [success, setSuccess] = useState<boolean | null>(null);
     const dispatch = useAppDispatch();
     const params = useParams();
@@ -62,20 +69,20 @@ export default function ForgottenPassword() {
                 }),
             );
             if (newPassword.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    setSuccess(true);
-                    setErrors(null);
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setSuccess(false);
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    setSuccess(false);
-                    unexpectedError();
-                }
+                const result = response.payload;
+                setSuccess(false);
+                setNewPasswordErrors(null);
+                handleApiResult(result, {
+                    onSuccess: () => {
+                        if (result.kind === "success" && result.status === 200)
+                            setSuccess(true);
+                    },
+                    onFieldErrors: setNewPasswordErrors,
+                });
             } else {
-                unexpectedError();
+                setSuccess(false);
+                if (!response.meta.aborted)
+                    notifyApiError({ kind: "network_error", offline: false });
             }
         }
     };
@@ -89,20 +96,20 @@ export default function ForgottenPassword() {
             }),
         );
         if (forgottenPassword.fulfilled.match(response)) {
-            if (response.payload.statusCode === 200) {
-                setSuccess(true);
-                setErrors(null);
-            } else if (
-                typeof response.payload.jsonData?.error !== "undefined"
-            ) {
-                setSuccess(false);
-                setErrors(response.payload.jsonData.error);
-            } else {
-                setSuccess(false);
-                unexpectedError();
-            }
+            const result = response.payload;
+            setSuccess(false);
+            setForgottenErrors(null);
+            handleApiResult(result, {
+                onSuccess: () => {
+                    if (result.kind === "success" && result.status === 200)
+                        setSuccess(true);
+                },
+                onFieldErrors: setForgottenErrors,
+            });
         } else {
-            unexpectedError();
+            setSuccess(false);
+            if (!response.meta.aborted)
+                notifyApiError({ kind: "network_error", offline: false });
         }
     };
 
@@ -116,9 +123,7 @@ export default function ForgottenPassword() {
                                 "A jelszó megváltoztatása sikeresen megtörtént.",
                         }}
                     />
-                ) : (
-                    <GlobalError error={errors} />
-                )}
+                ) : null}
                 <Card className={"max-w-lg mx-auto"}>
                     <CardHeader>
                         <CardTitle>Add meg az új jelszót!</CardTitle>
@@ -130,15 +135,24 @@ export default function ForgottenPassword() {
                             className="space-y-4"
                             autoComplete={"off"}
                         >
+                            <FieldErrorV2 error={newPasswordErrors?.token} />
                             <Label htmlFor="password">Jelszó</Label>
                             <Input
                                 id="password"
                                 type="password"
                                 autoComplete="new-password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => {
+                                    setNewPasswordErrors((previous) =>
+                                        previous
+                                            ? { ...previous, password: null }
+                                            : null,
+                                    );
+                                    setPassword(e.target.value);
+                                }}
+                                aria-invalid={!!newPasswordErrors?.password}
                             />
-                            <FieldError error={errors} field={"password"} />
+                            <FieldErrorV2 error={newPasswordErrors?.password} />
                             <Label htmlFor="password_confirm">
                                 Jelszó megerősítése
                             </Label>
@@ -147,13 +161,23 @@ export default function ForgottenPassword() {
                                 type="password"
                                 autoComplete="new-password"
                                 value={passwordConfirm}
-                                onChange={(e) =>
-                                    setPasswordConfirm(e.target.value)
+                                onChange={(e) => {
+                                    setNewPasswordErrors((previous) =>
+                                        previous
+                                            ? {
+                                                  ...previous,
+                                                  password_confirm: null,
+                                              }
+                                            : null,
+                                    );
+                                    setPasswordConfirm(e.target.value);
+                                }}
+                                aria-invalid={
+                                    !!newPasswordErrors?.password_confirm
                                 }
                             />
-                            <FieldError
-                                error={errors}
-                                field={"password_confirm"}
+                            <FieldErrorV2
+                                error={newPasswordErrors?.password_confirm}
                             />
                             <Button type="submit">
                                 Jelszó megváltoztatása
@@ -173,9 +197,7 @@ export default function ForgottenPassword() {
                                 "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
                         }}
                     />
-                ) : (
-                    <GlobalError error={errors} />
-                )}
+                ) : null}
                 <Card className={"max-w-lg mx-auto"}>
                     <CardHeader>
                         <CardTitle>Elfelejtett jelszó</CardTitle>
@@ -193,9 +215,17 @@ export default function ForgottenPassword() {
                                 type="text"
                                 autoComplete="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => {
+                                    setForgottenErrors((previous) =>
+                                        previous
+                                            ? { ...previous, email: null }
+                                            : null,
+                                    );
+                                    setEmail(e.target.value);
+                                }}
+                                aria-invalid={!!forgottenErrors?.email}
                             />
-                            <FieldError error={errors} field={"email"} />
+                            <FieldErrorV2 error={forgottenErrors?.email} />
                             <Button type="submit">Küldés</Button>
                         </form>
                     </CardContent>

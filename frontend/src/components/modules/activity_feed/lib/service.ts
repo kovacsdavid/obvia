@@ -17,16 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type ProcessedJsonResponse,
-    ProcessJsonResponse,
-} from "@/lib/interface.ts";
-import {
-    globalRequestTimeout,
-    unexpectedError,
-    unexpectedFormError,
-} from "@/services/utils/consts.ts";
+import { apiRequest } from "@/lib/api/request";
+import type { ApiResult } from "@/lib/api/types";
 import type {
+    CommentError,
     DeleteCommentResponse,
     PaginatedActivityFeedResponse,
     PostCommentResponse,
@@ -35,28 +29,24 @@ import {
     isPaginatedActivityFeedResponse,
     isPostCommentResponse,
     isDeleteCommentResponse,
+    isCommentError,
 } from "./guards";
 
 export async function list(
     resourceId: string,
     resourceType: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<PaginatedActivityFeedResponse>> {
-    const uri = `/api/activity_feed/list?resource_id=${resourceId}&resource_type=${resourceType}`;
-    return await fetch(uri, {
+    signal?: AbortSignal,
+): Promise<ApiResult<PaginatedActivityFeedResponse>> {
+    const query = new URLSearchParams({
+        resource_id: resourceId,
+        resource_type: resourceType,
+    });
+    return apiRequest(`/api/activity_feed/list?${query}`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(
-                response,
-                isPaginatedActivityFeedResponse,
-            )) ?? unexpectedError
-        );
+        token,
+        signal,
+        guard: isPaginatedActivityFeedResponse,
     });
 }
 
@@ -65,42 +55,32 @@ export async function post_comment(
     resourceType: string,
     comment: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<PostCommentResponse>> {
-    return await fetch(`/api/comments/post`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<PostCommentResponse, CommentError>> {
+    return apiRequest(`/api/comments/post`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-        body: JSON.stringify({
+        token,
+        signal,
+        guard: isPostCommentResponse,
+        formErrorGuard: isCommentError,
+        body: {
             commentable_id: resourceId,
             commentable_type: resourceType,
             comment,
-        }),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isPostCommentResponse)) ??
-            unexpectedFormError
-        );
+        },
     });
 }
 
 export async function delete_comment(
     uuid: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<DeleteCommentResponse>> {
-    return await fetch(`/api/comments/delete?uuid=${uuid}`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<DeleteCommentResponse>> {
+    const query = new URLSearchParams({ uuid });
+    return apiRequest(`/api/comments/delete?${query}`, {
         method: "DELETE",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isDeleteCommentResponse)) ??
-            unexpectedError
-        );
+        token,
+        signal,
+        guard: isDeleteCommentResponse,
     });
 }

@@ -23,7 +23,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::common::utils::generate_string_csprng;
 use crate::common::value_object::ValueObjectError;
 use crate::manager::tenants::TenantsModuleInterface;
@@ -57,10 +57,10 @@ pub enum TenantsServiceError {
     ValueObjectError(#[from] ValueObjectError),
 }
 
-impl From<ServiceError> for TenantsServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for TenantsServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => TenantsServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => TenantsServiceError::Unauthorized,
         }
     }
 }
@@ -105,7 +105,7 @@ pub trait TenantService {
     ) -> impl Future<Output = TenantsServiceResult<NewTokenResponse>> + Send;
 }
 
-impl<'a, T> TenantService for Service<'a, T>
+impl<'a, T> TenantService for BaseService<'a, T>
 where
     T: TenantsModuleInterface,
 {

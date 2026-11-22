@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilde
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::user_input::{TaskUserInput, TaskUserInputHelper};
@@ -45,7 +45,7 @@ pub async fn get_resolved<M: TasksModule>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), tasks_module.clone());
     let result = map_handler_err(
         service.get_resolved(payload.uuid).await,
         tasks_module.clone(),
@@ -69,7 +69,7 @@ pub async fn get<M: TasksModule>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), tasks_module.clone());
     let result = map_handler_err(service.get(payload.uuid).await, tasks_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -89,7 +89,7 @@ pub async fn update<M: TasksModule>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), tasks_module.clone());
     let result = map_handler_err(service.update(&user_input).await, tasks_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -109,7 +109,7 @@ pub async fn delete<M: TasksModule>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), tasks_module.clone());
     map_handler_err(service.delete(payload.uuid).await, tasks_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -131,7 +131,7 @@ pub async fn create<M: TasksModule>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), tasks_module.clone());
     let result = map_handler_err(service.insert(&user_input).await, tasks_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -154,7 +154,7 @@ pub async fn select_list<M: TasksModule>(
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), tasks_module.clone());
     let list_type = payload
         .get("list")
         .cloned()
@@ -183,7 +183,7 @@ pub async fn list<M: TasksModule>(
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), tasks_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<TaskOrderBy, TaskFilterBy>::from_str(payload.q()),
         tasks_module.clone(),
@@ -213,7 +213,7 @@ pub async fn print<M: TasksModule>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), tasks_module.clone());
     let pdf = map_handler_err(service.print(payload.uuid).await, tasks_module).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

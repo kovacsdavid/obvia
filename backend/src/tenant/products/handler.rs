@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilde
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::products::ProductsModuleInterface;
 use crate::tenant::products::dto::print::ProductsResolvedPrint;
@@ -46,7 +46,7 @@ pub async fn get_resolved<M: ProductsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), products_module.clone());
     let result = map_handler_err(
         service.get_resolved(payload.uuid).await,
         products_module.clone(),
@@ -70,7 +70,7 @@ pub async fn get<M: ProductsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), products_module.clone());
     let result = map_handler_err(service.get(payload.uuid).await, products_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -93,7 +93,7 @@ pub async fn update<M: ProductsModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), products_module.clone());
     let result =
         map_handler_err(service.update(&user_input).await, products_module.clone()).await?;
     Ok(map_handler_err(
@@ -117,7 +117,7 @@ pub async fn delete<M: ProductsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), products_module.clone());
     map_handler_err(service.delete(payload.uuid).await, products_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -142,7 +142,7 @@ pub async fn create<M: ProductsModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), products_module.clone());
     let result =
         map_handler_err(service.insert(&user_input).await, products_module.clone()).await?;
     Ok(map_handler_err(
@@ -163,7 +163,7 @@ pub async fn list<M: ProductsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), products_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<ProductOrderBy, ProductFilterBy>::from_str(payload.q()),
         products_module.clone(),
@@ -196,7 +196,7 @@ pub async fn select_list<M: ProductsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), products_module.clone());
     let list_type = payload
         .get("list")
         .cloned()
@@ -229,7 +229,7 @@ pub async fn print<M: ProductsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), products_module.clone());
     let product_resolved_print = ProductsResolvedPrint::new(
         map_handler_err(
             service.get_resolved(payload.uuid).await,

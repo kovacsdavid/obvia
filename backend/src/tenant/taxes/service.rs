@@ -25,7 +25,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::tenant::taxes::TaxesModuleInterface;
 use crate::tenant::taxes::dto::print::TaxResolvedPrint;
 use crate::tenant::taxes::dto::user_input::TaxUserInput;
@@ -71,10 +71,10 @@ pub enum TaxesServiceError {
     IOError(#[from] std::io::Error),
 }
 
-impl From<ServiceError> for TaxesServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for TaxesServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => TaxesServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => TaxesServiceError::Unauthorized,
         }
     }
 }
@@ -168,7 +168,7 @@ pub trait TaxService {
     fn print_snapshot(&self, path: &Path) -> impl Future<Output = TaxesServiceResult<()>> + Sync;
 }
 
-impl<'a, T> TaxService for Service<'a, T>
+impl<'a, T> TaxService for BaseService<'a, T>
 where
     T: TaxesModuleInterface,
 {

@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput, ValidJson};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModuleInterface;
 use crate::manager::tenants::dto::{
@@ -47,7 +47,7 @@ pub async fn create<M: TenantsModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tenants_module.clone());
+    let service = BaseService::new(Some(&claims), tenants_module.clone());
     let result = map_handler_err(
         service.create_managed(&user_input).await,
         tenants_module.clone(),
@@ -92,7 +92,7 @@ pub async fn list<M: TenantsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tenants_module.clone());
+    let service = BaseService::new(Some(&claims), tenants_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.q()),
         tenants_module.clone(),
@@ -126,7 +126,7 @@ pub async fn activate<M: TenantsModuleInterface>(
     _client_context: ClientContext,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tenants_module.clone());
+    let service = BaseService::new(Some(&claims), tenants_module.clone());
     let result = map_handler_err(service.activate(&payload).await, tenants_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -149,7 +149,7 @@ pub async fn delete<M: TenantsModuleInterface>(
     _client_context: ClientContext,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), tenants_module.clone());
+    let service = BaseService::new(Some(&claims), tenants_module.clone());
     let result =
         map_handler_err(service.delete(payload.uuid).await, tenants_module.clone()).await?;
     Ok(map_handler_err(

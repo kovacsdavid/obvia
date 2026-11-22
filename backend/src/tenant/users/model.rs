@@ -19,11 +19,12 @@
 
 use crate::manager::users::model::User as ManagerUser;
 use chrono::{DateTime, Utc};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, PartialEq, Builder)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
@@ -57,5 +58,34 @@ impl From<ManagerUser> for User {
             updated_at: value.updated_at,
             deleted_at: value.deleted_at,
         }
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+
+    use crate::common::TEST_TIME;
+
+    use super::*;
+
+    pub fn test_user_builder() -> UserBuilder {
+        let mut builder = UserBuilder::default();
+
+        builder
+            .id(Uuid::now_v7())
+            .email("test_user@example.com".to_string())
+            .first_name(Some("User".to_string()))
+            .last_name(Some("Test".to_string()))
+            .phone(Some("+36301234567".to_string()))
+            .status("active".to_string())
+            .profile_picture_url(None)
+            .locale("hu-HU".to_string())
+            .invited_by(None)
+            .email_verified_at(Some(*TEST_TIME))
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None);
+
+        builder
     }
 }

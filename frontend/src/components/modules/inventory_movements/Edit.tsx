@@ -277,6 +277,7 @@ export default function Edit({
                     <DialogTitle>Raktárkészlet létrehozása</DialogTitle>
                     <InventoryEdit
                         showCard={false}
+                        createOnly
                         onSuccess={handleEditInventorySuccess}
                         onCancel={() => setOpenNewInventoryDialog(false)}
                     />

@@ -21,7 +21,7 @@ use super::UsersModuleInterface;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::extractors::ClientContext;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::common::value_object::ValueObjectError;
 use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
@@ -55,10 +55,10 @@ pub enum UsersServiceError {
     Unauthorized,
 }
 
-impl From<ServiceError> for UsersServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for UsersServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => UsersServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => UsersServiceError::Unauthorized,
         }
     }
 }
@@ -103,7 +103,7 @@ pub trait UserService {
     ) -> impl Future<Output = UsersServiceResult<()>> + Send;
 }
 
-impl<'a, T> UserService for Service<'a, T>
+impl<'a, T> UserService for BaseService<'a, T>
 where
     T: UsersModuleInterface,
 {

@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilde
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::warehouses::WarehousesModuleInterface;
 use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
@@ -45,7 +45,7 @@ pub async fn get_resolved<M: WarehousesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), warehouses_module.clone());
     let result = map_handler_err(
         service.get_resolved(payload.uuid).await,
         warehouses_module.clone(),
@@ -72,7 +72,7 @@ pub async fn get<M: WarehousesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), warehouses_module.clone());
     let result =
         map_handler_err(service.get(payload.uuid).await, warehouses_module.clone()).await?;
     Ok(map_handler_err(
@@ -96,7 +96,7 @@ pub async fn update<M: WarehousesModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), warehouses_module.clone());
     let result =
         map_handler_err(service.update(&user_input).await, warehouses_module.clone()).await?;
     Ok(map_handler_err(
@@ -120,7 +120,7 @@ pub async fn delete<M: WarehousesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), warehouses_module.clone());
     map_handler_err(
         service.delete(payload.uuid).await,
         warehouses_module.clone(),
@@ -149,7 +149,7 @@ pub async fn create<M: WarehousesModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), warehouses_module.clone());
     let result =
         map_handler_err(service.insert(&user_input).await, warehouses_module.clone()).await?;
     Ok(map_handler_err(
@@ -173,7 +173,7 @@ pub async fn list<M: WarehousesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), warehouses_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<WarehouseOrderBy, WarehouseFilterBy>::from_str(payload.q()),
         warehouses_module.clone(),
@@ -207,7 +207,7 @@ pub async fn print<M: WarehousesModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), warehouses_module.clone());
     let warehouse_resolved_print = WarehouseResolvedPrint::new(
         map_handler_err(
             service.get_resolved(payload.uuid).await,

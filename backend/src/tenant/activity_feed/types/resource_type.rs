@@ -45,7 +45,8 @@ impl ValueObjectData for ResourceType {
             | "inventory_reservations"
             | "services"
             | "tasks"
-            | "worksheets" => Ok(()),
+            | "worksheets"
+            | "handover_and_acceptance" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás erőforrás típus")),
         }
     }

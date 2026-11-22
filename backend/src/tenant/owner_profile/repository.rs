@@ -59,15 +59,11 @@ impl OwnerProfileRepository for PgPool {
             address_ids.push(mailing_address);
         }
 
-        let mut addresses = if !address_ids.is_empty() {
-            let mut map = HashMap::new();
-            for address in get_resolved_addresses_by_ids(self, address_ids).await? {
-                map.insert(address.id, address);
-            }
-            map
-        } else {
-            HashMap::new()
-        };
+        let mut addresses = get_resolved_addresses_by_ids(self, &address_ids)
+            .await?
+            .into_iter()
+            .map(|v| (v.id, v))
+            .collect::<HashMap<_, _>>();
 
         Ok(
             match (

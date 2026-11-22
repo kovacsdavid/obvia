@@ -25,7 +25,7 @@ use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{BaseService, BaseServiceError};
 use crate::tenant::customers::CustomersModuleInterface;
 use crate::tenant::customers::dto::print::{CustomerFullPrint, test_customer_full_print_builder};
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
@@ -72,10 +72,10 @@ pub enum CustomersServiceError {
     UuidError(#[from] uuid::Error),
 }
 
-impl From<ServiceError> for CustomersServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for CustomersServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => CustomersServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => CustomersServiceError::Unauthorized,
         }
     }
 }
@@ -154,7 +154,7 @@ pub trait CustomerService {
     ) -> impl Future<Output = CustomersServiceResult<()>> + Sync;
 }
 
-impl<'a, T> CustomerService for Service<'a, T>
+impl<'a, T> CustomerService for BaseService<'a, T>
 where
     T: CustomersModuleInterface,
 {
@@ -242,7 +242,7 @@ where
         for address in self
             .module()
             .address_repo(self.active_tenant()?)?
-            .get_resolved_by_ids(address_ids)
+            .get_resolved_by_ids(&address_ids)
             .await?
         {
             addresses.insert(address.id, address);

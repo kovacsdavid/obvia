@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilde
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
-use crate::common::service::Service;
+use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::worksheets::WorksheetsModuleInterface;
 use crate::tenant::worksheets::dto::user_input::{WorksheetUserInput, WorksheetUserInputHelper};
@@ -45,7 +45,7 @@ pub async fn get_resolved<M: WorksheetsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), worksheets_module.clone());
+    let service = BaseService::new(Some(&claims), worksheets_module.clone());
     let result = map_handler_err(
         service.get_resolved(payload.uuid).await,
         worksheets_module.clone(),
@@ -72,7 +72,7 @@ pub async fn get<M: WorksheetsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), worksheets_module.clone());
+    let service = BaseService::new(Some(&claims), worksheets_module.clone());
     let result =
         map_handler_err(service.get(payload.uuid).await, worksheets_module.clone()).await?;
     Ok(map_handler_err(
@@ -96,7 +96,7 @@ pub async fn update<M: WorksheetsModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), worksheets_module.clone());
+    let service = BaseService::new(Some(&claims), worksheets_module.clone());
     let result =
         map_handler_err(service.update(&user_input).await, worksheets_module.clone()).await?;
     Ok(map_handler_err(
@@ -120,7 +120,7 @@ pub async fn delete<M: WorksheetsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), worksheets_module.clone());
+    let service = BaseService::new(Some(&claims), worksheets_module.clone());
     map_handler_err(
         service.delete(payload.uuid).await,
         worksheets_module.clone(),
@@ -149,7 +149,7 @@ pub async fn create<M: WorksheetsModuleInterface>(
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), worksheets_module.clone());
+    let service = BaseService::new(Some(&claims), worksheets_module.clone());
     let result =
         map_handler_err(service.insert(&user_input).await, worksheets_module.clone()).await?;
     Ok(map_handler_err(
@@ -173,7 +173,7 @@ pub async fn select_list<M: WorksheetsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), worksheets_module.clone());
+    let service = BaseService::new(Some(&claims), worksheets_module.clone());
     let list_type = payload
         .get("list")
         .cloned()
@@ -205,7 +205,7 @@ pub async fn list<M: WorksheetsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), worksheets_module.clone());
+    let service = BaseService::new(Some(&claims), worksheets_module.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<WorksheetOrderBy, WorksheetFilterBy>::from_str(payload.q()),
         worksheets_module.clone(),
@@ -238,7 +238,7 @@ pub async fn print<M: WorksheetsModuleInterface>(
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = Service::new(Some(&claims), worksheets_module.clone());
+    let service = BaseService::new(Some(&claims), worksheets_module.clone());
     let pdf = map_handler_err(service.print(payload.uuid).await, worksheets_module).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

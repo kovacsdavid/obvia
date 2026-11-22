@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ */
 
 use std::str::FromStr;
 
@@ -26,7 +26,7 @@ use crate::{
             v2::{AppError, AppErrorVisibility},
         },
         model::SelectOption,
-        service::{Service, ServiceError},
+        service::{BaseService, BaseServiceError},
     },
     tenant::address::AddressModuleInterface,
 };
@@ -47,10 +47,10 @@ pub enum AddressServiceError {
     InvalidSelectList,
 }
 
-impl From<ServiceError> for AddressServiceError {
-    fn from(value: ServiceError) -> Self {
+impl From<BaseServiceError> for AddressServiceError {
+    fn from(value: BaseServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => AddressServiceError::Unauthorized,
+            BaseServiceError::Unauthorized => AddressServiceError::Unauthorized,
         }
     }
 }
@@ -104,7 +104,7 @@ pub trait AddressService {
     ) -> impl Future<Output = AddressServiceResult<Vec<SelectOption>>> + Send;
 }
 
-impl<'a, T> AddressService for Service<'a, T>
+impl<'a, T> AddressService for BaseService<'a, T>
 where
     T: AddressModuleInterface,
 {

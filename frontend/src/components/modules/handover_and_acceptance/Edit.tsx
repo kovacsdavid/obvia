@@ -459,6 +459,9 @@ export default function Edit({
                                         <SelectValue placeholder="Nincs megadva" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="">
+                                            Nincs megadva
+                                        </SelectItem>
                                         {itemMakesList.map((make) => (
                                             <SelectItem
                                                 key={make.value}
@@ -523,6 +526,9 @@ export default function Edit({
                                         <SelectValue placeholder="Nincs megadva" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="">
+                                            Nincs megadva
+                                        </SelectItem>
                                         {itemModelsList.map((model) => (
                                             <SelectItem
                                                 key={model.value}

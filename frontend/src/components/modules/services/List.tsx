@@ -22,7 +22,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
-import { Button, GlobalError, Input, Label } from "@/components/ui";
+import { Button, Input, Label } from "@/components/ui";
 import {
     Eye,
     Funnel,
@@ -73,15 +73,14 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card.tsx";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use_auth";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 
 export default function List() {
     const dispatch = useAppDispatch();
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<ServiceResolvedList>([]);
     const { claims } = useAuth();
 
@@ -102,71 +101,52 @@ export default function List() {
     } = useDataDisplayCommon(null);
 
     const refresh = useCallback(() => {
-        dispatch(list(rawQuery)).then(async (response) => {
-            if (list.fulfilled.match(response)) {
-                if (
-                    response.payload.statusCode === 200 &&
-                    typeof response.payload.jsonData?.data !== "undefined" &&
-                    typeof response.payload.jsonData?.meta !== "undefined"
-                ) {
-                    setPage(response.payload.jsonData.meta.page);
-                    setLimit(response.payload.jsonData.meta.limit);
-                    setTotal(response.payload.jsonData.meta.total);
-                    setData(response.payload.jsonData.data);
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
-        });
-    }, [
-        dispatch,
-        rawQuery,
-        setLimit,
-        setPage,
-        setTotal,
-        setErrors,
-        unexpectedError,
-    ]);
+        dispatch(list({ query: rawQuery }))
+            .unwrap()
+            .then((result) => {
+                handleApiResult(result, {
+                    onSuccess: ({ meta, data }) => {
+                        if (typeof meta !== "undefined") {
+                            setPage(meta.page);
+                            setLimit(meta.limit);
+                            setTotal(meta.total);
+                        }
+                        if (typeof data !== "undefined") {
+                            setData(data);
+                        }
+                    },
+                });
+            })
+            .catch(() => undefined);
+    }, [dispatch, rawQuery, setLimit, setPage, setTotal]);
 
     const handleDelete = (id: string) => {
-        dispatch(deleteItem(id)).then(async (response) => {
-            if (deleteItem.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    refresh();
-                }
-            }
-        });
+        dispatch(deleteItem({ uuid: id }))
+            .unwrap()
+            .then((result) => {
+                handleApiResult(result, { onSuccess: refresh });
+            })
+            .catch(() => undefined);
     };
 
-    const handlePrint = (id: string) => {
+    const handlePrint = async (id: string) => {
         const handler = openPopup();
 
         if (!handler) {
             return;
         }
 
-        dispatch(print(id)).then((response: unknown) => {
-            if (!print.fulfilled.match(response)) {
+        try {
+            const result = await dispatch(print({ uuid: id })).unwrap();
+            if (result.kind !== "success" || result.data === null) {
                 handler.close();
                 return;
             }
 
-            if (
-                response.payload.statusCode !== 200 ||
-                !response.payload?.data
-            ) {
-                handler.close();
-                return;
-            }
-
-            updateWindowWithPdfData(handler, response.payload.data);
-        });
+            updateWindowWithPdfData(handler, result.data);
+        } catch {
+            handler.close();
+        }
     };
 
     useEffect(() => {
@@ -175,7 +155,6 @@ export default function List() {
 
     return (
         <>
-            <GlobalError error={errors} />
             <Card>
                 <CardHeader>
                     <CardTitle>Szolgáltatások</CardTitle>

@@ -107,7 +107,10 @@ beforeEach(() => {
                           due_date: null,
                       }
                     : [];
-        if (action.kind.startsWith("task/")) {
+        if (
+            action.kind.startsWith("task/") ||
+            action.kind.startsWith("service/")
+        ) {
             return {
                 unwrap: async () => ({ kind: "success", data: { data } }),
             };
@@ -247,7 +250,7 @@ describe.each([
         await waitFor(() =>
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: `${label}/update`,
-                payload: label === "task" ? { input } : input,
+                payload: { input },
             }),
         );
     });

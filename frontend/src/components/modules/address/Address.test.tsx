@@ -18,6 +18,7 @@
  */
 
 import {
+    act,
     cleanup,
     fireEvent,
     render,
@@ -189,7 +190,7 @@ describe("Address", () => {
         await waitFor(() => expect(mocks.dispatch).toHaveBeenCalled());
     });
 
-    it("does not reload when the parent replaces its error callback", async () => {
+    it("keeps loading errors local and clears them after a retry", async () => {
         let resolveList: (result: unknown) => void = () => {};
         mocks.dispatch.mockReturnValueOnce({
             unwrap: () =>
@@ -218,13 +219,58 @@ describe("Address", () => {
             status: 400,
             body: { error: { message: "Country list error" } },
         });
-        await waitFor(() =>
-            expect(latestSetter).toHaveBeenCalledWith(
-                "Country list error",
-                "country_code",
-            ),
-        );
+        expect(
+            await screen.findByText("Country list error"),
+        ).toBeInTheDocument();
         expect(firstSetter).not.toHaveBeenCalled();
+        expect(latestSetter).not.toHaveBeenCalled();
         expect(mocks.dispatch).toHaveBeenCalledOnce();
+        fireEvent.click(
+            screen.getByRole("button", { name: "Lista betöltése újra!" }),
+        );
+        await screen.findByRole("button", { name: "Select US" });
+        expect(
+            screen.queryByText("Country list error"),
+        ).not.toBeInTheDocument();
+        expect(screen.getByLabelText("Ország")).toHaveAttribute(
+            "aria-invalid",
+            "false",
+        );
+        expect(latestSetter).not.toHaveBeenCalled();
+        expect(mocks.dispatch).toHaveBeenCalledTimes(2);
+    });
+
+    it("preserves parent country validation errors when a list retry succeeds", async () => {
+        mocks.dispatch.mockReturnValueOnce({
+            unwrap: () =>
+                Promise.resolve({
+                    kind: "http_error",
+                    status: 400,
+                    body: { error: { message: "Country list error" } },
+                }),
+        });
+        const setErrors = vi.fn();
+        render(
+            <Address
+                value={address}
+                onChange={vi.fn()}
+                errors={{ ...address, country_code: "Invalid country" }}
+                setErrors={setErrors}
+            />,
+        );
+        await act(async () => {});
+        expect(mocks.dispatch).toHaveBeenCalledOnce();
+        expect(setErrors).not.toHaveBeenCalled();
+        expect(screen.getByText("Invalid country")).toBeInTheDocument();
+        fireEvent.click(
+            screen.getByRole("button", { name: "Lista betöltése újra!" }),
+        );
+        await screen.findByRole("button", { name: "Select US" });
+        expect(screen.getByText("Invalid country")).toBeInTheDocument();
+        expect(screen.getByLabelText("Ország")).toHaveAttribute(
+            "aria-invalid",
+            "true",
+        );
+        expect(setErrors).not.toHaveBeenCalled();
     });
 });

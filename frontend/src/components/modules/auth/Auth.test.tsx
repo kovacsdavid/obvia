@@ -208,11 +208,12 @@ describe("auth screens", () => {
         fireEvent.click(
             screen.getByRole("button", { name: "Jelszó megváltoztatása" }),
         );
-        expect(
-            await screen.findByText(
-                "A jelszó megváltoztatása sikeresen megtörtént.",
-            ),
-        ).toBeInTheDocument();
+        await waitFor(() =>
+            expect(toast.add).toHaveBeenCalledWith({
+                type: "success",
+                title: "A jelszó megváltoztatása sikeresen megtörtént.",
+            }),
+        );
     });
 
     it("shows forgotten password success", async () => {
@@ -225,11 +226,12 @@ describe("auth screens", () => {
             target: { value: "user@example.com" },
         });
         fireEvent.click(screen.getByRole("button", { name: "Küldés" }));
-        expect(
-            await screen.findByText(
-                "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
-            ),
-        ).toBeInTheDocument();
+        await waitFor(() =>
+            expect(toast.add).toHaveBeenCalledWith({
+                type: "success",
+                title: "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
+            }),
+        );
     });
 
     it("shows verification failure for malformed success data", async () => {

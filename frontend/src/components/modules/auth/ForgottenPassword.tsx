@@ -21,7 +21,6 @@ import React, { useState } from "react";
 import {
     Button,
     FieldErrorV2,
-    GlobalSuccess,
     GlobalNotification,
     Input,
     Label,
@@ -40,6 +39,7 @@ import {
 import { useParams } from "react-router";
 import { handleApiResult } from "@/lib/api/handleApiResult";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import { toast } from "@/components/ui/toast-lib";
 import type {
     ForgottenPasswordFields,
     NewPasswordFields,
@@ -53,7 +53,6 @@ export default function ForgottenPassword() {
         useState<ForgottenPasswordFields | null>(null);
     const [newPasswordErrors, setNewPasswordErrors] =
         useState<NewPasswordFields | null>(null);
-    const [success, setSuccess] = useState<boolean | null>(null);
     const dispatch = useAppDispatch();
     const params = useParams();
 
@@ -70,17 +69,22 @@ export default function ForgottenPassword() {
             );
             if (newPassword.fulfilled.match(response)) {
                 const result = response.payload;
-                setSuccess(false);
                 setNewPasswordErrors(null);
                 handleApiResult(result, {
                     onSuccess: () => {
-                        if (result.kind === "success" && result.status === 200)
-                            setSuccess(true);
+                        if (
+                            result.kind === "success" &&
+                            result.status === 200
+                        ) {
+                            toast.add({
+                                type: "success",
+                                title: "A jelszó megváltoztatása sikeresen megtörtént.",
+                            });
+                        }
                     },
                     onFieldErrors: setNewPasswordErrors,
                 });
             } else {
-                setSuccess(false);
                 if (!response.meta.aborted)
                     notifyApiError({ kind: "network_error", offline: false });
             }
@@ -97,17 +101,19 @@ export default function ForgottenPassword() {
         );
         if (forgottenPassword.fulfilled.match(response)) {
             const result = response.payload;
-            setSuccess(false);
             setForgottenErrors(null);
             handleApiResult(result, {
                 onSuccess: () => {
-                    if (result.kind === "success" && result.status === 200)
-                        setSuccess(true);
+                    if (result.kind === "success" && result.status === 200) {
+                        toast.add({
+                            type: "success",
+                            title: "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
+                        });
+                    }
                 },
                 onFieldErrors: setForgottenErrors,
             });
         } else {
-            setSuccess(false);
             if (!response.meta.aborted)
                 notifyApiError({ kind: "network_error", offline: false });
         }
@@ -116,14 +122,6 @@ export default function ForgottenPassword() {
     if (typeof params["id"] === "string" && params["id"].length === 36) {
         return (
             <>
-                {success ? (
-                    <GlobalSuccess
-                        success={{
-                            message:
-                                "A jelszó megváltoztatása sikeresen megtörtént.",
-                        }}
-                    />
-                ) : null}
                 <Card className={"max-w-lg mx-auto"}>
                     <CardHeader>
                         <CardTitle>Add meg az új jelszót!</CardTitle>
@@ -190,14 +188,6 @@ export default function ForgottenPassword() {
     } else {
         return (
             <>
-                {success ? (
-                    <GlobalSuccess
-                        success={{
-                            message:
-                                "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
-                        }}
-                    />
-                ) : null}
                 <Card className={"max-w-lg mx-auto"}>
                     <CardHeader>
                         <CardTitle>Elfelejtett jelszó</CardTitle>

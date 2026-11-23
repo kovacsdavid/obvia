@@ -24,3 +24,7 @@ export interface CreateUser {
     phone: string;
     status: string;
 }
+
+export type OtpFields = {
+    otp: string | null;
+};

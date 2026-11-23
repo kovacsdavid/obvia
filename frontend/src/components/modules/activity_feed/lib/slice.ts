@@ -20,64 +20,106 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as activityFeedApi from "@/components/modules/activity_feed/lib/service";
 import type { RootState } from "@/store";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { ApiResult } from "@/lib/api/types";
+import type {
+    CommentError,
+    DeleteCommentResponse,
+    PaginatedActivityFeedResponse,
+    PostCommentResponse,
+} from "./interface";
 
 type ActivityFeedState = object;
 
 const initialState: ActivityFeedState = {};
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedActivityFeedResponse>,
+    { resourceId: string; resourceType: string; silent?: boolean },
+    { state: RootState }
+>(
     "activity_feed/list",
     async (
-        {
+        { resourceId, resourceType, silent = false },
+        { getState, dispatch, signal },
+    ) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const token = getState().auth.login.token;
+        const result = await activityFeedApi.list(
             resourceId,
             resourceType,
-        }: {
-            resourceId: string;
-            resourceType: string;
-        },
-        { getState, dispatch },
-    ) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await activityFeedApi.list(resourceId, resourceType, token);
+            token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const postComment = createAsyncThunk(
+export const postComment = createAsyncThunk<
+    ApiResult<PostCommentResponse, CommentError>,
+    {
+        resourceId: string;
+        resourceType: string;
+        comment: string;
+        silent?: boolean;
+    },
+    { state: RootState }
+>(
     "activity_feed/post_comment",
     async (
-        {
-            resourceId,
-            resourceType,
-            comment,
-        }: {
-            resourceId: string;
-            resourceType: string;
-            comment: string;
-        },
-        { getState, dispatch },
+        { resourceId, resourceType, comment, silent = false },
+        { getState, dispatch, signal },
     ) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await activityFeedApi.post_comment(
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const token = getState().auth.login.token;
+        const result = await activityFeedApi.post_comment(
             resourceId,
             resourceType,
             comment,
             token,
+            signal,
         );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteComment = createAsyncThunk(
+export const deleteComment = createAsyncThunk<
+    ApiResult<DeleteCommentResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "activity_feed/delete_comment",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await activityFeedApi.delete_comment(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const token = getState().auth.login.token;
+        const result = await activityFeedApi.delete_comment(
+            uuid,
+            token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

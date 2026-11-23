@@ -20,8 +20,20 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as databasesApi from "@/components/modules/databases/lib/service.ts";
 import type { RootState } from "@/store";
-import type { CreateDatabase } from "@/components/modules/databases/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type {
+    ActiveDatabaseResponse,
+    CreateDatabase,
+    CreateDatabaseResponse,
+    DatabaseError,
+    DatabaseResponse,
+    PaginatedDatabaseListResponse,
+} from "@/components/modules/databases/lib/interface.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
 interface DatabasesState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,53 +43,118 @@ const initialState: DatabasesState = {
     status: "idle",
 };
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<CreateDatabaseResponse, DatabaseError>,
+    { input: CreateDatabase; silent?: boolean },
+    { state: RootState }
+>(
     "databases/create",
-    async (requestData: CreateDatabase, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await databasesApi.create(requestData, token);
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await databasesApi.create(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedDatabaseListResponse>,
+    { query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "databases/list",
-    async (query: string | null, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await databasesApi.list(query, token);
+    async ({ query, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await databasesApi.list(
+            query,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const activate = createAsyncThunk(
+export const activate = createAsyncThunk<
+    ApiResult<ActiveDatabaseResponse>,
+    { uuid: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "databases/activate",
-    async (new_tenant_id: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await databasesApi.activate(new_tenant_id, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await databasesApi.activate(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get = createAsyncThunk(
+export const get = createAsyncThunk<
+    ApiResult<DatabaseResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "databases/get",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await databasesApi.get_resolved(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await databasesApi.get_resolved(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteDatabase = createAsyncThunk(
+export const deleteDatabase = createAsyncThunk<
+    ApiResult<ActiveDatabaseResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "database/deleteDatabase",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await databasesApi.deleteDatabase(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await databasesApi.deleteDatabase(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

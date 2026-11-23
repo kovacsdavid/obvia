@@ -20,8 +20,22 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as warehousesApi from "@/components/modules/warehouses/lib/service.ts";
 import type { RootState } from "@/store";
-import type { WarehouseUserInput } from "@/components/modules/warehouses/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type {
+    CreateWarehouseResponse,
+    UpdateWarehouseResponse,
+    DeleteWarehouseResponse,
+    PaginatedWarehouseResolvedListResponse,
+    WarehouseResponse,
+    WarehouseResolvedResponse,
+    WarehouseUserInput,
+    WarehouseError,
+} from "@/components/modules/warehouses/lib/interface.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
 interface WarehousesState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,73 +45,164 @@ const initialState: WarehousesState = {
     status: "idle",
 };
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<CreateWarehouseResponse, WarehouseError>,
+    { input: WarehouseUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "warehouses/create",
-    async (requestData: WarehouseUserInput, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return warehousesApi.create(requestData, token);
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await warehousesApi.create(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedWarehouseResolvedListResponse>,
+    { query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "warehouses/list",
-    async (query: string | null, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return warehousesApi.list(query, token);
+    async ({ query, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await warehousesApi.list(
+            query,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get_resolved = createAsyncThunk(
+export const get_resolved = createAsyncThunk<
+    ApiResult<WarehouseResolvedResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "warehouses/get_resolved",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await warehousesApi.get_resolved(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await warehousesApi.get_resolved(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get = createAsyncThunk(
+export const get = createAsyncThunk<
+    ApiResult<WarehouseResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "warehouses/get",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await warehousesApi.get(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await warehousesApi.get(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const update = createAsyncThunk(
+export const update = createAsyncThunk<
+    ApiResult<UpdateWarehouseResponse, WarehouseError>,
+    { input: WarehouseUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "warehouses/update",
-    async (requestData: WarehouseUserInput, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await warehousesApi.update(requestData, token);
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await warehousesApi.update(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteItem = createAsyncThunk(
+export const deleteItem = createAsyncThunk<
+    ApiResult<DeleteWarehouseResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "warehouses/deleteItem",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await warehousesApi.deleteItem(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await warehousesApi.deleteItem(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const print = createAsyncThunk(
+export const print = createAsyncThunk<
+    ApiResult<Uint8Array<ArrayBuffer> | null>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "warehouses/print",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await warehousesApi.print(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await warehousesApi.print(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

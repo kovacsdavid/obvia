@@ -21,8 +21,14 @@ import { useAppDispatch } from "@/store/hooks";
 import React, { useEffect } from "react";
 import { useParams } from "react-router";
 import { verfiy_email } from "@/components/modules/auth/lib/slice";
-import { CheckCircle2Icon, CircleEllipsisIcon } from "lucide-react";
-import { Alert, AlertTitle, GlobalError } from "@/components/ui/alert";
+import {
+    AlertCircle,
+    CheckCircle2Icon,
+    CircleEllipsisIcon,
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
 export default function EmailVerification() {
     const params = useParams();
@@ -33,13 +39,24 @@ export default function EmailVerification() {
         if (typeof params["id"] === "string") {
             dispatch(verfiy_email(params["id"])).then(async (response) => {
                 if (verfiy_email.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setSuccess(true);
-                    } else {
-                        setSuccess(false);
-                    }
+                    const result = response.payload;
+                    setSuccess(false);
+                    handleApiResult(result, {
+                        onSuccess: () => {
+                            if (
+                                result.kind === "success" &&
+                                result.status === 200
+                            )
+                                setSuccess(true);
+                        },
+                    });
                 } else {
                     setSuccess(false);
+                    if (!response.meta.aborted)
+                        notifyApiError({
+                            kind: "network_error",
+                            offline: false,
+                        });
                 }
             });
         }
@@ -59,11 +76,12 @@ export default function EmailVerification() {
     } else if (success === false) {
         return (
             <>
-                <GlobalError
-                    error={{
-                        message: "Az e-mail cím megerősítése sikertelen.",
-                    }}
-                />
+                <Alert className="mb-5" variant="destructive">
+                    <AlertCircle />
+                    <AlertDescription>
+                        Az e-mail cím megerősítése sikertelen.
+                    </AlertDescription>
+                </Alert>
             </>
         );
     } else {

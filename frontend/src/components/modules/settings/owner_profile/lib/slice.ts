@@ -26,7 +26,10 @@ import type {
     OwnerProfileUserInput,
     UpdateOwnerProfileResponse,
 } from "@/components/modules/settings/owner_profile/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
 import type { ApiResult } from "@/lib/api/types";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
@@ -45,7 +48,12 @@ export const get_full = createAsyncThunk<
 >(
     "owner_profile/get_full",
     async ({ silent = false } = {}, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await ownerProfileApi.get_full(token, signal);
         if (!silent) notifyApiError(result);
@@ -60,7 +68,12 @@ export const update = createAsyncThunk<
 >(
     "owner_profile/update",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await ownerProfileApi.update(input, token, signal);
         if (!silent) notifyApiError(result);

@@ -39,7 +39,68 @@ import type {
     RegisterResponse,
     VerifyEmailResponse,
     VerifyOtpResponse,
+    RegisterFields,
+    ForgottenPasswordFields,
+    NewPasswordFields,
+    LoginFields,
 } from "@/components/modules/auth/lib/interface.ts";
+
+function hasNullableFields(data: unknown, fields: readonly string[]): boolean {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        fields.every((field) => {
+            const value = (data as Record<string, unknown>)[field];
+            return value === null || typeof value === "string";
+        })
+    );
+}
+
+export function isLoginFields(data: unknown): data is LoginFields {
+    if (typeof data !== "object" || data === null || Array.isArray(data))
+        return false;
+    const entries = Object.entries(data);
+    return (
+        entries.length > 0 &&
+        entries.every(
+            ([field, value]) =>
+                ["email", "password", "otp"].includes(field) &&
+                (value === null || typeof value === "string"),
+        )
+    );
+}
+
+export function isRegisterFields(data: unknown): data is RegisterFields {
+    return hasNullableFields(data, [
+        "email",
+        "first_name",
+        "last_name",
+        "password",
+        "password_confirm",
+    ]);
+}
+
+export function isForgottenPasswordFields(
+    data: unknown,
+): data is ForgottenPasswordFields {
+    return hasNullableFields(data, ["email"]);
+}
+
+export function isNewPasswordFields(data: unknown): data is NewPasswordFields {
+    return hasNullableFields(data, ["token", "password", "password_confirm"]);
+}
+
+export function isAuthSuccess<T>(
+    data: unknown,
+    guard: (value: unknown) => value is T,
+): data is { data: T } {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "data" in data &&
+        guard(data.data)
+    );
+}
 
 export function isClaims(data: unknown): data is Claims {
     return (
@@ -59,6 +120,10 @@ export function isClaims(data: unknown): data is Claims {
         typeof data.aud === "string" &&
         "jti" in data &&
         typeof data.jti === "string" &&
+        "loc" in data &&
+        typeof data.loc === "string" &&
+        "tz" in data &&
+        typeof data.tz === "string" &&
         "family_id" in data &&
         (data.family_id === null || typeof data.family_id === "string") &&
         "active_tenant" in data &&

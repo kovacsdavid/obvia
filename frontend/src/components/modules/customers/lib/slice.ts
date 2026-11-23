@@ -30,7 +30,10 @@ import type {
     PaginatedCustomerResolvedListResponse,
     UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
 import type { ApiResult } from "@/lib/api/types";
 import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
@@ -49,7 +52,12 @@ export const create = createAsyncThunk<
 >(
     "customers/create",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await customersApi.create(input, token, signal);
         if (!silent) notifyApiError(result);
@@ -64,7 +72,12 @@ export const deleteItem = createAsyncThunk<
 >(
     "customers/deleteItem",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await customersApi.deleteItem(uuid, token, signal);
         if (!silent) notifyApiError(result);
@@ -79,7 +92,12 @@ export const update = createAsyncThunk<
 >(
     "customers/update",
     async ({ input, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await customersApi.update(input, token, signal);
         if (!silent) notifyApiError(result);
@@ -94,7 +112,12 @@ export const list = createAsyncThunk<
 >(
     "customers/list",
     async ({ query, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await customersApi.list(query, token, signal);
         if (!silent) notifyApiError(result);
@@ -109,7 +132,12 @@ export const get = createAsyncThunk<
 >(
     "customers/get",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await customersApi.get(uuid, token, signal);
         if (!silent) notifyApiError(result);
@@ -124,7 +152,12 @@ export const get_full = createAsyncThunk<
 >(
     "customers/get_full",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const token = getState().auth.login.token;
         const result = await customersApi.get_full(uuid, token, signal);
         if (!silent) notifyApiError(result);
@@ -139,7 +172,12 @@ export const print = createAsyncThunk<
 >(
     "customers/print",
     async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
-        await dispatch(refreshAccessToken());
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
         const rootState = getState() as RootState;
         const token = rootState.auth.login.token;
         const result = await customersApi.print(uuid, token, signal);

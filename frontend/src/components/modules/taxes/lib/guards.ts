@@ -29,12 +29,35 @@ import type {
     DeleteTaxResponse,
     PaginatedTaxResolvedListResponse,
     Tax,
+    TaxError,
     TaxResolved,
     TaxResolvedList,
     TaxResolvedResponse,
     TaxResponse,
     UpdateTaxResponse,
 } from "@/components/modules/taxes/lib/interface.ts";
+
+export function isTaxError(data: unknown): data is TaxError {
+    if (typeof data !== "object" || data === null) return false;
+    const fields = [
+        "id",
+        "rate",
+        "description",
+        "country_code",
+        "tax_category",
+        "is_rate_applicable",
+        "legal_text",
+        "reporting_code",
+        "is_default",
+        "status",
+    ] as const;
+    return fields.every(
+        (field) =>
+            field in data &&
+            (data[field as keyof typeof data] === null ||
+                typeof data[field as keyof typeof data] === "string"),
+    );
+}
 
 export function isCreateTaxResponse(data: unknown): data is CreateTaxResponse {
     return isCommonResponse(data, isTax, isFormError);

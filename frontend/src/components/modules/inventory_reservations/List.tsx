@@ -40,7 +40,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table.tsx";
-import { Button, GlobalError } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Eye, MoreHorizontal, Plus, Trash, Printer } from "lucide-react";
@@ -59,15 +59,14 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import ReferenceType from "./ReferenceType";
 import { useAuth } from "@/hooks/use_auth";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 
 export default function InventoryReservationsList() {
     const dispatch = useAppDispatch();
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<InventoryReservationResolvedList>(
         [],
     );
@@ -92,75 +91,47 @@ export default function InventoryReservationsList() {
     } = useDataDisplayCommon(null);
 
     const refresh = useCallback(() => {
-        dispatch(list({ inventoryId: routeInventoryId, query: rawQuery })).then(
-            async (response) => {
-                if (list.fulfilled.match(response)) {
-                    if (
-                        response.payload.statusCode === 200 &&
-                        typeof response.payload.jsonData?.data !==
-                            "undefined" &&
-                        typeof response.payload.jsonData?.meta !== "undefined"
-                    ) {
-                        setPage(response.payload.jsonData.meta.page);
-                        setLimit(response.payload.jsonData.meta.limit);
-                        setTotal(response.payload.jsonData.meta.total);
-                        setData(response.payload.jsonData.data);
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setErrors(response.payload.jsonData.error);
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            },
-        );
-    }, [
-        dispatch,
-        rawQuery,
-        setPage,
-        setLimit,
-        setTotal,
-        setErrors,
-        unexpectedError,
-        routeInventoryId,
-    ]);
+        dispatch(list({ inventoryId: routeInventoryId, query: rawQuery }))
+            .unwrap()
+            .then((result) =>
+                handleApiResult(result, {
+                    onSuccess: ({ data, meta }) => {
+                        if (meta) {
+                            setPage(meta.page);
+                            setLimit(meta.limit);
+                            setTotal(meta.total);
+                        }
+                        if (data) setData(data);
+                    },
+                }),
+            )
+            .catch(() => undefined);
+    }, [dispatch, rawQuery, setPage, setLimit, setTotal, routeInventoryId]);
 
-    const handlePrint = (id: string) => {
+    const handlePrint = async (id: string) => {
         const handler = openPopup();
 
         if (!handler) {
             return;
         }
 
-        dispatch(print(id)).then((response: unknown) => {
-            if (!print.fulfilled.match(response)) {
+        try {
+            const result = await dispatch(print({ uuid: id })).unwrap();
+            if (result.kind !== "success" || result.data === null) {
                 handler.close();
                 return;
             }
-
-            if (
-                response.payload.statusCode !== 200 ||
-                !response.payload?.data
-            ) {
-                handler.close();
-                return;
-            }
-
-            updateWindowWithPdfData(handler, response.payload.data);
-        });
+            updateWindowWithPdfData(handler, result.data);
+        } catch {
+            handler.close();
+        }
     };
 
     const handleDelete = (id: string) => {
-        dispatch(deleteItem(id)).then(async (response) => {
-            if (deleteItem.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    refresh();
-                }
-            }
-        });
+        dispatch(deleteItem({ uuid: id }))
+            .unwrap()
+            .then((result) => handleApiResult(result, { onSuccess: refresh }))
+            .catch(() => undefined);
     };
 
     useEffect(() => {
@@ -169,7 +140,6 @@ export default function InventoryReservationsList() {
 
     return (
         <>
-            <GlobalError error={errors} />
             <Card>
                 <CardHeader>
                     <CardTitle>Készletfoglalások</CardTitle>

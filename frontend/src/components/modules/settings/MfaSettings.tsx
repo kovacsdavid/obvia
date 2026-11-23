@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useMemo } from "react";
-import { Button, GlobalError } from "@/components/ui";
+import { Button, FieldErrorV2 } from "@/components/ui";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -28,7 +28,9 @@ import {
 } from "@/components/modules/users/lib/slice.ts";
 import { QRCodeSVG } from "qrcode.react";
 import { Eye, EyeClosed } from "lucide-react";
-import type { SimpleError } from "@/lib/interface.ts";
+import type { OtpFields } from "@/components/modules/users/lib/interface.ts";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 import type { RootState } from "@/store";
 import { useAppSelector } from "@/store/hooks.ts";
 import { chMfaStatus } from "@/components/modules/auth/lib/slice";
@@ -49,7 +51,9 @@ export default function MfaSettings() {
     const [secret, setSecret] = React.useState("");
     const [showSecret, setShowSecret] = React.useState(false);
     const [otp, setOtp] = React.useState("");
-    const [otpErrors, setOtpErrors] = React.useState<SimpleError | null>(null);
+    const [otpErrors, setOtpErrors] = React.useState<OtpFields | null>(null);
+    const [pending, setPending] = React.useState(false);
+    const pendingRef = React.useRef(false);
     const user = useAppSelector((state: RootState) => state.auth.login.user);
     const user_email = useMemo(() => user?.email, [user]);
     const user_is_mfa_enabled = useMemo(() => user?.is_mfa_enabled, [user]);
@@ -57,68 +61,118 @@ export default function MfaSettings() {
     const handleDisableMfa = useCallback(
         (e: React.SubmitEvent) => {
             e.preventDefault();
-            dispatch(disableOtp(otp)).then((response) => {
-                if (disableOtp.fulfilled.match(response)) {
-                    if (
-                        response.payload.statusCode === 200 &&
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        setOtp("");
-                        setOpenDisableOtpDialog(false);
-                        dispatch(chMfaStatus(false));
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setOtpErrors(response.payload.jsonData.error);
+            if (pendingRef.current) return;
+            pendingRef.current = true;
+            setPending(true);
+            setOtpErrors(null);
+            dispatch(disableOtp({ otp }))
+                .then((response) => {
+                    if (disableOtp.fulfilled.match(response)) {
+                        handleApiResult(response.payload, {
+                            onSuccess: () => {
+                                setOtp("");
+                                setOpenDisableOtpDialog(false);
+                                dispatch(chMfaStatus(false));
+                            },
+                            onFieldErrors: setOtpErrors,
+                        });
+                    } else if (!response.meta.aborted) {
+                        notifyApiError({
+                            kind: "network_error",
+                            offline: false,
+                        });
                     }
-                }
-            });
+                })
+                .finally(() => {
+                    pendingRef.current = false;
+                    setPending(false);
+                });
         },
         [dispatch, otp],
     );
 
-    const handleVerfiyMfa = useCallback(
+    const handleVerifyMfa = useCallback(
         (e: React.SubmitEvent) => {
             e.preventDefault();
-            dispatch(verifyOtp(otp)).then((response) => {
-                if (verifyOtp.fulfilled.match(response)) {
-                    if (
-                        response.payload.statusCode === 200 &&
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        setOtp("");
-                        setOpenVerifyOtpDialog(false);
-                        dispatch(chMfaStatus(true));
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setOtpErrors(response.payload.jsonData.error);
+            if (pendingRef.current) return;
+            pendingRef.current = true;
+            setPending(true);
+            setOtpErrors(null);
+            dispatch(verifyOtp({ otp }))
+                .then((response) => {
+                    if (verifyOtp.fulfilled.match(response)) {
+                        handleApiResult(response.payload, {
+                            onSuccess: () => {
+                                setOtp("");
+                                setOpenVerifyOtpDialog(false);
+                                setSecret("");
+                                setShowSecret(false);
+                                dispatch(chMfaStatus(true));
+                            },
+                            onFieldErrors: setOtpErrors,
+                        });
+                    } else if (!response.meta.aborted) {
+                        notifyApiError({
+                            kind: "network_error",
+                            offline: false,
+                        });
                     }
-                }
-            });
+                })
+                .finally(() => {
+                    pendingRef.current = false;
+                    setPending(false);
+                });
         },
         [dispatch, otp],
     );
 
     const handleEnableMfa = useCallback(() => {
-        dispatch(enableOtp()).then((response) => {
-            if (enableOtp.fulfilled.match(response)) {
-                if (
-                    response.payload.statusCode === 200 &&
-                    typeof response.payload.jsonData?.data !== "undefined"
-                ) {
-                    setSecret(response.payload.jsonData.data);
+        if (pendingRef.current) return;
+        pendingRef.current = true;
+        setPending(true);
+        dispatch(enableOtp())
+            .then((response) => {
+                if (enableOtp.fulfilled.match(response)) {
+                    handleApiResult(response.payload, {
+                        onSuccess: (data) => {
+                            if (
+                                typeof data.data === "string" &&
+                                data.data.length > 0
+                            ) {
+                                setSecret(data.data);
+                                setOtp("");
+                                setOtpErrors(null);
+                                setOpenVerifyOtpDialog(true);
+                            } else if (response.payload.kind === "success") {
+                                notifyApiError({
+                                    kind: "invalid_response",
+                                    status: response.payload.status,
+                                });
+                            }
+                        },
+                    });
+                } else if (!response.meta.aborted) {
+                    notifyApiError({ kind: "network_error", offline: false });
                 }
-                setOpenVerifyOtpDialog(true);
-            }
-        });
+            })
+            .finally(() => {
+                pendingRef.current = false;
+                setPending(false);
+            });
     }, [dispatch]);
 
     return (
         <>
             <Dialog
                 open={openDisableOtpDialog}
-                onOpenChange={setOpenDisableOtpDialog}
+                onOpenChange={(open) => {
+                    if (pendingRef.current) return;
+                    setOpenDisableOtpDialog(open);
+                    if (!open) {
+                        setOtp("");
+                        setOtpErrors(null);
+                    }
+                }}
             >
                 <DialogContent className="text-center">
                     <DialogTitle>
@@ -129,7 +183,6 @@ export default function MfaSettings() {
                         className="space-y-4"
                         autoComplete={"off"}
                     >
-                        <GlobalError error={otpErrors} />
                         <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
                             <FieldLabel htmlFor="otp">
                                 Megerősítő kód
@@ -137,7 +190,11 @@ export default function MfaSettings() {
                             <InputOTP
                                 id="otp"
                                 value={otp}
-                                onChange={(e) => setOtp(e)}
+                                aria-invalid={!!otpErrors?.otp}
+                                onChange={(value) => {
+                                    setOtp(value);
+                                    setOtpErrors(null);
+                                }}
                                 maxLength={6}
                                 pattern={REGEXP_ONLY_DIGITS}
                             >
@@ -151,10 +208,12 @@ export default function MfaSettings() {
                                     <InputOTPSlot index={5} />
                                 </InputOTPGroup>
                             </InputOTP>
+                            <FieldErrorV2 error={otpErrors?.otp} />
                         </Field>
                         <Button
                             className="mr-3"
                             variant="outline"
+                            disabled={pending}
                             onClick={(e: React.MouseEvent) => {
                                 e.preventDefault();
                                 setOtp("");
@@ -164,13 +223,24 @@ export default function MfaSettings() {
                         >
                             Mégse
                         </Button>
-                        <Button type="submit">Megerősítés</Button>
+                        <Button type="submit" disabled={pending}>
+                            Megerősítés
+                        </Button>
                     </form>
                 </DialogContent>
             </Dialog>
             <Dialog
                 open={openVerifyOtpDialog}
-                onOpenChange={setOpenVerifyOtpDialog}
+                onOpenChange={(open) => {
+                    if (pendingRef.current) return;
+                    setOpenVerifyOtpDialog(open);
+                    if (!open) {
+                        setOtp("");
+                        setOtpErrors(null);
+                        setSecret("");
+                        setShowSecret(false);
+                    }
+                }}
             >
                 <DialogContent className="text-center">
                     <DialogTitle>
@@ -201,11 +271,10 @@ export default function MfaSettings() {
                         </Button>
                     )}
                     <form
-                        onSubmit={handleVerfiyMfa}
+                        onSubmit={handleVerifyMfa}
                         className="space-y-4"
                         autoComplete={"off"}
                     >
-                        <GlobalError error={otpErrors} />
                         <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
                             <FieldLabel htmlFor="otp">
                                 Megerősítő kód
@@ -213,7 +282,11 @@ export default function MfaSettings() {
                             <InputOTP
                                 id="otp"
                                 value={otp}
-                                onChange={(e) => setOtp(e)}
+                                aria-invalid={!!otpErrors?.otp}
+                                onChange={(value) => {
+                                    setOtp(value);
+                                    setOtpErrors(null);
+                                }}
                                 maxLength={6}
                                 pattern={REGEXP_ONLY_DIGITS}
                             >
@@ -227,20 +300,26 @@ export default function MfaSettings() {
                                     <InputOTPSlot index={5} />
                                 </InputOTPGroup>
                             </InputOTP>
+                            <FieldErrorV2 error={otpErrors?.otp} />
                         </Field>
                         <Button
                             className="mr-3"
                             variant="outline"
+                            disabled={pending}
                             onClick={(e: React.MouseEvent) => {
                                 e.preventDefault();
                                 setOtp("");
                                 setOpenVerifyOtpDialog(false);
                                 setOtpErrors(null);
+                                setSecret("");
+                                setShowSecret(false);
                             }}
                         >
                             Mégse
                         </Button>
-                        <Button type="submit">Megerősítés</Button>
+                        <Button type="submit" disabled={pending}>
+                            Megerősítés
+                        </Button>
                     </form>
                 </DialogContent>
             </Dialog>
@@ -248,6 +327,7 @@ export default function MfaSettings() {
                 <Button
                     style={{ color: "red" }}
                     variant="outline"
+                    disabled={pending}
                     onClick={() => setOpenDisableOtpDialog(true)}
                 >
                     Kétlépcsős azonosítás kikapcsolása
@@ -256,6 +336,7 @@ export default function MfaSettings() {
                 <Button
                     style={{ color: "green" }}
                     variant="outline"
+                    disabled={pending}
                     onClick={() => handleEnableMfa()}
                 >
                     Kétlépcsős azonosítás bekapcsolása

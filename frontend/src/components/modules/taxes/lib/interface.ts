@@ -38,6 +38,19 @@ export interface TaxUserInput {
     status: string;
 }
 
+export interface TaxError {
+    id: string | null;
+    rate: string | null;
+    description: string | null;
+    country_code: string | null;
+    tax_category: string | null;
+    is_rate_applicable: string | null;
+    legal_text: string | null;
+    reporting_code: string | null;
+    is_default: string | null;
+    status: string | null;
+}
+
 export interface Tax {
     id: string;
     rate: string | null;

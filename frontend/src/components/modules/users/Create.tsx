@@ -17,11 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState } from "react";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import React from "react";
+import { Button, Input, Label } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { create } from "@/components/modules/users/lib/slice.ts";
-import { type FormError } from "@/lib/interface.ts";
 
 export default function Create() {
     const [email, setEmail] = React.useState("");
@@ -29,28 +28,19 @@ export default function Create() {
     const [firstName, setFirstName] = React.useState("");
     const [phone, setPhone] = React.useState("");
     const [status, setStatus] = React.useState("");
-    const [errors, setErrors] = useState<FormError | null>(null);
     const dispatch = useAppDispatch();
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
-        dispatch(
+        await dispatch(
             create({
-                email,
-                lastName,
-                firstName,
-                phone,
-                status,
+                input: { email, lastName, firstName, phone, status },
             }),
-        ).then((response) => {
-            setErrors({ message: "Not implemented yet!", fields: {} });
-            console.log(response);
-        });
+        );
     };
 
     return (
         <>
-            <GlobalError error={errors} />
             <form
                 onSubmit={handleSubmit}
                 className="max-w-sm mx-auto space-y-4"
@@ -62,7 +52,6 @@ export default function Create() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                 />
-                <FieldError error={errors} field={"email"} />
                 <Label htmlFor="last_name">Vezetéknév</Label>
                 <Input
                     id="last_name"
@@ -70,7 +59,6 @@ export default function Create() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                 />
-                <FieldError error={errors} field={"last_name"} />
                 <Label htmlFor="fist_name">Keresztnév</Label>
                 <Input
                     id="fist_name"
@@ -78,7 +66,6 @@ export default function Create() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                 />
-                <FieldError error={errors} field={"fist_name"} />
                 <Label htmlFor="phone">Telefonszám</Label>
                 <Input
                     id="phone"
@@ -86,7 +73,6 @@ export default function Create() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                 />
-                <FieldError error={errors} field={"phone"} />
                 <Label htmlFor="status">Státusz</Label>
                 <Input
                     id="status"
@@ -94,7 +80,6 @@ export default function Create() {
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
                 />
-                <FieldError error={errors} field={"status"} />
                 <Button type="submit">Létrehozás</Button>
             </form>
         </>

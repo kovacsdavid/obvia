@@ -20,13 +20,15 @@
 import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
-import { Button, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use_auth";
 import { loginUser } from "@/components/modules/auth/lib/slice.ts";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { loginUserRequest } from "@/components/modules/auth/lib/slice.ts";
-import { useFormError } from "@/hooks/use_form_error.ts";
+import type { LoginFields } from "@/components/modules/auth/lib/interface";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 import {
     InputOTP,
     InputOTPGroup,
@@ -51,8 +53,11 @@ export default function Login() {
     const status = useAppSelector(
         (state: RootState) => state.auth.login.status,
     );
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = useState<LoginFields | null>(null);
+    const resetError = (field: keyof LoginFields) =>
+        setErrors((previous) =>
+            previous ? { ...previous, [field]: null } : null,
+        );
     const navigate = useNavigate();
     const { login, isLoggedIn } = useAuth();
     const dispatch = useAppDispatch();
@@ -73,47 +78,42 @@ export default function Login() {
         }
         login(email, password, nextOtp).then(async (response) => {
             if (loginUserRequest.fulfilled.match(response)) {
+                const result = response.payload;
                 if (
-                    response.payload.statusCode === 200 &&
-                    typeof response.payload.jsonData?.data !== "undefined"
+                    result.kind === "http_error" &&
+                    result.body?.error.message === "totp-required"
                 ) {
-                    dispatch(
-                        loginUser({
-                            token: response.payload.jsonData.data.token,
-                            user: response.payload.jsonData.data.user,
-                            claims: response.payload.jsonData.data.claims,
-                        }),
-                    );
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    if (
-                        response.payload.jsonData.error.message ===
-                        "totp-required"
-                    ) {
-                        setOtp("");
-                        setOtpRequired(true);
-                    } else {
-                        setOtp("");
-                        setOtpRequired(false);
-                        setErrors(response.payload.jsonData.error);
-                    }
-                } else {
-                    setOtpRequired(false);
                     setOtp("");
-                    unexpectedError(response.payload.statusCode);
+                    setErrors(null);
+                    setOtpRequired(true);
+                    return;
                 }
+                if (result.kind !== "success") {
+                    setOtp("");
+                    setOtpRequired(
+                        result.kind === "http_error" &&
+                            !!result.body?.error.fields?.otp,
+                    );
+                    setErrors(null);
+                }
+                handleApiResult(result, {
+                    onSuccess: (data) => {
+                        if (result.kind === "success" && result.status === 200)
+                            dispatch(loginUser(data.data));
+                    },
+                    onFieldErrors: setErrors,
+                });
             } else {
                 setOtpRequired(false);
                 setOtp("");
-                unexpectedError();
+                if (!response.meta.aborted)
+                    notifyApiError({ kind: "network_error", offline: false });
             }
         });
     };
 
     return (
         <>
-            <GlobalError error={errors} />
             <Card className={"max-w-lg mx-auto"}>
                 <CardContent>
                     <form
@@ -130,13 +130,13 @@ export default function Login() {
                                     type="text"
                                     autoComplete="email"
                                     value={email}
-                                    onFocus={() => setErrors(null)}
                                     onChange={(e) => {
                                         resetError("email");
                                         setEmail(e.target.value);
                                     }}
-                                    aria-invalid={isInvalidField("email")}
+                                    aria-invalid={!!errors?.email}
                                 />
+                                <FieldErrorV2 error={errors?.email} />
                                 <FieldLabel htmlFor="password">
                                     Jelszó
                                 </FieldLabel>
@@ -144,14 +144,14 @@ export default function Login() {
                                     id="password"
                                     type="password"
                                     autoComplete="current-password"
-                                    onFocus={() => setErrors(null)}
                                     value={password}
                                     onChange={(e) => {
                                         resetError("password");
                                         setPassword(e.target.value);
                                     }}
-                                    aria-invalid={isInvalidField("password")}
+                                    aria-invalid={!!errors?.password}
                                 />
+                                <FieldErrorV2 error={errors?.password} />
                                 {otpRequired && (
                                     <>
                                         <FieldSeparator />
@@ -169,9 +169,7 @@ export default function Login() {
                                                         handleSubmit(null, e);
                                                     }
                                                 }}
-                                                aria-invalid={isInvalidField(
-                                                    "otp",
-                                                )}
+                                                aria-invalid={!!errors?.otp}
                                                 maxLength={6}
                                                 pattern={REGEXP_ONLY_DIGITS}
                                                 autoFocus
@@ -186,6 +184,7 @@ export default function Login() {
                                                     <InputOTPSlot index={5} />
                                                 </InputOTPGroup>
                                             </InputOTP>
+                                            <FieldErrorV2 error={errors?.otp} />
                                         </Field>
                                     </>
                                 )}

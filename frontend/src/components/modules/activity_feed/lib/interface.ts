@@ -38,10 +38,25 @@ export interface ActivityFeedResolvedEntry {
     deleted_at: string | null;
 }
 
-export type PostCommentResponse = CommonResponse<
-    ActivityFeedResolvedEntry,
-    FormError
->;
+export interface Comment {
+    id: string;
+    commentable_type: string;
+    commentable_id: string;
+    comment: string;
+    created_by_id: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+}
+
+export interface CommentError {
+    id?: string | null;
+    commentable_type?: string | null;
+    commentable_id?: string | null;
+    comment?: string | null;
+}
+
+export type PostCommentResponse = CommonResponse<Comment, FormError>;
 
 export type DeleteCommentResponse = CommonResponse<
     SimpleMessageData,

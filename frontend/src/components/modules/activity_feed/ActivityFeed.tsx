@@ -42,9 +42,12 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
-import { Button, GlobalError } from "@/components/ui";
+import { Button, FieldErrorV2 } from "@/components/ui";
 import { MessageCircle, Newspaper, MoreHorizontal, Trash } from "lucide-react";
-import { type ActivityFeedResolvedEntry } from "@/components/modules/activity_feed/lib/interface";
+import {
+    type ActivityFeedResolvedEntry,
+    type CommentError,
+} from "@/components/modules/activity_feed/lib/interface";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     postComment,
@@ -52,7 +55,7 @@ import {
     deleteComment,
 } from "@/components/modules/activity_feed/lib/slice.ts";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 import { formatDateLocal } from "@/lib/utils.ts";
 import { useAuth } from "@/hooks/use_auth";
 
@@ -69,78 +72,62 @@ export default function ActivityFeed({
         ActivityFeedResolvedEntry[]
     >([]);
     const [newComment, setNewComment] = React.useState("");
+    const [errors, setErrors] = React.useState<CommentError | null>(null);
     const dispatch = useAppDispatch();
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const { claims } = useAuth();
 
     const { setPage, setLimit, setTotal } = useDataDisplayCommon(null);
 
     const refresh = useCallback(() => {
-        dispatch(list({ resourceId, resourceType })).then(async (response) => {
+        const request = dispatch(list({ resourceId, resourceType }));
+        request.then((response) => {
             if (list.fulfilled.match(response)) {
-                if (
-                    response.payload.statusCode === 200 &&
-                    typeof response.payload.jsonData?.data !== "undefined" &&
-                    typeof response.payload.jsonData?.meta !== "undefined"
-                ) {
-                    setPage(response.payload.jsonData.meta.page);
-                    setLimit(response.payload.jsonData.meta.limit);
-                    setTotal(response.payload.jsonData.meta.total);
-                    setActivityFeed(response.payload.jsonData.data);
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
+                handleApiResult(response.payload, {
+                    onSuccess: ({ data, meta }) => {
+                        if (data !== undefined && meta !== undefined) {
+                            setPage(meta.page);
+                            setLimit(meta.limit);
+                            setTotal(meta.total);
+                            setActivityFeed(data);
+                        }
+                    },
+                });
             }
         });
-    }, [
-        dispatch,
-        resourceId,
-        resourceType,
-        setPage,
-        setLimit,
-        setTotal,
-        setErrors,
-        unexpectedError,
-    ]);
+        return request;
+    }, [dispatch, resourceId, resourceType, setPage, setLimit, setTotal]);
 
     useEffect(() => {
-        refresh();
+        const request = refresh();
+        return () => request.abort();
     }, [refresh]);
 
     const handleSubmit = (e: React.SubmitEvent) => {
         e.preventDefault();
+        setErrors(null);
         dispatch(
             postComment({ resourceId, resourceType, comment: newComment }),
-        ).then(async (response) => {
+        ).then((response) => {
             if (postComment.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    refresh();
-                    setNewComment("");
-                }
+                handleApiResult(response.payload, {
+                    onSuccess: () => {
+                        refresh();
+                        setNewComment("");
+                    },
+                    onFieldErrors: setErrors,
+                });
             }
         });
     };
 
     const handleDelete = (id: string) => {
-        dispatch(deleteComment(id)).then(async (response) => {
+        dispatch(deleteComment({ uuid: id })).then((response) => {
             if (deleteComment.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    refresh();
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
+                handleApiResult(response.payload, {
+                    onSuccess: () => {
+                        refresh();
+                    },
+                });
             }
         });
     };
@@ -152,7 +139,6 @@ export default function ActivityFeed({
                     <CardTitle>Tevékenység</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <GlobalError error={errors} />
                     {activityFeed.length > 0 &&
                         activityFeed.map((item) => {
                             switch (item.activity_type) {
@@ -260,7 +246,17 @@ export default function ActivityFeed({
                             id="comment"
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
+                            aria-invalid={typeof errors?.comment === "string"}
+                            aria-describedby={
+                                errors?.comment ? "comment-error" : undefined
+                            }
                         />
+                        <div id="comment-error">
+                            <FieldErrorV2 error={errors?.comment} />
+                        </div>
+                        <FieldErrorV2 error={errors?.id} />
+                        <FieldErrorV2 error={errors?.commentable_id} />
+                        <FieldErrorV2 error={errors?.commentable_type} />
                         <Button type="submit">Küldés</Button>
                     </form>
                 </CardContent>

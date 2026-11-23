@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
@@ -45,12 +45,12 @@ import {
     ComboboxList,
 } from "@/components/ui/combobox";
 import { useNavigate } from "react-router";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
-import { useSelectList } from "@/hooks/use_select_list.ts";
 import type { SelectOptionList } from "@/lib/interface.ts";
-import type { Tax } from "./lib/interface";
+import type { Tax, TaxError } from "./lib/interface";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { toast } from "@/components/ui/toast-lib";
 import {
     Field,
     FieldGroup,
@@ -84,9 +84,7 @@ export default function Edit({
     const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { setListResponse } = useSelectList();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = React.useState<TaxError | null>(null);
     const params = useParams();
     const id = createOnly ? null : (params["id"] ?? null);
 
@@ -101,59 +99,39 @@ export default function Edit({
         }
     };
 
-    const handleCreate = useCallback(() => {
-        dispatch(
+    const handleCreate = async () => {
+        const result = await dispatch(
             create({
-                id,
-                rate,
-                description,
-                countryCode,
-                taxCategory,
-                isRateApplicable: evalIsRateApplicable(isRateApplicable),
-                legalText,
-                reportingCode,
-                isDefault,
-                status,
+                input: {
+                    id,
+                    rate,
+                    description,
+                    countryCode,
+                    taxCategory,
+                    isRateApplicable: evalIsRateApplicable(isRateApplicable),
+                    legalText,
+                    reportingCode,
+                    isDefault,
+                    status,
+                },
             }),
-        ).then(async (response) => {
-            if (create.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    if (
-                        typeof onSuccess === "function" &&
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        onSuccess(response.payload.jsonData.data);
-                    } else {
-                        navigate("/ado/lista");
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
+        ).unwrap();
+        handleApiResult(result, {
+            onSuccess: ({ data }) => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                if (
+                    typeof onSuccess === "function" &&
+                    typeof data !== "undefined"
+                )
+                    onSuccess(data);
+                else navigate("/ado/lista");
+            },
+            onFieldErrors: setErrors,
         });
-    }, [
-        countryCode,
-        description,
-        dispatch,
-        id,
-        isDefault,
-        isRateApplicable,
-        legalText,
-        navigate,
-        onSuccess,
-        rate,
-        reportingCode,
-        setErrors,
-        status,
-        taxCategory,
-        unexpectedError,
-    ]);
+    };
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -167,81 +145,52 @@ export default function Edit({
         [navigate, onCancel],
     );
 
-    const handleUpdate = useCallback(() => {
-        dispatch(
+    const handleUpdate = async () => {
+        const result = await dispatch(
             update({
-                id,
-                rate,
-                description,
-                countryCode,
-                taxCategory,
-                isRateApplicable: evalIsRateApplicable(isRateApplicable),
-                legalText,
-                reportingCode,
-                isDefault,
-                status,
+                input: {
+                    id,
+                    rate,
+                    description,
+                    countryCode,
+                    taxCategory,
+                    isRateApplicable: evalIsRateApplicable(isRateApplicable),
+                    legalText,
+                    reportingCode,
+                    isDefault,
+                    status,
+                },
             }),
-        ).then(async (response) => {
-            if (update.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    navigate("/ado/lista");
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
+        ).unwrap();
+        handleApiResult(result, {
+            onSuccess: () => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                navigate("/ado/lista");
+            },
+            onFieldErrors: setErrors,
         });
-    }, [
-        countryCode,
-        description,
-        dispatch,
-        id,
-        isDefault,
-        isRateApplicable,
-        legalText,
-        navigate,
-        rate,
-        reportingCode,
-        setErrors,
-        status,
-        taxCategory,
-        unexpectedError,
-    ]);
+    };
 
     const loadLists = useCallback(async () => {
-        return dispatch(select_list("countries")).then((response) => {
-            if (select_list.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    setListResponse(
-                        response.payload,
-                        setCountryList,
-                        setErrors,
-                    );
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
+        const result = await dispatch(
+            select_list({ list: "countries" }),
+        ).unwrap();
+        handleApiResult(result, {
+            onSuccess: ({ data }) => setCountryList(data ?? []),
         });
-    }, [dispatch, setErrors, setListResponse, unexpectedError]);
+    }, [dispatch]);
 
     useEffect(() => {
-        loadLists().then(() => {
-            if (typeof id === "string") {
-                dispatch(get(id)).then(async (response) => {
-                    if (get.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            if (
-                                typeof response.payload.jsonData?.data !==
-                                "undefined"
-                            ) {
-                                const data = response.payload.jsonData.data;
+        loadLists()
+            .then(async () => {
+                if (typeof id === "string") {
+                    const result = await dispatch(get({ uuid: id })).unwrap();
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
                                 setRate(data.rate ?? "");
                                 setDescription(data.description);
                                 setCountryCode(data.country_code);
@@ -254,25 +203,22 @@ export default function Edit({
                                 setIsDefault(data.is_default);
                                 setStatus(data.status);
                             }
-                        } else if (
-                            typeof response.payload.jsonData?.error !==
-                            "undefined"
-                        ) {
-                            setErrors({
-                                message:
-                                    response.payload.jsonData.error.message,
-                                fields: {},
-                            });
-                        } else {
-                            unexpectedError(response.payload.statusCode);
-                        }
-                    } else {
-                        unexpectedError();
-                    }
-                });
-            }
-        });
-    }, [dispatch, id, setErrors, unexpectedError, setListResponse, loadLists]);
+                        },
+                    });
+                }
+            })
+            .catch(() => undefined);
+    }, [dispatch, id, loadLists]);
+
+    const resetError = (field: keyof TaxError) => {
+        setErrors((previous) =>
+            previous && previous[field] != null
+                ? { ...previous, [field]: null }
+                : previous,
+        );
+    };
+    const isInvalidField = (field: keyof TaxError) =>
+        typeof errors?.[field] === "string";
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -300,7 +246,6 @@ export default function Edit({
 
     return (
         <>
-            <GlobalError error={errors} />
             <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
                 <form
                     onSubmit={handleSubmit}
@@ -344,9 +289,8 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"is_rate_applicable"}
+                                <FieldErrorV2
+                                    error={errors?.is_rate_applicable}
                                 />
                             </Field>
                             {isRateApplicable === "true" ? (
@@ -369,10 +313,7 @@ export default function Edit({
                                                 "rate",
                                             )}
                                         />
-                                        <FieldError
-                                            error={errors}
-                                            field={"rate"}
-                                        />
+                                        <FieldErrorV2 error={errors?.rate} />
                                     </Field>
                                 </>
                             ) : null}
@@ -391,10 +332,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"description"}
-                                />
+                                <FieldErrorV2 error={errors?.description} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("country_code")}
@@ -434,10 +372,7 @@ export default function Edit({
                                         </ComboboxList>
                                     </ComboboxContent>
                                 </Combobox>
-                                <FieldError
-                                    error={errors}
-                                    field={"country_code"}
-                                />
+                                <FieldErrorV2 error={errors?.country_code} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("tax_category")}
@@ -543,10 +478,7 @@ export default function Edit({
                                         </SelectGroup>
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"tax_category"}
-                                />
+                                <FieldErrorV2 error={errors?.tax_category} />
                             </Field>
                             <Field data-invalid={isInvalidField("legal_text")}>
                                 <FieldLabel htmlFor="legal_text">
@@ -563,10 +495,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("legal_text")}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"legal_text"}
-                                />
+                                <FieldErrorV2 error={errors?.legal_text} />
                             </Field>
                             <Field data-invalid={isInvalidField("status")}>
                                 <FieldLabel htmlFor="status">
@@ -597,7 +526,7 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"status"} />
+                                <FieldErrorV2 error={errors?.status} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

@@ -18,8 +18,8 @@
  */
 
 import { createContext } from "react";
-import type { PayloadAction } from "@reduxjs/toolkit";
 import type { Claims } from "@/components/modules/auth/lib/interface";
+import type { loginUserRequest } from "@/components/modules/auth/lib/slice";
 
 type AuthContextType = {
     isLoggedIn: boolean;
@@ -29,7 +29,7 @@ type AuthContextType = {
         email: string,
         password: string,
         otp: string | null,
-    ) => Promise<PayloadAction<any, any, any>>;
+    ) => ReturnType<ReturnType<typeof loginUserRequest>>;
     logout: () => void;
 };
 

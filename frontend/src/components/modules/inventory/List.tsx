@@ -22,7 +22,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
-import { Button, GlobalError, Input, Label } from "@/components/ui";
+import { Button, Input, Label } from "@/components/ui";
 import {
     Combine,
     Eye,
@@ -73,14 +73,13 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card.tsx";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 import Status from "./Status";
 import { useAuth } from "@/hooks/use_auth";
 import { ButtonGroup } from "@/components/ui/button-group";
 
 export default function List() {
     const dispatch = useAppDispatch();
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<InventoryResolvedList>([]);
     const { claims } = useAuth();
 
@@ -101,71 +100,51 @@ export default function List() {
     } = useDataDisplayCommon(null);
 
     const refresh = useCallback(() => {
-        dispatch(list(rawQuery)).then(async (response) => {
+        dispatch(list({ query: rawQuery })).then((response) => {
             if (list.fulfilled.match(response)) {
-                if (
-                    response.payload.statusCode === 200 &&
-                    typeof response.payload.jsonData?.data !== "undefined" &&
-                    typeof response.payload.jsonData?.meta !== "undefined"
-                ) {
-                    setPage(response.payload.jsonData.meta.page);
-                    setLimit(response.payload.jsonData.meta.limit);
-                    setTotal(response.payload.jsonData.meta.total);
-                    setData(response.payload.jsonData.data);
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
+                handleApiResult(response.payload, {
+                    onSuccess: ({ data, meta }) => {
+                        if (meta) {
+                            setPage(meta.page);
+                            setLimit(meta.limit);
+                            setTotal(meta.total);
+                        }
+                        if (data) setData(data);
+                    },
+                });
             }
         });
-    }, [
-        dispatch,
-        rawQuery,
-        setLimit,
-        setPage,
-        setTotal,
-        setErrors,
-        unexpectedError,
-    ]);
+    }, [dispatch, rawQuery, setLimit, setPage, setTotal]);
 
     const handleDelete = (id: string) => {
-        dispatch(deleteItem(id)).then(async (response) => {
+        dispatch(deleteItem({ uuid: id })).then((response) => {
             if (deleteItem.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    refresh();
-                }
+                handleApiResult(response.payload, { onSuccess: refresh });
             }
         });
     };
 
-    const handlePrint = (id: string) => {
+    const handlePrint = async (id: string) => {
         const handler = openPopup();
 
         if (!handler) {
             return;
         }
 
-        dispatch(print(id)).then((response: unknown) => {
-            if (!print.fulfilled.match(response)) {
-                handler.close();
-                return;
-            }
-
+        try {
+            const response = await dispatch(print({ uuid: id }));
             if (
-                response.payload.statusCode !== 200 ||
-                !response.payload?.data
+                !print.fulfilled.match(response) ||
+                response.payload.kind !== "success" ||
+                !response.payload.data
             ) {
                 handler.close();
                 return;
             }
-
             updateWindowWithPdfData(handler, response.payload.data);
-        });
+        } catch {
+            handler.close();
+        }
     };
 
     useEffect(() => {
@@ -174,7 +153,6 @@ export default function List() {
 
     return (
         <>
-            <GlobalError error={errors} />
             <Card>
                 <CardHeader>
                     <CardTitle>Raktárkészlet</CardTitle>

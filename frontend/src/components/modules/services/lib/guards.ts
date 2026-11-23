@@ -29,12 +29,43 @@ import type {
     DeleteServiceResponse,
     PaginatedServiceResolvedListResponse,
     Service,
+    ServiceError,
     ServiceResolved,
     ServiceResolvedList,
     ServiceResolvedResponse,
     ServiceResponse,
     UpdateServiceResponse,
 } from "@/components/modules/services/lib/interface.ts";
+
+export function isServiceError(data: unknown): data is ServiceError {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        (data.id === null || typeof data.id === "string") &&
+        "name" in data &&
+        (data.name === null || typeof data.name === "string") &&
+        "description" in data &&
+        (data.description === null || typeof data.description === "string") &&
+        "default_price" in data &&
+        (data.default_price === null ||
+            typeof data.default_price === "string") &&
+        "default_tax_id" in data &&
+        (data.default_tax_id === null ||
+            typeof data.default_tax_id === "string") &&
+        "currency_code" in data &&
+        (data.currency_code === null ||
+            typeof data.currency_code === "string") &&
+        "status" in data &&
+        (data.status === null || typeof data.status === "string") &&
+        "unit_of_measure_id" in data &&
+        (data.unit_of_measure_id === null ||
+            typeof data.unit_of_measure_id === "string") &&
+        "new_unit_of_measure" in data &&
+        (data.new_unit_of_measure === null ||
+            typeof data.new_unit_of_measure === "string")
+    );
+}
 
 export function isCreateServiceResponse(
     data: unknown,

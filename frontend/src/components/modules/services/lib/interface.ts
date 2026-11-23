@@ -37,6 +37,18 @@ export interface ServiceUserInput {
     newUnitOfMeasure: string;
 }
 
+export interface ServiceError {
+    id: string | null;
+    name: string | null;
+    description: string | null;
+    default_price: string | null;
+    default_tax_id: string | null;
+    currency_code: string | null;
+    status: string | null;
+    unit_of_measure_id: string | null;
+    new_unit_of_measure: string | null;
+}
+
 export interface Service {
     id: string;
     name: string;

@@ -29,12 +29,28 @@ import type {
     DeleteProductResponse,
     PaginatedProductResolvedListResponse,
     Product,
+    ProductError,
     ProductResolved,
     ProductResolvedList,
     ProductResolvedResponse,
     ProductResponse,
     UpdateProductResponse,
 } from "@/components/modules/products/lib/interface.ts";
+
+export function isProductError(data: unknown): data is ProductError {
+    if (typeof data !== "object" || data === null) return false;
+    const fields = data as Record<string, unknown>;
+    return [
+        "id",
+        "name",
+        "description",
+        "unit_of_measure_id",
+        "new_unit_of_measure",
+        "status",
+    ].every(
+        (field) => fields[field] === null || typeof fields[field] === "string",
+    );
+}
 
 export function isCreateProductResponse(
     data: unknown,

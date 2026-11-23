@@ -107,18 +107,9 @@ beforeEach(() => {
                       action.kind === "service/create"
                     ? service
                     : [];
-        if (!action.kind.startsWith("service/")) {
-            return {
-                unwrap: async () => ({ kind: "success", data: { data } }),
-            };
-        }
-        return Promise.resolve({
-            kind: action.kind,
-            payload: {
-                statusCode: action.kind.endsWith("/create") ? 201 : 200,
-                jsonData: { data },
-            },
-        });
+        return {
+            unwrap: async () => ({ kind: "success", data: { data } }),
+        };
     });
 });
 afterEach(cleanup);
@@ -190,7 +181,7 @@ describe.each([
             const input = expect.objectContaining({ id: null });
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: `${label}/create`,
-                payload: label === "worksheet" ? { input } : input,
+                payload: { input },
             });
             expect(mocks.dispatch).not.toHaveBeenCalledWith(
                 expect.objectContaining({ kind: `${label}/get` }),
@@ -261,10 +252,7 @@ describe.each([
             );
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: `${label}/get`,
-                payload:
-                    label === "worksheet"
-                        ? { uuid: "existing-id" }
-                        : "existing-id",
+                payload: { uuid: "existing-id" },
             });
             fireEvent.click(screen.getByRole("button", { name: "Módosítás" }));
             await waitFor(() =>
@@ -273,7 +261,7 @@ describe.each([
             const input = expect.objectContaining({ id: "existing-id" });
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: `${label}/update`,
-                payload: label === "worksheet" ? { input } : input,
+                payload: { input },
             });
         });
 
@@ -286,7 +274,7 @@ describe.each([
             const input = expect.objectContaining({ id: null });
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: `${label}/create`,
-                payload: label === "worksheet" ? { input } : input,
+                payload: { input },
             });
         });
     },

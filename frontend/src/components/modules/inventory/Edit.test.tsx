@@ -63,6 +63,10 @@ const product = {
     description: "",
     unit_of_measure_id: "unit",
     status: "active",
+    created_by_id: "user",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    deleted_at: null,
 };
 const warehouse = {
     id: "new-warehouse",
@@ -70,6 +74,10 @@ const warehouse = {
     contact_name: null,
     contact_phone: null,
     status: "active",
+    created_by_id: "user",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    deleted_at: null,
 };
 
 beforeEach(() => {
@@ -80,12 +88,20 @@ beforeEach(() => {
         const data =
             action.kind === "inventory/get"
                 ? {
+                      id: "inventory-id",
                       product_id: "old-product",
                       warehouse_id: "old-warehouse",
+                      quantity_on_hand: "0",
+                      quantity_reserved: "0",
+                      quantity_available: "0",
                       minimum_stock: null,
                       maximum_stock: null,
                       currency_code: "HUF",
                       status: "active",
+                      created_by_id: "user",
+                      created_at: "2026-01-01T00:00:00Z",
+                      updated_at: "2026-01-01T00:00:00Z",
+                      deleted_at: null,
                   }
                 : action.kind.startsWith("product/") &&
                     !action.kind.endsWith("/list")
@@ -93,13 +109,18 @@ beforeEach(() => {
                   : action.kind.startsWith("warehouse/")
                     ? warehouse
                     : [];
-        return Promise.resolve({
-            kind: action.kind,
-            payload: {
-                statusCode: action.kind.endsWith("/create") ? 201 : 200,
-                jsonData: { data },
-            },
-        });
+        const result = {
+            kind: "success",
+            status: action.kind.endsWith("/create") ? 201 : 200,
+            data: { data },
+        };
+        return Object.assign(
+            Promise.resolve({
+                kind: action.kind,
+                payload: result,
+            }),
+            { unwrap: () => Promise.resolve(result), abort: vi.fn() },
+        );
     });
 });
 afterEach(cleanup);
@@ -130,7 +151,9 @@ describe.each([
         await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(data));
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: `${label}/create`,
-            payload: expect.objectContaining({ id: null, name: "New name" }),
+            payload: {
+                input: expect.objectContaining({ id: null, name: "New name" }),
+            },
         });
         expect(mocks.dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ kind: `${label}/get` }),
@@ -149,13 +172,13 @@ describe.each([
         );
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: `${label}/get`,
-            payload: "existing-id",
+            payload: { uuid: "existing-id" },
         });
         fireEvent.click(screen.getByRole("button", { name: "Módosítás" }));
         await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith(path));
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: `${label}/update`,
-            payload: expect.objectContaining({ id: "existing-id" }),
+            payload: { input: expect.objectContaining({ id: "existing-id" }) },
         });
     });
 
@@ -165,8 +188,47 @@ describe.each([
         await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith(path));
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: `${label}/create`,
-            payload: expect.objectContaining({ id: null }),
+            payload: { input: expect.objectContaining({ id: null }) },
         });
+    });
+
+    it("shows API field errors without completing creation", async () => {
+        const dispatch = mocks.dispatch.getMockImplementation()!;
+        mocks.dispatch.mockImplementation((action: { kind: string }) => {
+            if (action.kind !== `${label}/create`) return dispatch(action);
+            const result = {
+                kind: "http_error",
+                status: 422,
+                body: {
+                    error: {
+                        message: "Invalid",
+                        fields: {
+                            id: null,
+                            name: "Invalid name",
+                            description: null,
+                            unit_of_measure_id: null,
+                            new_unit_of_measure: null,
+                            contact_name: null,
+                            contact_phone: null,
+                            status: null,
+                        },
+                    },
+                },
+            };
+            return Object.assign(
+                Promise.resolve({ kind: action.kind, payload: result }),
+                {
+                    unwrap: () => Promise.resolve(result),
+                    abort: vi.fn(),
+                },
+            );
+        });
+        const onSuccess = vi.fn();
+        render(<Component createOnly onSuccess={onSuccess} />);
+        fireEvent.click(screen.getByRole("button", { name: "Létrehozás" }));
+        expect(await screen.findByText("Invalid name")).toBeInTheDocument();
+        expect(onSuccess).not.toHaveBeenCalled();
+        expect(mocks.navigate).not.toHaveBeenCalled();
     });
 
     it("uses the cancel callback without navigating", () => {
@@ -201,7 +263,7 @@ describe.each([
         await waitFor(() =>
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: "inventory/get",
-                payload: "inventory-id",
+                payload: { uuid: "inventory-id" },
             }),
         );
         const button = container.querySelectorAll(
@@ -223,13 +285,13 @@ describe.each([
         expect(mocks.navigate).not.toHaveBeenCalled();
         expect(mocks.dispatch).toHaveBeenCalledWith({
             kind: `${label}/create`,
-            payload: expect.objectContaining({ id: null }),
+            payload: { input: expect.objectContaining({ id: null }) },
         });
         expect(
             mocks.dispatch.mock.calls.filter(
                 ([action]) =>
                     action.kind === "inventory/list" &&
-                    action.payload === `${label}s`,
+                    action.payload.list === `${label}s`,
             ),
         ).toHaveLength(2);
         await act(async () => {
@@ -239,7 +301,7 @@ describe.each([
         await waitFor(() =>
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: "inventory/update",
-                payload: expect.objectContaining({ [field]: id }),
+                payload: { input: expect.objectContaining({ [field]: id }) },
             }),
         );
     });
@@ -250,7 +312,7 @@ describe.each([
         await waitFor(() =>
             expect(mocks.dispatch).toHaveBeenCalledWith({
                 kind: "inventory/get",
-                payload: "inventory-id",
+                payload: { uuid: "inventory-id" },
             }),
         );
         fireEvent.change(screen.getByLabelText("Minimum készlet"), {

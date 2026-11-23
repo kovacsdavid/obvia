@@ -20,8 +20,23 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as inventoryApi from "@/components/modules/inventory/lib/service.ts";
 import type { RootState } from "@/store";
-import type { InventoryUserInput } from "@/components/modules/inventory/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type {
+    CreateInventoryResponse,
+    DeleteInventoryResponse,
+    InventoryError,
+    InventoryResolvedResponse,
+    InventoryResponse,
+    InventoryUserInput,
+    PaginatedInventoryResolvedListResponse,
+    UpdateInventoryResponse,
+} from "@/components/modules/inventory/lib/interface.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
+import type { SelectOptionListResponse } from "@/lib/interface";
 
 interface InventoryState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,83 +46,187 @@ const initialState: InventoryState = {
     status: "idle",
 };
 
-export const get_resolved = createAsyncThunk(
+export const get_resolved = createAsyncThunk<
+    ApiResult<InventoryResolvedResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory/get_resolved",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryApi.get_resolved(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await inventoryApi.get_resolved(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const get = createAsyncThunk(
+export const get = createAsyncThunk<
+    ApiResult<InventoryResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory/get",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryApi.get(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await inventoryApi.get(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const update = createAsyncThunk(
+export const update = createAsyncThunk<
+    ApiResult<UpdateInventoryResponse, InventoryError>,
+    { input: InventoryUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "inventory/update",
-    async (requestData: InventoryUserInput, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryApi.update(requestData, token);
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await inventoryApi.update(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const deleteItem = createAsyncThunk(
+export const deleteItem = createAsyncThunk<
+    ApiResult<DeleteInventoryResponse>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory/deleteItem",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryApi.deleteItem(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await inventoryApi.deleteItem(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<CreateInventoryResponse, InventoryError>,
+    { input: InventoryUserInput; silent?: boolean },
+    { state: RootState }
+>(
     "inventory/create",
-    async (requestData: InventoryUserInput, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryApi.create(requestData, token);
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await inventoryApi.create(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<PaginatedInventoryResolvedListResponse>,
+    { query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "inventory/list",
-    async (query: string | null, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryApi.list(query, token);
+    async ({ query, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await inventoryApi.list(
+            query,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const select_list = createAsyncThunk(
+export const select_list = createAsyncThunk<
+    ApiResult<SelectOptionListResponse>,
+    { list: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory/select_list",
-    async (list: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryApi.select_list(list, token);
+    async ({ list, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await inventoryApi.select_list(
+            list,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const print = createAsyncThunk(
+export const print = createAsyncThunk<
+    ApiResult<Uint8Array<ArrayBuffer> | null>,
+    { uuid: string; silent?: boolean },
+    { state: RootState }
+>(
     "inventory/print",
-    async (uuid: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await inventoryApi.print(uuid, token);
+    async ({ uuid, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await inventoryApi.print(
+            uuid,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 

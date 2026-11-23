@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
@@ -34,12 +34,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
-import { useSelectList } from "@/hooks/use_select_list.ts";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
-import type { Inventory } from "./lib/interface";
+import type { Inventory, InventoryError } from "./lib/interface";
 import type { Product } from "../products/lib/interface";
 import type { Warehouse } from "../warehouses/lib/interface";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
@@ -47,6 +45,8 @@ import WarehousesEdit from "@/components/modules/warehouses/Edit.tsx";
 import ProductsEdit from "@/components/modules/products/Edit.tsx";
 import { Plus } from "lucide-react";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { toast } from "@/components/ui/toast-lib";
 import {
     Field,
     FieldGroup,
@@ -81,9 +81,7 @@ export default function Edit({
     );
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { setListResponse } = useSelectList();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = React.useState<InventoryError | null>(null);
     const params = useParams();
     const id = createOnly ? null : (params["id"] ?? null);
     const [openNewProductDialog, setOpenNewProductDialog] =
@@ -103,6 +101,14 @@ export default function Edit({
         allowEmpty: true,
     });
 
+    const resetError = (field: keyof InventoryError) => {
+        setErrors((previous) =>
+            previous ? { ...previous, [field]: null } : previous,
+        );
+    };
+    const isInvalidField = (field: keyof InventoryError) =>
+        typeof errors?.[field] === "string";
+
     const handleEditProductsSuccess = async (product: Product) => {
         return loadLists().then(() => {
             setTimeout(() => {
@@ -121,57 +127,37 @@ export default function Edit({
         });
     };
 
-    const handleCreate = useCallback(() => {
-        dispatch(
+    const handleCreate = async () => {
+        const response = await dispatch(
             create({
-                id,
-                productId,
-                warehouseId,
-                minimumStock: !isNaN(minimumStockInput.getNumericValue())
-                    ? minimumStockInput.getNumericValue().toString()
-                    : "",
-                maximumStock: !isNaN(maximumStockInput.getNumericValue())
-                    ? maximumStockInput.getNumericValue().toString()
-                    : "",
-                currencyCode,
-                status,
+                input: {
+                    id,
+                    productId,
+                    warehouseId,
+                    minimumStock: !isNaN(minimumStockInput.getNumericValue())
+                        ? minimumStockInput.getNumericValue().toString()
+                        : "",
+                    maximumStock: !isNaN(maximumStockInput.getNumericValue())
+                        ? maximumStockInput.getNumericValue().toString()
+                        : "",
+                    currencyCode,
+                    status,
+                },
             }),
-        ).then(async (response) => {
-            if (create.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    if (
-                        typeof onSuccess === "function" &&
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        onSuccess(response.payload.jsonData.data);
-                    } else {
-                        navigate("/raktarkeszlet/lista");
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
-        });
-    }, [
-        minimumStockInput,
-        dispatch,
-        id,
-        productId,
-        warehouseId,
-        maximumStockInput,
-        currencyCode,
-        status,
-        onSuccess,
-        navigate,
-        setErrors,
-        unexpectedError,
-    ]);
+        );
+        if (create.fulfilled.match(response))
+            handleApiResult(response.payload, {
+                onSuccess: ({ data }) => {
+                    toast.add({
+                        type: "success",
+                        title: "A mentés sikeresen megtörtént!",
+                    });
+                    if (onSuccess && data !== undefined) onSuccess(data);
+                    else navigate("/raktarkeszlet/lista");
+                },
+                onFieldErrors: setErrors,
+            });
+    };
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -185,111 +171,65 @@ export default function Edit({
         [navigate, onCancel],
     );
 
-    const handleUpdate = useCallback(() => {
-        dispatch(
+    const handleUpdate = async () => {
+        const response = await dispatch(
             update({
-                id,
-                productId,
-                warehouseId,
-                minimumStock: !isNaN(minimumStockInput.getNumericValue())
-                    ? minimumStockInput.getNumericValue().toString()
-                    : "",
-                maximumStock: !isNaN(maximumStockInput.getNumericValue())
-                    ? maximumStockInput.getNumericValue().toString()
-                    : "",
-                currencyCode,
-                status,
+                input: {
+                    id,
+                    productId,
+                    warehouseId,
+                    minimumStock: !isNaN(minimumStockInput.getNumericValue())
+                        ? minimumStockInput.getNumericValue().toString()
+                        : "",
+                    maximumStock: !isNaN(maximumStockInput.getNumericValue())
+                        ? maximumStockInput.getNumericValue().toString()
+                        : "",
+                    currencyCode,
+                    status,
+                },
             }),
-        ).then(async (response) => {
-            if (update.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
+        );
+        if (update.fulfilled.match(response))
+            handleApiResult(response.payload, {
+                onSuccess: () => {
+                    toast.add({
+                        type: "success",
+                        title: "A mentés sikeresen megtörtént!",
+                    });
                     navigate("/raktarkeszlet/lista");
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
-        });
-    }, [
-        dispatch,
-        id,
-        productId,
-        warehouseId,
-        minimumStockInput,
-        maximumStockInput,
-        currencyCode,
-        status,
-        navigate,
-        setErrors,
-        unexpectedError,
-    ]);
+                },
+                onFieldErrors: setErrors,
+            });
+    };
 
     const loadLists = useCallback(async () => {
-        return Promise.all([
-            dispatch(select_list("currencies")).then((response) => {
+        const lists = [
+            ["currencies", setCurrencyList],
+            ["products", setProductList],
+            ["warehouses", setWarehouseList],
+        ] as const;
+        return Promise.all(
+            lists.map(async ([listName, setList]) => {
+                const response = await dispatch(
+                    select_list({ list: listName }),
+                );
                 if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setCurrencyList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
+                    handleApiResult(response.payload, {
+                        onSuccess: ({ data }) => setList(data ?? []),
+                    });
                 }
             }),
-            dispatch(select_list("products")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setProductList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            }),
-            dispatch(select_list("warehouses")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setWarehouseList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            }),
-        ]);
-    }, [dispatch, setListResponse, setErrors, unexpectedError]);
+        );
+    }, [dispatch]);
 
     useEffect(() => {
         loadLists().then(() => {
             if (typeof id === "string") {
-                dispatch(get(id)).then(async (response) => {
+                dispatch(get({ uuid: id })).then((response) => {
                     if (get.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            if (
-                                typeof response.payload.jsonData?.data !==
-                                "undefined"
-                            ) {
-                                const data = response.payload.jsonData.data;
+                        handleApiResult(response.payload, {
+                            onSuccess: ({ data }) => {
+                                if (!data) return;
                                 setProductId(data.product_id);
                                 setWarehouseId(data.warehouse_id);
                                 minimumStockInput.setValue(
@@ -304,21 +244,8 @@ export default function Edit({
                                 );
                                 setCurrencyCode(data.currency_code);
                                 setStatus(data.status);
-                            }
-                        } else if (
-                            typeof response.payload.jsonData?.error !==
-                            "undefined"
-                        ) {
-                            setErrors({
-                                message:
-                                    response.payload.jsonData.error.message,
-                                fields: {},
-                            });
-                        } else {
-                            unexpectedError(response.payload.statusCode);
-                        }
-                    } else {
-                        unexpectedError();
+                            },
+                        });
                     }
                 });
             }
@@ -326,7 +253,7 @@ export default function Edit({
         // minimumStockInput and maximumStockInput are intentionally omitted to avoid infinite loops
         // They are only used to set initial values and don't need to trigger re-runs
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dispatch, id, setErrors, unexpectedError, loadLists]);
+    }, [dispatch, id, loadLists]);
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -339,7 +266,6 @@ export default function Edit({
 
     return (
         <>
-            <GlobalError error={errors} />
             <Dialog
                 open={openNewProductDialog}
                 onOpenChange={setOpenNewProductDialog}
@@ -426,10 +352,7 @@ export default function Edit({
                                         })}
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"product_id"}
-                                />
+                                <FieldErrorV2 error={errors?.product_id} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("warehouse_id")}
@@ -480,10 +403,7 @@ export default function Edit({
                                         })}
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"warehouse_id"}
-                                />
+                                <FieldErrorV2 error={errors?.warehouse_id} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("minimum_stock")}
@@ -507,10 +427,7 @@ export default function Edit({
                                         "minimum_stock",
                                     )}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"minimum_stock"}
-                                />
+                                <FieldErrorV2 error={errors?.minimum_stock} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("maximum_stock")}
@@ -534,10 +451,7 @@ export default function Edit({
                                         "maximum_stock",
                                     )}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"maximum_stock"}
-                                />
+                                <FieldErrorV2 error={errors?.maximum_stock} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("currency_code")}
@@ -573,10 +487,7 @@ export default function Edit({
                                         })}
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"currency_code"}
-                                />
+                                <FieldErrorV2 error={errors?.currency_code} />
                             </Field>
 
                             <Field data-invalid={isInvalidField("status")}>
@@ -608,7 +519,7 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"status"} />
+                                <FieldErrorV2 error={errors?.status} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

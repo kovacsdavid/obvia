@@ -35,6 +35,16 @@ export interface InventoryUserInput {
     status: string;
 }
 
+export interface InventoryError {
+    id: string | null;
+    product_id: string | null;
+    warehouse_id: string | null;
+    minimum_stock: string | null;
+    maximum_stock: string | null;
+    currency_code: string | null;
+    status: string | null;
+}
+
 export interface Inventory {
     id: string;
     product_id: string;

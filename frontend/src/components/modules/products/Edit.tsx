@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
@@ -35,11 +35,11 @@ import {
     SelectValue,
 } from "@/components/ui/select.tsx";
 import { useNavigate } from "react-router";
-import { useFormError } from "@/hooks/use_form_error.ts";
-import { useSelectList } from "@/hooks/use_select_list.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
-import type { Product } from "./lib/interface";
+import type { Product, ProductError } from "./lib/interface";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { toast } from "@/components/ui/toast-lib";
 import {
     Field,
     FieldGroup,
@@ -68,59 +68,37 @@ export default function Edit({
     const [unitsOfMeasureList, setUnitsOfMeasureList] =
         React.useState<SelectOptionList>([]);
     const [status, setStatus] = React.useState("active");
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = React.useState<ProductError | null>(null);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { setListResponse } = useSelectList();
     const params = useParams();
     const id = createOnly ? null : (params["id"] ?? null);
 
-    const handleCreate = useCallback(() => {
-        dispatch(
+    const handleCreate = async () => {
+        const result = await dispatch(
             create({
-                id,
-                name,
-                description,
-                unitOfMeasureId,
-                newUnitOfMeasure,
-                status,
+                input: {
+                    id,
+                    name,
+                    description,
+                    unitOfMeasureId,
+                    newUnitOfMeasure,
+                    status,
+                },
             }),
-        ).then(async (response) => {
-            if (create.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    if (
-                        typeof onSuccess === "function" &&
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        onSuccess(response.payload.jsonData.data);
-                    } else {
-                        navigate("/termek/lista");
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
+        ).unwrap();
+        handleApiResult(result, {
+            onSuccess: ({ data }) => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                if (onSuccess && data !== undefined) onSuccess(data);
+                else navigate("/termek/lista");
+            },
+            onFieldErrors: setErrors,
         });
-    }, [
-        description,
-        dispatch,
-        id,
-        name,
-        navigate,
-        newUnitOfMeasure,
-        onSuccess,
-        setErrors,
-        status,
-        unexpectedError,
-        unitOfMeasureId,
-    ]);
+    };
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -134,110 +112,84 @@ export default function Edit({
         [navigate, onCancel],
     );
 
-    const handleUpdate = useCallback(() => {
-        dispatch(
+    const handleUpdate = async () => {
+        const result = await dispatch(
             update({
-                id,
-                name,
-                description,
-                unitOfMeasureId,
-                newUnitOfMeasure,
-                status,
+                input: {
+                    id,
+                    name,
+                    description,
+                    unitOfMeasureId,
+                    newUnitOfMeasure,
+                    status,
+                },
             }),
-        ).then(async (response) => {
-            if (update.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    navigate("/termek/lista");
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
+        ).unwrap();
+        handleApiResult(result, {
+            onSuccess: () => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                navigate("/termek/lista");
+            },
+            onFieldErrors: setErrors,
         });
-    }, [
-        description,
-        dispatch,
-        id,
-        name,
-        navigate,
-        newUnitOfMeasure,
-        setErrors,
-        status,
-        unexpectedError,
-        unitOfMeasureId,
-    ]);
-
-    const loadLists = useCallback(async () => {
-        return dispatch(select_list("units_of_measure")).then((response) => {
-            if (select_list.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    setListResponse(
-                        response.payload,
-                        setUnitsOfMeasureList,
-                        setErrors,
-                    );
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
-        });
-    }, [dispatch, setErrors, setListResponse, unexpectedError]);
+    };
 
     useEffect(() => {
-        loadLists().then(() => {
-            if (typeof id === "string") {
-                dispatch(get(id)).then(async (response) => {
-                    if (get.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            if (
-                                typeof response.payload.jsonData?.data !==
-                                "undefined"
-                            ) {
-                                const data = response.payload.jsonData.data;
-                                setName(data.name);
-                                setDescription(data.description ?? "");
-                                setUnitOfMeasureId(data.unit_of_measure_id);
-                                setStatus(data.status);
-                            }
-                        } else if (
-                            typeof response.payload.jsonData?.error !==
-                            "undefined"
-                        ) {
-                            setErrors({
-                                message:
-                                    response.payload.jsonData.error.message,
-                                fields: {},
-                            });
-                        } else {
-                            unexpectedError(response.payload.statusCode);
-                        }
-                    } else {
-                        unexpectedError();
-                    }
+        const listRequest = dispatch(select_list({ list: "units_of_measure" }));
+        listRequest
+            .unwrap()
+            .then((result) => {
+                handleApiResult(result, {
+                    onSuccess: ({ data }) => setUnitsOfMeasureList(data ?? []),
                 });
-            }
-        });
-    }, [dispatch, id, setErrors, unexpectedError, loadLists]);
+            })
+            .catch(() => undefined);
+        const getRequest =
+            typeof id === "string" ? dispatch(get({ uuid: id })) : null;
+        getRequest
+            ?.unwrap()
+            .then((result) => {
+                handleApiResult(result, {
+                    onSuccess: ({ data }) => {
+                        if (data) {
+                            setName(data.name);
+                            setDescription(data.description ?? "");
+                            setUnitOfMeasureId(data.unit_of_measure_id);
+                            setStatus(data.status);
+                        }
+                    },
+                });
+            })
+            .catch(() => undefined);
+        return () => {
+            listRequest.abort();
+            getRequest?.abort();
+        };
+    }, [dispatch, id]);
+
+    const resetError = (field: keyof ProductError) => {
+        setErrors((previous) =>
+            previous ? { ...previous, [field]: null } : previous,
+        );
+    };
+    const isInvalidField = (field: keyof ProductError) =>
+        typeof errors?.[field] === "string";
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
-        if (typeof id === "string") {
-            handleUpdate();
-        } else {
-            handleCreate();
+        try {
+            if (typeof id === "string") await handleUpdate();
+            else await handleCreate();
+        } catch {
+            return;
         }
     };
 
     return (
         <>
-            <GlobalError error={errors} />
             <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
                 <form
                     onSubmit={handleSubmit}
@@ -261,7 +213,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("name")}
                                 />
-                                <FieldError error={errors} field={"name"} />
+                                <FieldErrorV2 error={errors?.name} />
                             </Field>
                             <Field data-invalid={isInvalidField("description")}>
                                 <FieldLabel htmlFor="description">
@@ -277,10 +229,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"description"}
-                                />
+                                <FieldErrorV2 error={errors?.description} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField(
@@ -328,9 +277,8 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"unit_of_measure_id"}
+                                <FieldErrorV2
+                                    error={errors?.unit_of_measure_id}
                                 />
                             </Field>
 
@@ -360,9 +308,8 @@ export default function Edit({
                                                 "new_unit_of_measure",
                                             )}
                                         />
-                                        <FieldError
-                                            error={errors}
-                                            field={"new_unit_of_measure"}
+                                        <FieldErrorV2
+                                            error={errors?.new_unit_of_measure}
                                         />
                                     </Field>
                                 </>
@@ -393,7 +340,7 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"status"} />
+                                <FieldErrorV2 error={errors?.status} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

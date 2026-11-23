@@ -22,76 +22,33 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
-import { Button, GlobalError, Input, Label } from "@/components/ui";
-import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
+import { Button, Input, Label } from "@/components/ui";
+import { Funnel, Plus } from "lucide-react";
 import {
     Table,
     TableBody,
-    TableCell,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table.tsx";
 import { Link } from "react-router";
 import { useAppDispatch } from "@/store/hooks.ts";
-import React, { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { list } from "@/components/modules/users/lib/slice.ts";
-import { type SimpleError } from "@/lib/interface.ts";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu.tsx";
-import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
     const dispatch = useAppDispatch();
-    const [errors, setErrors] = React.useState<SimpleError | null>(null);
-    const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
-        console.log(parsedQuery);
-    }, []);
-
-    const {
-        searchParams,
-        rawQuery,
-        page,
-        setPage,
-        setLimit,
-        setTotal,
-        //orderBy,
-        setOrderBy,
-        //order,
-        setOrder,
-        paginatorSelect,
-        //orderSelect,
-        //filterSelect,
-        totalPages,
-    } = useDataDisplayCommon(updateSpecialQueryParams);
+    const { rawQuery, page, paginatorSelect, totalPages } =
+        useDataDisplayCommon(null);
 
     useEffect(() => {
-        dispatch(list(rawQuery)).then(async (response) => {
-            console.log(response);
-            setErrors({ message: "Not implemented yet!" });
-        });
-    }, [
-        searchParams,
-        rawQuery,
-        dispatch,
-        setOrder,
-        setOrderBy,
-        setLimit,
-        setPage,
-        setTotal,
-    ]);
+        void dispatch(list({ query: rawQuery }));
+    }, [dispatch, rawQuery]);
 
     return (
         <>
-            <GlobalError error={errors} />
             <div className={"flex justify-between items-center mb-6"}>
                 <div className="flex gap-2">
                     <Link to={"/felhasznalo/letrehozas"}>
@@ -147,46 +104,7 @@ export default function List() {
                         <TableHead>Frissítve</TableHead>
                     </TableRow>
                 </TableHeader>
-                <TableBody>
-                    <TableRow>
-                        <TableCell>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        className="h-8 w-8 p-0"
-                                    >
-                                        <span className="sr-only">
-                                            Menü megnyitása
-                                        </span>
-                                        <MoreHorizontal />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    side={"bottom"}
-                                    align="start"
-                                >
-                                    <DropdownMenuLabel>
-                                        Műveletek
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuItem>
-                                        <Eye /> Részletek
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        <Pencil /> Szerkesztés
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem>
-                                        <Trash /> Törlés
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                        <TableCell>Placeholder</TableCell>
-                        <TableCell>2025-08-31T13:52:49.213086+02:00</TableCell>
-                        <TableCell>2025-08-31T13:52:49.213086+02:00</TableCell>
-                    </TableRow>
-                </TableBody>
+                <TableBody />
             </Table>
             <Paginator
                 page={page}

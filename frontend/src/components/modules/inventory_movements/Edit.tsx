@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -27,7 +27,6 @@ import {
     select_list,
 } from "@/components/modules/inventory_movements/lib/slice.ts";
 import { useNavigate, useParams } from "react-router";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import {
     Select,
     SelectContent,
@@ -36,8 +35,11 @@ import {
     SelectValue,
 } from "@/components/ui/select.tsx";
 import { type SelectOptionList } from "@/lib/interface.ts";
-import { useSelectList } from "@/hooks/use_select_list.ts";
-import type { InventoryMovement } from "./lib/interface";
+import type {
+    InventoryMovement,
+    InventoryMovementError,
+} from "./lib/interface";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
 import { formatNumber, parseNumber } from "@/lib/utils.ts";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
@@ -80,9 +82,16 @@ export default function Edit({
         React.useState<SelectOptionList>([]);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { setListResponse } = useSelectList();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = React.useState<InventoryMovementError | null>(
+        null,
+    );
+    const isInvalidField = (field: keyof InventoryMovementError) =>
+        typeof errors?.[field] === "string";
+    const resetError = (field: keyof InventoryMovementError) => {
+        setErrors((previous) =>
+            previous ? { ...previous, [field]: null } : previous,
+        );
+    };
     const id = React.useMemo(() => params["id"] ?? "", [params]);
     const quantity = useNumberInput({
         showThousandSeparator: true,
@@ -109,44 +118,25 @@ export default function Edit({
     const loadLists = useCallback(() => {
         return Promise.all([
             !routeInventoryId &&
-                dispatch(select_list("inventory")).then((response) => {
-                    if (select_list.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            setListResponse(
-                                response.payload,
-                                setInventoryIdList,
-                                setErrors,
-                            );
-                        } else {
-                            unexpectedError(response.payload.statusCode);
-                        }
-                    } else {
-                        unexpectedError();
-                    }
-                }),
-            dispatch(select_list("taxes")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setTaxList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            }),
+                dispatch(select_list({ list: "inventory" }))
+                    .unwrap()
+                    .then((result) =>
+                        handleApiResult(result, {
+                            onSuccess: ({ data }) =>
+                                setInventoryIdList(data ?? []),
+                        }),
+                    )
+                    .catch(() => undefined),
+            dispatch(select_list({ list: "taxes" }))
+                .unwrap()
+                .then((result) =>
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => setTaxList(data ?? []),
+                    }),
+                )
+                .catch(() => undefined),
         ]);
-    }, [
-        dispatch,
-        routeInventoryId,
-        setErrors,
-        setListResponse,
-        unexpectedError,
-    ]);
+    }, [dispatch, routeInventoryId]);
 
     const handleEditInventorySuccess = async (inventory: Inventory) => {
         return loadLists().then(() => {
@@ -160,94 +150,76 @@ export default function Edit({
     useEffect(() => {
         loadLists().then(() => {
             if (typeof id === "string" && id.length === 36) {
-                dispatch(get(id)).then(async (response) => {
-                    if (get.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            if (
-                                typeof response.payload.jsonData?.data !==
-                                "undefined"
-                            ) {
-                                const data = response.payload.jsonData.data;
-                                setInventoryId(data.inventory_id);
-                                setMovementType(data.movement_type);
-                                quantity.setValue(
-                                    data.quantity
-                                        ? data.quantity.toString()
-                                        : "",
-                                );
-                                unitPrice.setValue(data.unit_price ?? "");
-                                setTaxId(data.tax_id);
-                            }
-                        } else if (
-                            typeof response.payload.jsonData?.error !==
-                            "undefined"
-                        ) {
-                            setErrors({
-                                message:
-                                    response.payload.jsonData.error.message,
-                                fields: {},
-                            });
-                        } else {
-                            unexpectedError(response.payload.statusCode);
-                        }
-                    } else {
-                        unexpectedError();
-                    }
-                });
+                dispatch(get({ uuid: id }))
+                    .unwrap()
+                    .then((result) => {
+                        handleApiResult(result, {
+                            onSuccess: ({ data }) => {
+                                if (data) {
+                                    setInventoryId(data.inventory_id);
+                                    setMovementType(data.movement_type);
+                                    quantity.setValue(
+                                        data.quantity
+                                            ? data.quantity.toString()
+                                            : "",
+                                    );
+                                    unitPrice.setValue(data.unit_price ?? "");
+                                    setTaxId(data.tax_id);
+                                }
+                            },
+                        });
+                    })
+                    .catch(() => undefined);
             }
         });
         // quantity is intentionally omitted to avoid infinite loops
         // They are only used to set initial values and don't need to trigger re-runs
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dispatch, id, loadLists, setErrors, unexpectedError]);
+    }, [dispatch, id, loadLists]);
 
     const handleSubmit = useCallback(
         (e: React.SubmitEvent) => {
             e.preventDefault();
             dispatch(
                 create({
-                    id: null,
-                    inventoryId,
-                    movementType,
-                    quantity: !isNaN(quantity.getNumericValue())
-                        ? quantity.getNumericValue().toString()
-                        : "",
-                    referenceType:
-                        typeof referenceType === "string" ? referenceType : "",
-                    referenceId:
-                        typeof referenceId === "string" ? referenceId : "",
-                    unitPrice: !isNaN(unitPrice.getNumericValue())
-                        ? unitPrice.getNumericValue().toString()
-                        : "",
-                    totalPrice:
-                        typeof totalPrice === "string"
-                            ? parseNumber(totalPrice).toString()
+                    input: {
+                        id: null,
+                        inventoryId,
+                        movementType,
+                        quantity: !isNaN(quantity.getNumericValue())
+                            ? quantity.getNumericValue().toString()
                             : "",
-                    taxId,
+                        referenceType:
+                            typeof referenceType === "string"
+                                ? referenceType
+                                : "",
+                        referenceId:
+                            typeof referenceId === "string" ? referenceId : "",
+                        unitPrice: !isNaN(unitPrice.getNumericValue())
+                            ? unitPrice.getNumericValue().toString()
+                            : "",
+                        totalPrice:
+                            typeof totalPrice === "string"
+                                ? parseNumber(totalPrice).toString()
+                                : "",
+                        taxId,
+                    },
                 }),
-            ).then(async (response) => {
-                if (create.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 201) {
-                        if (
-                            typeof onSuccess === "function" &&
-                            typeof response.payload.jsonData?.data !==
-                                "undefined"
-                        ) {
-                            onSuccess(response.payload.jsonData.data);
-                        } else {
-                            navigate(-1);
-                        }
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setErrors(response.payload.jsonData.error);
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            });
+            )
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof onSuccess === "function" && data) {
+                                onSuccess(data);
+                            } else {
+                                navigate(-1);
+                            }
+                        },
+                        onFieldErrors: setErrors,
+                    });
+                })
+                .catch(() => undefined);
         },
         [
             dispatch,
@@ -261,14 +233,11 @@ export default function Edit({
             taxId,
             onSuccess,
             navigate,
-            setErrors,
-            unexpectedError,
         ],
     );
 
     return (
         <>
-            <GlobalError error={errors} />
             <Dialog
                 open={openNewInventoryDialog}
                 onOpenChange={setOpenNewInventoryDialog}
@@ -358,9 +327,8 @@ export default function Edit({
                                                 )}
                                             </SelectContent>
                                         </Select>
-                                        <FieldError
-                                            error={errors}
-                                            field={"inventory_id"}
+                                        <FieldErrorV2
+                                            error={errors?.inventory_id}
                                         />
                                     </Field>
                                 </>
@@ -384,7 +352,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("quantity")}
                                 />
-                                <FieldError error={errors} field={"quantity"} />
+                                <FieldErrorV2 error={errors?.quantity} />
                             </Field>
 
                             <Field data-invalid={isInvalidField("unit_price")}>
@@ -405,10 +373,7 @@ export default function Edit({
                                     }}
                                     aria-invalid={isInvalidField("unit_price")}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"unit_price"}
-                                />
+                                <FieldErrorV2 error={errors?.unit_price} />
                             </Field>
 
                             <Field data-invalid={isInvalidField("total_price")}>
@@ -420,12 +385,9 @@ export default function Edit({
                                     type="text"
                                     value={totalPrice ?? ""}
                                     disabled={true}
-                                    aria-invalid={isInvalidField("name")}
+                                    aria-invalid={isInvalidField("total_price")}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"total_price"}
-                                />
+                                <FieldErrorV2 error={errors?.total_price} />
                             </Field>
 
                             <Field data-invalid={isInvalidField("tax_id")}>
@@ -454,7 +416,7 @@ export default function Edit({
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"tax_id"} />
+                                <FieldErrorV2 error={errors?.tax_id} />
                             </Field>
                             <Field
                                 data-invalid={isInvalidField("movement_type")}
@@ -487,10 +449,7 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"movement_type"}
-                                />
+                                <FieldErrorV2 error={errors?.movement_type} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

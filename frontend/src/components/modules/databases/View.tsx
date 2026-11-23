@@ -33,16 +33,14 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card.tsx";
-import { GlobalError, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { formatDateLocal } from "@/lib/utils.ts";
 import type { Database } from "@/components/modules/databases/lib/interface.ts";
 import { useNavigate } from "react-router";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { useAuth } from "@/hooks/use_auth";
 
 export default function View() {
     const [data, setData] = React.useState<Database | null>(null);
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
@@ -50,32 +48,21 @@ export default function View() {
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
-            dispatch(get(params["id"])).then(async (response) => {
-                if (get.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        if (
-                            typeof response.payload.jsonData?.data !==
-                            "undefined"
-                        ) {
-                            setData(response.payload.jsonData.data);
-                        }
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setErrors(response.payload.jsonData.error);
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
+            dispatch(get({ uuid: params["id"] })).then((response) => {
+                if (
+                    get.fulfilled.match(response) &&
+                    response.payload.kind === "success" &&
+                    response.payload.status === 200 &&
+                    response.payload.data.data !== undefined
+                ) {
+                    setData(response.payload.data.data);
                 }
             });
         }
-    }, [dispatch, params, setErrors, unexpectedError]);
+    }, [dispatch, params]);
 
     return (
         <>
-            <GlobalError error={errors} />
             {data !== null ? (
                 <>
                     <Card className={"max-w-3xl mx-auto"}>

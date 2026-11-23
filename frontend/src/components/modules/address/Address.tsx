@@ -47,10 +47,10 @@ import {
 import { useCallback, useEffect, useId, useMemo } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { select_list } from "@/components/modules/address/lib/slice";
-import { useSelectList } from "@/hooks/use_select_list.ts";
 import React from "react";
 import type { SelectOptionList } from "@/lib/interface";
-import { useFormError } from "@/hooks/use_form_error";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { toast } from "@/components/ui/toast-lib";
 import { RefreshCw } from "lucide-react";
 
 interface AddressProps {
@@ -92,9 +92,10 @@ export default function Address({
 }: AddressProps) {
     const id_prefix = useId();
     const dispatch = useAppDispatch();
-    const { setListResponse } = useSelectList();
     const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
-    const { unexpectedError } = useFormError();
+    const [listError, setListError] = React.useState<string | null>(null);
+    const listController = React.useRef<AbortController | null>(null);
+    const setErrorsRef = React.useRef(setErrors);
     const setField = <K extends keyof Address>(field: K, newValue: string) => {
         if (value !== null && typeof value !== "undefined") {
             onChange({
@@ -112,33 +113,53 @@ export default function Address({
         [setErrors],
     );
 
-    const loadLists = useCallback(async () => {
-        return dispatch(select_list("countries")).then((response) => {
-            if (select_list.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    setListResponse(response.payload, setCountryList, () => {
-                        if (
-                            typeof response.payload.jsonData?.error !==
-                            "undefined"
-                        ) {
-                            setError(
-                                response.payload.jsonData.error.message ?? null,
+    useEffect(() => {
+        setErrorsRef.current = setErrors;
+    }, [setErrors]);
+
+    const loadLists = useCallback(() => {
+        listController.current?.abort();
+        const controller = new AbortController();
+        listController.current = controller;
+        return dispatch(
+            select_list({ list: "countries" }, { signal: controller.signal }),
+        )
+            .unwrap()
+            .then((result) => {
+                if (controller.signal.aborted) return;
+                handleApiResult(result, {
+                    onSuccess: ({ data, error }) => {
+                        if (data !== undefined) {
+                            setCountryList(data);
+                            setListError(null);
+                        }
+                        if (error !== undefined) {
+                            setErrorsRef.current?.(
+                                error.message ?? null,
                                 "country_code",
                             );
+                            setListError(error.message ?? null);
                         }
-                    });
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
-        });
-    }, [dispatch, setError, setListResponse, unexpectedError]);
+                    },
+                    onError: setListError,
+                });
+            })
+            .catch(() => {
+                if (controller.signal.aborted) return;
+                const message = "Nem sikerült betölteni az országok listáját.";
+                setListError(message);
+                toast.add({
+                    type: "error",
+                    title: "Hiba történt",
+                    description: message,
+                });
+            });
+    }, [dispatch]);
 
     useEffect(() => {
-        loadLists();
-    }, [dispatch, setErrors, unexpectedError, setListResponse, loadLists]);
+        void loadLists();
+        return () => listController.current?.abort();
+    }, [loadLists]);
 
     const countryTitleByCode = useMemo(
         () => new Map(countryList.map((c) => [c.value, c.title])),
@@ -199,7 +220,8 @@ export default function Address({
 
                         <Field
                             data-invalid={
-                                typeof errors?.country_code === "string"
+                                typeof (errors?.country_code ?? listError) ===
+                                "string"
                             }
                         >
                             <FieldLabel htmlFor={`${id_prefix}_country_code`}>
@@ -225,8 +247,10 @@ export default function Address({
                                         id={`${id_prefix}_country_code`}
                                         placeholder="Válassz országot"
                                         aria-invalid={
-                                            typeof errors?.country_code ===
-                                            "string"
+                                            typeof (
+                                                errors?.country_code ??
+                                                listError
+                                            ) === "string"
                                         }
                                     />
                                     <ComboboxContent>
@@ -246,8 +270,11 @@ export default function Address({
                                     </ComboboxContent>
                                 </Combobox>
                             )}
-                            <FieldErrorV2 error={errors?.country_code} />
-                            {typeof errors?.country_code === "string" ? (
+                            <FieldErrorV2
+                                error={errors?.country_code ?? listError}
+                            />
+                            {typeof (errors?.country_code ?? listError) ===
+                            "string" ? (
                                 <Button
                                     type="button"
                                     variant="outline"

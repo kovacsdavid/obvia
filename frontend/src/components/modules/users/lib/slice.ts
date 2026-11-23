@@ -20,8 +20,18 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as usersApi from "@/components/modules/users/lib/service.ts";
 import type { RootState } from "@/store";
-import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
-import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
+import type {
+    CreateUser,
+    OtpFields,
+} from "@/components/modules/users/lib/interface.ts";
+import {
+    isLogoutInProgress,
+    refreshAccessToken,
+} from "@/components/modules/auth/lib/slice.ts";
+import type { EnableOtpResponse } from "@/components/modules/auth/lib/interface";
+import type { SimpleMessageData } from "@/lib/interface";
+import type { ApiResult } from "@/lib/api/types";
+import { notifyApiError } from "@/lib/api/notifyApiErrors";
 
 interface UsersState {
     status: "idle" | "loading" | "succeeded" | "failed";
@@ -31,64 +41,114 @@ const initialState: UsersState = {
     status: "idle",
 };
 
-export const enableOtp = createAsyncThunk(
-    "users/enableOtp",
-    async (_, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await usersApi.enableOtp(token);
-    },
-);
+export const enableOtp = createAsyncThunk<
+    ApiResult<EnableOtpResponse>,
+    { silent?: boolean } | void,
+    { state: RootState }
+>("users/enableOtp", async (options, { getState, dispatch, signal }) => {
+    const refresh = await dispatch(refreshAccessToken(options));
+    if (!refreshAccessToken.fulfilled.match(refresh))
+        return { kind: "aborted" };
+    if (refresh.payload.kind !== "success") return refresh.payload;
+    if (!getState().auth.login.token || isLogoutInProgress())
+        return { kind: "aborted" };
+    const result = await usersApi.enableOtp(
+        getState().auth.login.token,
+        signal,
+    );
+    if (!options?.silent) notifyApiError(result);
+    return result;
+});
 
-export const verifyOtp = createAsyncThunk(
+export const verifyOtp = createAsyncThunk<
+    ApiResult<{ data: SimpleMessageData }, OtpFields>,
+    { otp: string; silent?: boolean },
+    { state: RootState }
+>(
     "users/verifyOtp",
-    async (otp: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await usersApi.verifyOtp(otp, token);
+    async ({ otp, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await usersApi.verifyOtp(
+            otp,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const disableOtp = createAsyncThunk(
+export const disableOtp = createAsyncThunk<
+    ApiResult<{ data: SimpleMessageData }, OtpFields>,
+    { otp: string; silent?: boolean },
+    { state: RootState }
+>(
     "users/disableOtp",
-    async (otp: string, { getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        return await usersApi.disableOtp(otp, token);
+    async ({ otp, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await usersApi.disableOtp(
+            otp,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const create = createAsyncThunk(
+export const create = createAsyncThunk<
+    ApiResult<never>,
+    { input: CreateUser; silent?: boolean },
+    { state: RootState }
+>(
     "users/create",
-    async (
-        requestData: CreateUser,
-        { rejectWithValue, getState, dispatch },
-    ) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        try {
-            return usersApi.create(requestData, token);
-        } catch (error: unknown) {
-            return rejectWithValue(error);
-        }
+    async ({ input, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await usersApi.create(
+            input,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
-export const list = createAsyncThunk(
+export const list = createAsyncThunk<
+    ApiResult<never>,
+    { query: string | null; silent?: boolean },
+    { state: RootState }
+>(
     "users/list",
-    async (query: string | null, { rejectWithValue, getState, dispatch }) => {
-        await dispatch(refreshAccessToken());
-        const rootState = getState() as RootState;
-        const token = rootState.auth.login.token;
-        try {
-            return usersApi.list(query, token);
-        } catch (error: unknown) {
-            return rejectWithValue(error);
-        }
+    async ({ query, silent = false }, { getState, dispatch, signal }) => {
+        const refresh = await dispatch(refreshAccessToken({ silent }));
+        if (!refreshAccessToken.fulfilled.match(refresh))
+            return { kind: "aborted" };
+        if (refresh.payload.kind !== "success") return refresh.payload;
+        if (!getState().auth.login.token || isLogoutInProgress())
+            return { kind: "aborted" };
+        const result = await usersApi.list(
+            query,
+            getState().auth.login.token,
+            signal,
+        );
+        if (!silent) notifyApiError(result);
+        return result;
     },
 );
 
@@ -101,8 +161,9 @@ const usersSlice = createSlice({
             .addCase(create.pending, (state) => {
                 state.status = "loading";
             })
-            .addCase(create.fulfilled, (state) => {
-                state.status = "succeeded";
+            .addCase(create.fulfilled, (state, action) => {
+                state.status =
+                    action.payload.kind === "success" ? "succeeded" : "failed";
             })
             .addCase(create.rejected, (state) => {
                 state.status = "failed";
@@ -111,8 +172,9 @@ const usersSlice = createSlice({
             .addCase(list.pending, (state) => {
                 state.status = "loading";
             })
-            .addCase(list.fulfilled, (state) => {
-                state.status = "succeeded";
+            .addCase(list.fulfilled, (state, action) => {
+                state.status =
+                    action.payload.kind === "success" ? "succeeded" : "failed";
             })
             .addCase(list.rejected, (state) => {
                 state.status = "failed";

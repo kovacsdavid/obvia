@@ -19,6 +19,8 @@
 
 import type {
     ActivityFeedResolvedEntry,
+    Comment,
+    CommentError,
     DeleteCommentResponse,
     PaginatedActivityFeedResponse,
     PostCommentResponse,
@@ -26,6 +28,7 @@ import type {
 import {
     isCommonResponse,
     isFormError,
+    isFormErrorFields,
     isPaginatedDataResponse,
     isSimpleError,
     isSimpleMessageData,
@@ -63,7 +66,37 @@ export function isActivityFeedEntry(
 export function isPostCommentResponse(
     data: unknown,
 ): data is PostCommentResponse {
-    return isCommonResponse(data, isActivityFeedEntry, isFormError);
+    return (
+        isCommonResponse(data, isComment, isFormError) &&
+        data.data !== undefined
+    );
+}
+
+export function isCommentError(data: unknown): data is CommentError {
+    return isFormErrorFields(data);
+}
+
+export function isComment(data: unknown): data is Comment {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        typeof data.id === "string" &&
+        "commentable_type" in data &&
+        typeof data.commentable_type === "string" &&
+        "commentable_id" in data &&
+        typeof data.commentable_id === "string" &&
+        "comment" in data &&
+        typeof data.comment === "string" &&
+        "created_by_id" in data &&
+        typeof data.created_by_id === "string" &&
+        "created_at" in data &&
+        typeof data.created_at === "string" &&
+        "updated_at" in data &&
+        typeof data.updated_at === "string" &&
+        "deleted_at" in data &&
+        (data.deleted_at === null || typeof data.deleted_at === "string")
+    );
 }
 
 export function isActivityFeedArray(
@@ -77,11 +110,18 @@ export function isActivityFeedArray(
 export function isPaginatedActivityFeedResponse(
     data: unknown,
 ): data is PaginatedActivityFeedResponse {
-    return isPaginatedDataResponse(data, isActivityFeedArray);
+    return (
+        isPaginatedDataResponse(data, isActivityFeedArray) &&
+        data.data !== undefined &&
+        data.meta !== undefined
+    );
 }
 
 export function isDeleteCommentResponse(
     data: unknown,
 ): data is DeleteCommentResponse {
-    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
+    return (
+        isCommonResponse(data, isSimpleMessageData, isSimpleError) &&
+        data.data !== undefined
+    );
 }

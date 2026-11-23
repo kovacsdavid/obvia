@@ -19,14 +19,17 @@
 
 import React from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { create } from "@/components/modules/databases/lib/slice.ts";
 import { useActivateDatabase } from "@/hooks/use_activate_database.ts";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import { useNavigate } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useParams } from "react-router";
-import type { Database } from "@/components/modules/databases/lib/interface.ts";
+import type {
+    Database,
+    DatabaseError,
+} from "@/components/modules/databases/lib/interface.ts";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 import {
     Field,
     FieldGroup,
@@ -45,10 +48,9 @@ export default function Edit({
     onSuccess = undefined,
 }: EditProps) {
     const [name, setName] = React.useState("");
+    const [errors, setErrors] = React.useState<DatabaseError | null>(null);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
     const params = useParams();
     const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -56,50 +58,33 @@ export default function Edit({
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
-        dispatch(
-            create({
-                name,
-            }),
-        ).then(async (response) => {
-            if (create.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    if (
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        activateDatabase(
-                            response.payload.jsonData.data.id,
-                        ).then((isOk) => {
-                            if (isOk) {
-                                if (
-                                    typeof onSuccess === "function" &&
-                                    typeof response.payload.jsonData?.data !==
-                                        "undefined"
-                                ) {
-                                    onSuccess(response.payload.jsonData.data);
-                                } else {
-                                    navigate("/adatbazis/lista");
-                                }
-                            } else {
-                                unexpectedError();
-                            }
-                        });
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
+        const response = await dispatch(create({ input: { name } }));
+        if (!create.fulfilled.match(response)) return;
+        const result = response.payload;
+        const successfulDatabase = { value: null as Database | null };
+        handleApiResult(result, {
+            onSuccess: ({ data }) => {
+                if (
+                    result.kind === "success" &&
+                    result.status === 201 &&
+                    data
                 ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
+                    successfulDatabase.value = data;
                 }
-            } else {
-                unexpectedError();
-            }
+            },
+            onFieldErrors: setErrors,
         });
+        const database = successfulDatabase.value;
+        if (database) {
+            if (await activateDatabase(database.id)) {
+                if (typeof onSuccess === "function") onSuccess(database);
+                else navigate("/adatbazis/lista");
+            }
+        }
     };
 
     return (
         <>
-            <GlobalError error={errors} />
             <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
                 <form
                     onSubmit={handleSubmit}
@@ -111,7 +96,9 @@ export default function Edit({
                             {`Adatbázis ${id ? "módosítás" : "létrehozás"}`}
                         </FieldLegend>
                         <FieldGroup>
-                            <Field data-invalid={isInvalidField("name")}>
+                            <Field
+                                data-invalid={typeof errors?.name === "string"}
+                            >
                                 <FieldLabel htmlFor="name">
                                     Adatbázis neve
                                 </FieldLabel>
@@ -121,12 +108,18 @@ export default function Edit({
                                     placeholder="Példa Kft."
                                     value={name}
                                     onChange={(e) => {
-                                        resetError("name");
+                                        setErrors((previous) =>
+                                            previous
+                                                ? { ...previous, name: null }
+                                                : previous,
+                                        );
                                         setName(e.target.value);
                                     }}
-                                    aria-invalid={isInvalidField("name")}
+                                    aria-invalid={
+                                        typeof errors?.name === "string"
+                                    }
                                 />
-                                <FieldError error={errors} field={"name"} />
+                                <FieldErrorV2 error={errors?.name} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

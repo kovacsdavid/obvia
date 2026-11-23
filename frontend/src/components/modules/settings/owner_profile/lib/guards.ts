@@ -17,127 +17,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { schemaGuard } from "@/lib/api/schemas";
 import {
-    isCommonResponse,
-    isFormErrorV2,
-    isSimpleError,
-} from "@/lib/interface.ts";
-import type {
-    OwnerProfileErrors,
-    OwnerProfile,
-    OwnerProfileFull,
-    OwnerProfileFullResponse,
-    UpdateOwnerProfileResponse,
-} from "@/components/modules/settings/owner_profile/lib/interface";
-import {
-    isAddress,
-    isAddressError,
-} from "@/components/modules/address/lib/guards";
+    ownerProfileErrorsSchema,
+    ownerProfileFullResponseSchema,
+    ownerProfileFullSchema,
+    ownerProfileSchema,
+    updateOwnerProfileResponseSchema,
+} from "./schemas";
 
-export function isOwnerProfile(data: unknown): data is OwnerProfile {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "contact_name" in data &&
-        (data.contact_name === null || typeof data.contact_name === "string") &&
-        "email" in data &&
-        typeof data.email === "string" &&
-        "website" in data &&
-        (data.website === null || typeof data.website === "string") &&
-        "document_prefix" in data &&
-        (data.document_prefix === null ||
-            typeof data.document_prefix === "string") &&
-        "phone_number" in data &&
-        (data.phone_number === null || typeof data.phone_number === "string") &&
-        "owner_profile_type" in data &&
-        typeof data.owner_profile_type === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "billing_address" in data &&
-        (data.billing_address === null ||
-            typeof data.billing_address === "string") &&
-        "mailing_address" in data &&
-        (data.mailing_address === null ||
-            typeof data.mailing_address === "string")
-    );
-}
-
-export function isOwnerProfileFull(data: unknown): data is OwnerProfileFull {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "contact_name" in data &&
-        (data.contact_name === null || typeof data.contact_name === "string") &&
-        "email" in data &&
-        typeof data.email === "string" &&
-        "website" in data &&
-        (data.website === null || typeof data.website === "string") &&
-        "document_prefix" in data &&
-        (data.document_prefix === null ||
-            typeof data.document_prefix === "string") &&
-        "phone_number" in data &&
-        (data.phone_number === null || typeof data.phone_number === "string") &&
-        "owner_profile_type" in data &&
-        typeof data.owner_profile_type === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "billing_address" in data &&
-        (data.billing_address === null || isAddress(data.billing_address)) &&
-        "mailing_address" in data &&
-        (data.mailing_address === null || isAddress(data.mailing_address))
-    );
-}
-
-export function isOwnerProfileErrors(
-    data: unknown,
-): data is OwnerProfileErrors {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "name" in data &&
-        (data.name === null || typeof data.name === "string") &&
-        "contact_name" in data &&
-        (data.contact_name === null || typeof data.contact_name === "string") &&
-        "email" in data &&
-        (data.email === null || typeof data.email === "string") &&
-        "website" in data &&
-        (data.website === null || typeof data.website === "string") &&
-        "document_prefix" in data &&
-        (data.document_prefix === null ||
-            typeof data.document_prefix === "string") &&
-        "phone_number" in data &&
-        (data.phone_number === null || typeof data.phone_number === "string") &&
-        "owner_profile_type" in data &&
-        (data.owner_profile_type === null ||
-            typeof data.owner_profile_type === "string") &&
-        "billing_address" in data &&
-        isAddressError(data.billing_address) &&
-        "mailing_address" in data &&
-        isAddressError(data.mailing_address)
-    );
-}
-export function isUpdateOwnerProfileResponse(
-    data: unknown,
-): data is UpdateOwnerProfileResponse {
-    return isCommonResponse(data, isOwnerProfileFull, (data: unknown) =>
-        isFormErrorV2<OwnerProfileErrors>(data, isOwnerProfileErrors),
-    );
-}
-
-export function isOwnerProfileFullResponse(
-    data: unknown,
-): data is OwnerProfileFullResponse {
-    return isCommonResponse(data, isOwnerProfileFull, isSimpleError);
-}
+export const isOwnerProfile = schemaGuard(ownerProfileSchema);
+export const isOwnerProfileFull = schemaGuard(ownerProfileFullSchema);
+export const isOwnerProfileErrors = schemaGuard(ownerProfileErrorsSchema);
+export const isUpdateOwnerProfileResponse = schemaGuard(
+    updateOwnerProfileResponseSchema,
+);
+export const isOwnerProfileFullResponse = schemaGuard(
+    ownerProfileFullResponseSchema,
+);

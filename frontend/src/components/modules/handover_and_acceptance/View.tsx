@@ -66,18 +66,8 @@ export default function View() {
     }, [dispatch, params]);
 
     const acceptedByName = () => {
-        if (
-            !data ||
-            typeof data.accepted_by !== "object" ||
-            data.accepted_by === null
-        ) {
-            return "";
-        }
-        const user = data.accepted_by as {
-            first_name?: string | null;
-            last_name?: string | null;
-            email?: string;
-        };
+        if (!data) return "";
+        const user = data.accepted_by;
         const name = [user.last_name, user.first_name]
             .filter(Boolean)
             .join(" ")

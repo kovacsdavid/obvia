@@ -128,20 +128,14 @@ export default function Address({
             .then((result) => {
                 if (controller.signal.aborted) return;
                 handleApiResult(result, {
-                    onSuccess: ({ data, error }) => {
-                        if (data !== undefined) {
-                            setCountryList(data);
-                            setListError(null);
-                        }
-                        if (error !== undefined) {
-                            setErrorsRef.current?.(
-                                error.message ?? null,
-                                "country_code",
-                            );
-                            setListError(error.message ?? null);
-                        }
+                    onSuccess: ({ data }) => {
+                        setCountryList(data);
+                        setListError(null);
                     },
-                    onError: setListError,
+                    onError: (message) => {
+                        setErrorsRef.current?.(message, "country_code");
+                        setListError(message);
+                    },
                 });
             })
             .catch(() => {

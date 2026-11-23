@@ -167,4 +167,37 @@ describe("warehouse API", () => {
             status: 200,
         });
     });
+
+    it("preserves extra response fields and rejects empty 204 responses", async () => {
+        const data = {
+            id: "warehouse-1",
+            name: "Main",
+            contact_name: null,
+            contact_phone: null,
+            status: "active",
+            created_by_id: "user-1",
+            created_at: "date",
+            updated_at: "date",
+            deleted_at: null,
+            extra: "retained",
+        };
+        fetchMock.mockResolvedValueOnce(
+            new Response(JSON.stringify({ data }), {
+                headers: { "Content-Type": "application/json" },
+            }),
+        );
+        expect(await api.get("warehouse-1", null)).toEqual({
+            kind: "success",
+            status: 200,
+            data: { data },
+        });
+        expect(await api.deleteItem("warehouse-1", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+        expect(await api.print("warehouse-1", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+    });
 });

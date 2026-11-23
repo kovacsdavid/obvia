@@ -21,34 +21,40 @@ import type {
     FormError,
     ProcessedJsonResponse,
     SelectOptionList,
-    SelectOptionListResponse,
 } from "@/lib/interface.ts";
+import { isSelectOptionListResponse, isSimpleError } from "@/lib/interface.ts";
 import React, { useCallback } from "react";
 
 export function useSelectList() {
     const setListResponse = useCallback(
         (
-            payload: ProcessedJsonResponse<SelectOptionListResponse>,
+            payload: ProcessedJsonResponse<unknown>,
             setList: (data: React.SetStateAction<SelectOptionList>) => void,
             setError: (data: React.SetStateAction<FormError | null>) => void,
         ) => {
-            if (payload.statusCode === 200) {
-                if (typeof payload.jsonData?.data !== "undefined") {
-                    setList(payload.jsonData.data);
-                }
-            } else if (typeof payload.jsonData?.error !== "undefined") {
-                if (typeof payload.jsonData.error !== "undefined") {
-                    setError({
-                        message: payload.jsonData.error.message,
-                        fields: {},
-                    });
-                }
-            } else {
-                setError({
-                    message: "Váratlan hiba történt a feldolgozás során!",
-                    fields: {},
-                });
+            if (
+                payload.statusCode === 200 &&
+                isSelectOptionListResponse(payload.jsonData)
+            ) {
+                setList(payload.jsonData.data);
+                return;
             }
+
+            const body = payload.jsonData;
+            const error =
+                payload.statusCode !== 200 &&
+                typeof body === "object" &&
+                body !== null &&
+                "error" in body &&
+                isSimpleError(body.error)
+                    ? body.error
+                    : null;
+            setError({
+                message:
+                    error?.message ??
+                    "Váratlan hiba történt a feldolgozás során!",
+                fields: {},
+            });
         },
         [],
     );

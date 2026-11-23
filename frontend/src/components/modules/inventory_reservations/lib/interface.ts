@@ -17,77 +17,45 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { z } from "zod";
 import type {
-    CommonResponse,
-    FormError,
-    PaginatedDataResponse,
-    SimpleError,
-    SimpleMessageData,
-} from "@/lib/interface.ts";
+    inventoryReservationUserInputSchema,
+    inventoryReservationErrorSchema,
+    inventoryReservationSchema,
+    inventoryReservationResolvedSchema,
+    inventoryReservationResolvedListSchema,
+    inventoryReservationResponseSchema,
+    inventoryReservationResolvedResponseSchema,
+    createInventoryReservationResponseSchema,
+    deleteInventoryReservationResponseSchema,
+    paginatedInventoryReservationResolvedListResponseSchema,
+} from "./schemas";
 
-export interface InventoryReservationUserInput {
-    id: string | null;
-    inventoryId: string;
-    quantity: string;
-    referenceType: string | null;
-    referenceId: string | null;
-    reservedUntil: string | null;
-    status: string;
-}
-
-export interface InventoryReservationError {
-    id: string | null;
-    inventory_id: string | null;
-    quantity: string | null;
-    reference_type: string | null;
-    reference_id: string | null;
-    reserved_until: string | null;
-    status: string | null;
-}
-
-export interface InventoryReservation {
-    id: string;
-    inventory_id: string;
-    quantity: string;
-    reference_type: string | null;
-    reference_id: string | null;
-    reserved_until: string | null;
-    status: string;
-    created_by_id: string;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface InventoryReservationResolved {
-    id: string;
-    inventory_id: string;
-    quantity: string;
-    reference_type: string | null;
-    reference_id: string | null;
-    reserved_until: string | null;
-    status: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-}
-
-export type CreateInventoryReservationResponse = CommonResponse<
-    InventoryReservation,
-    FormError
+export type InventoryReservationUserInput = z.infer<
+    typeof inventoryReservationUserInputSchema
 >;
-export type DeleteInventoryReservationResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type InventoryReservationError = z.infer<
+    typeof inventoryReservationErrorSchema
 >;
-export type InventoryReservationResponse = CommonResponse<
-    InventoryReservation,
-    SimpleError
+export type InventoryReservation = z.infer<typeof inventoryReservationSchema>;
+export type InventoryReservationResolved = z.infer<
+    typeof inventoryReservationResolvedSchema
 >;
-export type InventoryReservationResolvedResponse = CommonResponse<
-    InventoryReservationResolved,
-    SimpleError
+export type InventoryReservationResolvedList = z.infer<
+    typeof inventoryReservationResolvedListSchema
 >;
-export type InventoryReservationResolvedList = InventoryReservationResolved[];
-export type PaginatedInventoryReservationResolvedListResponse =
-    PaginatedDataResponse<InventoryReservationResolvedList, SimpleError>;
+export type InventoryReservationResponse = z.infer<
+    typeof inventoryReservationResponseSchema
+>;
+export type InventoryReservationResolvedResponse = z.infer<
+    typeof inventoryReservationResolvedResponseSchema
+>;
+export type CreateInventoryReservationResponse = z.infer<
+    typeof createInventoryReservationResponseSchema
+>;
+export type DeleteInventoryReservationResponse = z.infer<
+    typeof deleteInventoryReservationResponseSchema
+>;
+export type PaginatedInventoryReservationResolvedListResponse = z.infer<
+    typeof paginatedInventoryReservationResolvedListResponseSchema
+>;

@@ -17,83 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormError,
-    type PaginatedDataResponse,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
+import type { z } from "zod";
+import type {
+    createTaxResponseSchema,
+    deleteTaxResponseSchema,
+    paginatedTaxResolvedListResponseSchema,
+    taxErrorSchema,
+    taxResolvedListSchema,
+    taxResolvedResponseSchema,
+    taxResolvedSchema,
+    taxResponseSchema,
+    taxSchema,
+    taxUserInputSchema,
+    updateTaxResponseSchema,
+} from "./schemas";
 
-export interface TaxUserInput {
-    id: string | null;
-    rate: string | null;
-    description: string;
-    countryCode: string;
-    taxCategory: string;
-    isRateApplicable: boolean | null;
-    legalText: string | null;
-    reportingCode: string | null;
-    isDefault: boolean;
-    status: string;
-}
-
-export interface TaxError {
-    id: string | null;
-    rate: string | null;
-    description: string | null;
-    country_code: string | null;
-    tax_category: string | null;
-    is_rate_applicable: string | null;
-    legal_text: string | null;
-    reporting_code: string | null;
-    is_default: string | null;
-    status: string | null;
-}
-
-export interface Tax {
-    id: string;
-    rate: string | null;
-    description: string;
-    country_code: string;
-    tax_category: string;
-    is_rate_applicable: boolean;
-    legal_text: string | null;
-    reporting_code: string | null;
-    is_default: boolean;
-    status: string;
-    created_by_id: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export interface TaxResolved {
-    id: string;
-    rate: string | null;
-    description: string;
-    country_code: string;
-    country: string;
-    tax_category: string;
-    is_rate_applicable: boolean;
-    legal_text: string | null;
-    reporting_code: string | null;
-    is_default: boolean;
-    status: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export type CreateTaxResponse = CommonResponse<Tax, FormError>;
-export type UpdateTaxResponse = CommonResponse<Tax, FormError>;
-export type DeleteTaxResponse = CommonResponse<SimpleMessageData, SimpleError>;
-export type TaxResolvedList = TaxResolved[];
-export type TaxResponse = CommonResponse<Tax, SimpleError>;
-export type TaxResolvedResponse = CommonResponse<TaxResolved, SimpleError>;
-export type PaginatedTaxResolvedListResponse = PaginatedDataResponse<
-    TaxResolvedList,
-    SimpleError
+export type TaxUserInput = z.infer<typeof taxUserInputSchema>;
+export type TaxError = z.infer<typeof taxErrorSchema>;
+export type Tax = z.infer<typeof taxSchema>;
+export type TaxResolved = z.infer<typeof taxResolvedSchema>;
+export type CreateTaxResponse = z.infer<typeof createTaxResponseSchema>;
+export type UpdateTaxResponse = z.infer<typeof updateTaxResponseSchema>;
+export type DeleteTaxResponse = z.infer<typeof deleteTaxResponseSchema>;
+export type TaxResolvedList = z.infer<typeof taxResolvedListSchema>;
+export type TaxResponse = z.infer<typeof taxResponseSchema>;
+export type TaxResolvedResponse = z.infer<typeof taxResolvedResponseSchema>;
+export type PaginatedTaxResolvedListResponse = z.infer<
+    typeof paginatedTaxResolvedListResponseSchema
 >;

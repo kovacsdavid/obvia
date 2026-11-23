@@ -17,71 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormError,
-    type PaginatedDataResponse,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
+import type { z } from "zod";
+import type {
+    productUserInputSchema,
+    productErrorSchema,
+    productSchema,
+    productResolvedSchema,
+    productResolvedListSchema,
+    productResponseSchema,
+    createProductResponseSchema,
+    updateProductResponseSchema,
+    deleteProductResponseSchema,
+    productResolvedResponseSchema,
+    paginatedProductResolvedListResponseSchema,
+} from "./schemas";
 
-export interface ProductUserInput {
-    id: string | null;
-    name: string;
-    description: string;
-    unitOfMeasureId: string;
-    newUnitOfMeasure: string;
-    status: string;
-}
-
-export interface ProductError {
-    id: string | null;
-    name: string | null;
-    description: string | null;
-    unit_of_measure_id: string | null;
-    new_unit_of_measure: string | null;
-    status: string | null;
-}
-
-export interface Product {
-    id: string;
-    name: string;
-    description: string | null;
-    unit_of_measure_id: string;
-    status: string;
-    created_by_id: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export interface ProductResolved {
-    id: string;
-    name: string;
-    description: string | null;
-    unit_of_measure_id: string;
-    unit_of_measure: string;
-    status: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export type CreateProductResponse = CommonResponse<Product, FormError>;
-export type UpdateProductResponse = CommonResponse<Product, FormError>;
-export type DeleteProductResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type ProductUserInput = z.infer<typeof productUserInputSchema>;
+export type ProductError = z.infer<typeof productErrorSchema>;
+export type Product = z.infer<typeof productSchema>;
+export type ProductResolved = z.infer<typeof productResolvedSchema>;
+export type ProductResolvedList = z.infer<typeof productResolvedListSchema>;
+export type CreateProductResponse = z.infer<typeof createProductResponseSchema>;
+export type UpdateProductResponse = z.infer<typeof updateProductResponseSchema>;
+export type DeleteProductResponse = z.infer<typeof deleteProductResponseSchema>;
+export type ProductResponse = z.infer<typeof productResponseSchema>;
+export type ProductResolvedResponse = z.infer<
+    typeof productResolvedResponseSchema
 >;
-export type ProductResponse = CommonResponse<Product, SimpleError>;
-export type ProductResolvedResponse = CommonResponse<
-    ProductResolved,
-    SimpleError
->;
-export type ProductResolvedList = ProductResolved[];
-export type PaginatedProductResolvedListResponse = PaginatedDataResponse<
-    ProductResolvedList,
-    SimpleError
+export type PaginatedProductResolvedListResponse = z.infer<
+    typeof paginatedProductResolvedListResponseSchema
 >;

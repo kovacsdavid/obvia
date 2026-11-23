@@ -71,10 +71,68 @@ describe("auth logout API", () => {
             expect.objectContaining({ method: "POST" }),
         );
     });
+
+    it("rejects a JSON response body", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ data: null })));
+        expect(await auth.logout()).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+    });
 });
 
 describe("auth API contracts", () => {
     afterEach(() => vi.unstubAllGlobals());
+
+    it("rejects a no-content login response", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockResolvedValue(new Response(null, { status: 204 })),
+        );
+        expect(
+            await auth.login({ email: "a", password: "b", otp: null }),
+        ).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+    });
+
+    it.each([
+        [
+            "login",
+            () => auth.login({ email: "a", password: "b", otp: null }),
+            loginData,
+        ],
+        ["refresh", () => auth.refresh(), loginData],
+        ["claims", () => auth.get_claims("token"), loginData.claims],
+        ["verification", () => auth.verfiy_email("id"), { message: "ok" }],
+    ])(
+        "enforces non-paginated success envelopes for %s",
+        async (_name, invoke, data) => {
+            const fetchMock = vi
+                .fn()
+                .mockResolvedValueOnce(json({ data, meta: null, extra: true }))
+                .mockResolvedValueOnce(
+                    json({ data, meta: { page: 1, limit: 10, total: 1 } }),
+                )
+                .mockResolvedValueOnce(
+                    json({ data, error: { message: "error" } }),
+                )
+                .mockResolvedValueOnce(json({ data: null }));
+            vi.stubGlobal("fetch", fetchMock);
+            expect(await invoke()).toEqual({
+                kind: "success",
+                status: 200,
+                data: { data, meta: null, extra: true },
+            });
+            for (let index = 0; index < 3; index++) {
+                expect(await invoke()).toEqual({
+                    kind: "invalid_response",
+                    status: 200,
+                });
+            }
+        },
+    );
 
     it("sends login with optional OTP and validates login data", async () => {
         const fetchMock = vi.fn().mockResolvedValue(json({ data: loginData }));

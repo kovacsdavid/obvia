@@ -17,29 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type { OtpFields } from "./interface";
-import { isSimpleMessageData, type SimpleMessageData } from "@/lib/interface";
+import { schemaGuard } from "@/lib/api/schemas";
+import {
+    otpFieldsSchema,
+    otpMessageResponseSchema,
+    unimplementedResponseSchema,
+} from "./schemas";
 
-export function isOtpFields(data: unknown): data is OtpFields {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "otp" in data &&
-        (typeof data.otp === "string" || data.otp === null)
-    );
-}
-
-export function isOtpMessageResponse(
-    data: unknown,
-): data is { data: SimpleMessageData } {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "data" in data &&
-        isSimpleMessageData(data.data)
-    );
-}
-
-export function isUnimplementedResponse(_data: unknown): _data is never {
-    return false;
-}
+export const isOtpFields = schemaGuard(otpFieldsSchema);
+export const isOtpMessageResponse = schemaGuard(otpMessageResponseSchema);
+export const isUnimplementedResponse = schemaGuard(unimplementedResponseSchema);

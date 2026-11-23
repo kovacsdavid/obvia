@@ -17,131 +17,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { schemaGuard } from "@/lib/api/schemas";
 import {
-    isCommonResponse,
-    isFormError,
-    isPaginatedDataResponse,
-    isSimpleError,
-    isSimpleMessageData,
-} from "@/lib/interface.ts";
-import type {
-    CreateWarehouseResponse,
-    DeleteWarehouseResponse,
-    PaginatedWarehouseResolvedListResponse,
-    UpdateWarehouseResponse,
-    Warehouse,
-    WarehouseError,
-    WarehouseResolved,
-    WarehouseResolvedList,
-    WarehouseResolvedResponse,
-    WarehouseResponse,
-} from "@/components/modules/warehouses/lib/interface.ts";
+    createWarehouseResponseSchema,
+    deleteWarehouseResponseSchema,
+    paginatedWarehouseResolvedListResponseSchema,
+    updateWarehouseResponseSchema,
+    warehouseErrorSchema,
+    warehouseResolvedListSchema,
+    warehouseResolvedResponseSchema,
+    warehouseResolvedSchema,
+    warehouseResponseSchema,
+    warehouseSchema,
+} from "./schemas";
 
-export function isWarehouseError(data: unknown): data is WarehouseError {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        ["id", "name", "contact_name", "contact_phone", "status"].every(
-            (key) =>
-                key in data &&
-                (data[key as keyof typeof data] === null ||
-                    typeof data[key as keyof typeof data] === "string"),
-        )
-    );
-}
-
-export function isCreateWarehouseResponse(
-    data: unknown,
-): data is CreateWarehouseResponse {
-    return isCommonResponse(data, isWarehouse, isFormError);
-}
-
-export function isWarehouseResolvedResponse(
-    data: unknown,
-): data is WarehouseResolvedResponse {
-    return isCommonResponse(data, isWarehouseResolved, isSimpleError);
-}
-
-export function isWarehouseResolved(data: unknown): data is WarehouseResolved {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "contact_name" in data &&
-        (data.contact_name === null || typeof data.contact_name === "string") &&
-        "contact_phone" in data &&
-        (data.contact_phone === null ||
-            typeof data.contact_phone === "string") &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_by" in data &&
-        typeof data.created_by === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
-    );
-}
-
-export function isWarehouseResolvedList(
-    data: unknown,
-): data is WarehouseResolvedList {
-    return (
-        Array.isArray(data) && data.every((item) => isWarehouseResolved(item))
-    );
-}
-
-export function isPaginatedWarehouseResolvedListResponse(
-    data: unknown,
-): data is PaginatedWarehouseResolvedListResponse {
-    return isPaginatedDataResponse(data, isWarehouseResolvedList);
-}
-
-export function isWarehouse(data: unknown): data is Warehouse {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "contact_name" in data &&
-        (data.contact_name === null || typeof data.contact_name === "string") &&
-        "contact_phone" in data &&
-        (data.contact_phone === null ||
-            typeof data.contact_phone === "string") &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
-    );
-}
-
-export function isWarehouseResponse(data: unknown): data is WarehouseResponse {
-    return isCommonResponse(data, isWarehouse, isSimpleError);
-}
-
-export function isUpdateWarehouseResponse(
-    data: unknown,
-): data is UpdateWarehouseResponse {
-    return isCommonResponse(data, isWarehouse, isFormError);
-}
-
-export function isDeleteWarehouseResponse(
-    data: unknown,
-): data is DeleteWarehouseResponse {
-    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
-}
+export const isWarehouseError = schemaGuard(warehouseErrorSchema);
+export const isCreateWarehouseResponse = schemaGuard(
+    createWarehouseResponseSchema,
+);
+export const isUpdateWarehouseResponse = schemaGuard(
+    updateWarehouseResponseSchema,
+);
+export const isDeleteWarehouseResponse = schemaGuard(
+    deleteWarehouseResponseSchema,
+);
+export const isWarehouseResolved = schemaGuard(warehouseResolvedSchema);
+export const isWarehouseResolvedResponse = schemaGuard(
+    warehouseResolvedResponseSchema,
+);
+export const isWarehouseResolvedList = schemaGuard(warehouseResolvedListSchema);
+export const isPaginatedWarehouseResolvedListResponse = schemaGuard(
+    paginatedWarehouseResolvedListResponseSchema,
+);
+export const isWarehouse = schemaGuard(warehouseSchema);
+export const isWarehouseResponse = schemaGuard(warehouseResponseSchema);

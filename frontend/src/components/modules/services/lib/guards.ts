@@ -17,165 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { schemaGuard } from "@/lib/api/schemas";
 import {
-    isCommonResponse,
-    isFormError,
-    isPaginatedDataResponse,
-    isSimpleError,
-    isSimpleMessageData,
-} from "@/lib/interface.ts";
-import type {
-    CreateServiceResponse,
-    DeleteServiceResponse,
-    PaginatedServiceResolvedListResponse,
-    Service,
-    ServiceError,
-    ServiceResolved,
-    ServiceResolvedList,
-    ServiceResolvedResponse,
-    ServiceResponse,
-    UpdateServiceResponse,
-} from "@/components/modules/services/lib/interface.ts";
+    serviceErrorSchema,
+    serviceSchema,
+    serviceResolvedSchema,
+    serviceResolvedListSchema,
+    serviceResponseSchema,
+    serviceResolvedResponseSchema,
+    createServiceResponseSchema,
+    updateServiceResponseSchema,
+    deleteServiceResponseSchema,
+    paginatedServiceResolvedListResponseSchema,
+} from "./schemas";
 
-export function isServiceError(data: unknown): data is ServiceError {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        (data.id === null || typeof data.id === "string") &&
-        "name" in data &&
-        (data.name === null || typeof data.name === "string") &&
-        "description" in data &&
-        (data.description === null || typeof data.description === "string") &&
-        "default_price" in data &&
-        (data.default_price === null ||
-            typeof data.default_price === "string") &&
-        "default_tax_id" in data &&
-        (data.default_tax_id === null ||
-            typeof data.default_tax_id === "string") &&
-        "currency_code" in data &&
-        (data.currency_code === null ||
-            typeof data.currency_code === "string") &&
-        "status" in data &&
-        (data.status === null || typeof data.status === "string") &&
-        "unit_of_measure_id" in data &&
-        (data.unit_of_measure_id === null ||
-            typeof data.unit_of_measure_id === "string") &&
-        "new_unit_of_measure" in data &&
-        (data.new_unit_of_measure === null ||
-            typeof data.new_unit_of_measure === "string")
-    );
-}
-
-export function isCreateServiceResponse(
-    data: unknown,
-): data is CreateServiceResponse {
-    return isCommonResponse(data, isService, isFormError);
-}
-
-export function isUpdateServiceResponse(
-    data: unknown,
-): data is UpdateServiceResponse {
-    return isCommonResponse(data, isService, isFormError);
-}
-
-export function isDeleteServiceResponse(
-    data: unknown,
-): data is DeleteServiceResponse {
-    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
-}
-
-export function isServiceResolved(data: unknown): data is ServiceResolved {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "description" in data &&
-        (data.description === null || typeof data.description === "string") &&
-        "default_price" in data &&
-        (data.default_price === null ||
-            typeof data.default_price === "string") &&
-        "default_tax_id" in data &&
-        (data.default_tax_id === null ||
-            typeof data.default_tax_id === "string") &&
-        "default_tax" in data &&
-        (data.default_tax === null || typeof data.default_tax === "string") &&
-        "currency_code" in data &&
-        (data.currency_code === null ||
-            typeof data.currency_code === "string") &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_by" in data &&
-        typeof data.created_by === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string") &&
-        "unit_of_measure_id" in data &&
-        typeof data.unit_of_measure_id === "string" &&
-        "unit_of_measure" in data
-    );
-}
-
-export function isServiceResolvedResponse(
-    data: unknown,
-): data is ServiceResolvedResponse {
-    return isCommonResponse(data, isServiceResolved, isSimpleError);
-}
-
-export function isServiceResolvedList(
-    data: unknown,
-): data is ServiceResolvedList {
-    return Array.isArray(data) && data.every((item) => isServiceResolved(item));
-}
-
-export function isPaginatedServiceResolvedListResponse(
-    data: unknown,
-): data is PaginatedServiceResolvedListResponse {
-    return isPaginatedDataResponse(data, isServiceResolvedList);
-}
-
-export function isService(data: unknown): data is Service {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "description" in data &&
-        (data.description === null || typeof data.description === "string") &&
-        "default_price" in data &&
-        (data.default_price === null ||
-            typeof data.default_price === "string") &&
-        "default_tax_id" in data &&
-        (data.default_tax_id === null ||
-            typeof data.default_tax_id === "string") &&
-        "currency_code" in data &&
-        (data.currency_code === null ||
-            typeof data.currency_code === "string") &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string") &&
-        "unit_of_measure_id" in data &&
-        typeof data.unit_of_measure_id === "string"
-    );
-}
-
-export function isServiceResponse(data: unknown): data is ServiceResponse {
-    return isCommonResponse(data, isService, isSimpleError);
-}
+export const isServiceError = schemaGuard(serviceErrorSchema);
+export const isService = schemaGuard(serviceSchema);
+export const isServiceResolved = schemaGuard(serviceResolvedSchema);
+export const isServiceResolvedList = schemaGuard(serviceResolvedListSchema);
+export const isServiceResponse = schemaGuard(serviceResponseSchema);
+export const isServiceResolvedResponse = schemaGuard(
+    serviceResolvedResponseSchema,
+);
+export const isCreateServiceResponse = schemaGuard(createServiceResponseSchema);
+export const isUpdateServiceResponse = schemaGuard(updateServiceResponseSchema);
+export const isDeleteServiceResponse = schemaGuard(deleteServiceResponseSchema);
+export const isPaginatedServiceResolvedListResponse = schemaGuard(
+    paginatedServiceResolvedListResponseSchema,
+);

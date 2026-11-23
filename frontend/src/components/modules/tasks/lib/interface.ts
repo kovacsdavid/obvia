@@ -17,89 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormError,
-    type PaginatedDataResponse,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
+import type { z } from "zod";
+import type {
+    createTaskResponseSchema,
+    deleteTaskResponseSchema,
+    paginatedTaskResolvedListResponseSchema,
+    taskErrorsSchema,
+    taskResolvedListSchema,
+    taskResolvedResponseSchema,
+    taskResolvedSchema,
+    taskResponseSchema,
+    taskSchema,
+    taskUserInputSchema,
+    updateTaskResponseSchema,
+} from "./schemas";
 
-export interface TaskUserInput {
-    id: string | null;
-    worksheetId: string;
-    serviceId: string;
-    currencyCode: string;
-    quantity: string;
-    price: string;
-    taxId: string;
-    status: string;
-    priority: string | null;
-    dueDate: string | null;
-    description: string | null;
-}
-
-export interface Task {
-    id: string;
-    worksheet_id: string;
-    service_id: string;
-    currency_code: string;
-    quantity: string | null;
-    price: string | null;
-    tax_id: string;
-    created_by_id: string;
-    status: string;
-    priority: string | null;
-    due_date: string | null;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-    description: string | null;
-}
-
-export interface TaskErrors {
-    id: string | null;
-    worksheet_id: string | null;
-    service_id: string | null;
-    currency_code: string | null;
-    quantity: string | null;
-    price: string | null;
-    tax_id: string | null;
-    status: string | null;
-    priority: string | null;
-    due_date: string | null;
-    description: string | null;
-}
-
-export interface TaskResolved {
-    id: string;
-    worksheet_id: string;
-    worksheet: string;
-    service_id: string;
-    service: string;
-    currency_code: string;
-    quantity: string | null;
-    price: string | null;
-    tax_id: string;
-    tax: string;
-    created_by_id: string;
-    created_by: string;
-    status: string;
-    priority: string | null;
-    due_date: string | null;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-    description: string | null;
-}
-
-export type CreateTaskResponse = CommonResponse<Task, FormError>;
-export type UpdateTaskResponse = CommonResponse<Task, FormError>;
-export type DeleteTaskResponse = CommonResponse<SimpleMessageData, SimpleError>;
-export type TaskResponse = CommonResponse<Task, SimpleError>;
-export type TaskResolvedResponse = CommonResponse<TaskResolved, SimpleError>;
-export type TaskResolvedList = TaskResolved[];
-export type PaginatedTaskResolvedListResponse = PaginatedDataResponse<
-    TaskResolvedList,
-    SimpleError
+export type TaskUserInput = z.infer<typeof taskUserInputSchema>;
+export type Task = z.infer<typeof taskSchema>;
+export type TaskErrors = z.infer<typeof taskErrorsSchema>;
+export type TaskResolved = z.infer<typeof taskResolvedSchema>;
+export type TaskResolvedList = z.infer<typeof taskResolvedListSchema>;
+export type CreateTaskResponse = z.infer<typeof createTaskResponseSchema>;
+export type UpdateTaskResponse = z.infer<typeof updateTaskResponseSchema>;
+export type DeleteTaskResponse = z.infer<typeof deleteTaskResponseSchema>;
+export type TaskResponse = z.infer<typeof taskResponseSchema>;
+export type TaskResolvedResponse = z.infer<typeof taskResolvedResponseSchema>;
+export type PaginatedTaskResolvedListResponse = z.infer<
+    typeof paginatedTaskResolvedListResponseSchema
 >;

@@ -17,76 +17,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormError,
-    type PaginatedDataResponse,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
+import type { z } from "zod";
+import type {
+    createWorksheetResponseSchema,
+    deleteWorksheetResponseSchema,
+    paginatedWorksheetResolvedListResponseSchema,
+    updateWorksheetResponseSchema,
+    worksheetErrorSchema,
+    worksheetResolvedListSchema,
+    worksheetResolvedResponseSchema,
+    worksheetResolvedSchema,
+    worksheetResponseSchema,
+    worksheetSchema,
+    worksheetUserInputSchema,
+} from "./schemas";
 
-export interface WorksheetUserInput {
-    id: string | null;
-    description: string;
-    customerId: string;
-    projectId: string;
-    status: string;
-}
-
-export interface Worksheet {
-    id: string;
-    display_id: string;
-    description: string | null;
-    customer_id: string;
-    project_id: string | null;
-    created_by_id: string;
-    status: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export interface WorksheetError {
-    id: string | null;
-    description: string | null;
-    customer_id: string | null;
-    project_id: string | null;
-    status: string | null;
-}
-
-export interface WorksheetResolved {
-    id: string;
-    display_id: string;
-    description: string | null;
-    customer_id: string;
-    customer: string;
-    project_id: string | null;
-    project: string;
-    created_by_id: string;
-    created_by: string;
-    status: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-    net_material_cost: string;
-    gross_material_cost: string;
-    net_work_cost: string;
-    gross_work_cost: string;
-}
-
-export type CreateWorksheetResponse = CommonResponse<Worksheet, FormError>;
-export type UpdateWorksheetResponse = CommonResponse<Worksheet, FormError>;
-export type DeleteWorksheetResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type WorksheetUserInput = z.infer<typeof worksheetUserInputSchema>;
+export type Worksheet = z.infer<typeof worksheetSchema>;
+export type WorksheetError = z.infer<typeof worksheetErrorSchema>;
+export type WorksheetResolved = z.infer<typeof worksheetResolvedSchema>;
+export type WorksheetResolvedList = z.infer<typeof worksheetResolvedListSchema>;
+export type CreateWorksheetResponse = z.infer<
+    typeof createWorksheetResponseSchema
 >;
-export type WorksheetResponse = CommonResponse<Worksheet, SimpleError>;
-export type WorksheetResolvedResponse = CommonResponse<
-    WorksheetResolved,
-    SimpleError
+export type UpdateWorksheetResponse = z.infer<
+    typeof updateWorksheetResponseSchema
 >;
-export type WorksheetResolvedList = WorksheetResolved[];
-export type PaginatedWorksheetResolvedListResponse = PaginatedDataResponse<
-    WorksheetResolvedList,
-    SimpleError
+export type DeleteWorksheetResponse = z.infer<
+    typeof deleteWorksheetResponseSchema
+>;
+export type WorksheetResponse = z.infer<typeof worksheetResponseSchema>;
+export type WorksheetResolvedResponse = z.infer<
+    typeof worksheetResolvedResponseSchema
+>;
+export type PaginatedWorksheetResolvedListResponse = z.infer<
+    typeof paginatedWorksheetResolvedListResponseSchema
 >;

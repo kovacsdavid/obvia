@@ -17,131 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { schemaGuard } from "@/lib/api/schemas";
 import {
-    isCommonResponse,
-    isFormError,
-    isPaginatedDataResponse,
-    isSimpleError,
-    isSimpleMessageData,
-} from "@/lib/interface.ts";
-import type {
-    CreateProductResponse,
-    DeleteProductResponse,
-    PaginatedProductResolvedListResponse,
-    Product,
-    ProductError,
-    ProductResolved,
-    ProductResolvedList,
-    ProductResolvedResponse,
-    ProductResponse,
-    UpdateProductResponse,
-} from "@/components/modules/products/lib/interface.ts";
+    productErrorSchema,
+    productSchema,
+    productResolvedSchema,
+    productResolvedListSchema,
+    productResponseSchema,
+    productResolvedResponseSchema,
+    createProductResponseSchema,
+    updateProductResponseSchema,
+    deleteProductResponseSchema,
+    paginatedProductResolvedListResponseSchema,
+} from "./schemas";
 
-export function isProductError(data: unknown): data is ProductError {
-    if (typeof data !== "object" || data === null) return false;
-    const fields = data as Record<string, unknown>;
-    return [
-        "id",
-        "name",
-        "description",
-        "unit_of_measure_id",
-        "new_unit_of_measure",
-        "status",
-    ].every(
-        (field) => fields[field] === null || typeof fields[field] === "string",
-    );
-}
-
-export function isCreateProductResponse(
-    data: unknown,
-): data is CreateProductResponse {
-    return isCommonResponse(data, isProduct, isFormError);
-}
-
-export function isProductResolvedResponse(
-    data: unknown,
-): data is ProductResolvedResponse {
-    return isCommonResponse(data, isProductResolved, isSimpleError);
-}
-
-export function isProductResolved(data: unknown): data is ProductResolved {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "description" in data &&
-        (data.description === null || typeof data.description === "string") &&
-        "unit_of_measure_id" in data &&
-        typeof data.unit_of_measure_id === "string" &&
-        "unit_of_measure" in data &&
-        typeof data.unit_of_measure === "string" &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_by" in data &&
-        typeof data.created_by === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
-    );
-}
-
-export function isProductResolvedList(
-    data: unknown,
-): data is ProductResolvedList {
-    return Array.isArray(data) && data.every((item) => isProductResolved(item));
-}
-
-export function isPaginatedProductResolvedListResponse(
-    data: unknown,
-): data is PaginatedProductResolvedListResponse {
-    return isPaginatedDataResponse(data, isProductResolvedList);
-}
-
-export function isProduct(data: unknown): data is Product {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "description" in data &&
-        (data.description === null || typeof data.description === "string") &&
-        "unit_of_measure_id" in data &&
-        typeof data.unit_of_measure_id === "string" &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
-    );
-}
-
-export function isProductResponse(data: unknown): data is ProductResponse {
-    return isCommonResponse(data, isProduct, isSimpleError);
-}
-
-export function isUpdateProductResponse(
-    data: unknown,
-): data is UpdateProductResponse {
-    return isCommonResponse(data, isProduct, isFormError);
-}
-
-export function isDeleteProductResponse(
-    data: unknown,
-): data is DeleteProductResponse {
-    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
-}
+export const isProductError = schemaGuard(productErrorSchema);
+export const isProduct = schemaGuard(productSchema);
+export const isProductResolved = schemaGuard(productResolvedSchema);
+export const isProductResolvedList = schemaGuard(productResolvedListSchema);
+export const isProductResponse = schemaGuard(productResponseSchema);
+export const isProductResolvedResponse = schemaGuard(
+    productResolvedResponseSchema,
+);
+export const isCreateProductResponse = schemaGuard(createProductResponseSchema);
+export const isUpdateProductResponse = schemaGuard(updateProductResponseSchema);
+export const isDeleteProductResponse = schemaGuard(deleteProductResponseSchema);
+export const isPaginatedProductResolvedListResponse = schemaGuard(
+    paginatedProductResolvedListResponseSchema,
+);

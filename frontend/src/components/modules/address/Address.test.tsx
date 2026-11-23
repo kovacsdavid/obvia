@@ -214,9 +214,9 @@ describe("Address", () => {
             />,
         );
         resolveList({
-            kind: "success",
-            status: 200,
-            data: { error: { message: "Country list error" } },
+            kind: "http_error",
+            status: 400,
+            body: { error: { message: "Country list error" } },
         });
         await waitFor(() =>
             expect(latestSetter).toHaveBeenCalledWith(

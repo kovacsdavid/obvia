@@ -17,78 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormErrorV2,
-    type SimpleError,
-} from "@/lib/interface.ts";
-import {
-    type Address,
-    type AddressErrors,
-    type Address as AddressInterface,
-} from "@/components/modules/address/lib/interface";
+import type { z } from "zod";
+import type {
+    ownerProfileErrorsSchema,
+    ownerProfileFullResponseSchema,
+    ownerProfileFullSchema,
+    ownerProfileSchema,
+    ownerProfileUserInputSchema,
+    updateOwnerProfileResponseSchema,
+} from "./schemas";
 
-export interface OwnerProfileUserInput {
-    id: string;
-    name: string;
-    contactName: string;
-    email: string;
-    website: string;
-    documentPrefix: string;
-    phoneNumber: string;
-    ownerProfileType: string | undefined;
-    billingAddress: AddressInterface | null | undefined;
-    mailingAddress: AddressInterface | null | undefined;
-}
-
-export interface OwnerProfile {
-    id: string;
-    name: string;
-    contact_name: string | null;
-    email: string;
-    website: string | null;
-    document_prefix: string | null;
-    phone_number: string | null;
-    owner_profile_type: string;
-    created_at: string;
-    updated_at: string;
-    billing_address: string | null;
-    mailing_address: string | null;
-}
-
-export interface OwnerProfileErrors {
-    name: string | null;
-    contact_name: string | null;
-    email: string | null;
-    website: string | null;
-    document_prefix: string | null;
-    phone_number: string | null;
-    owner_profile_type: string | null;
-    billing_address: AddressErrors;
-    mailing_address: AddressErrors;
-}
-
-export interface OwnerProfileFull {
-    id: string;
-    name: string;
-    contact_name: string | null;
-    email: string;
-    website: string | null;
-    document_prefix: string | null;
-    phone_number: string | null;
-    owner_profile_type: string;
-    created_at: string;
-    updated_at: string;
-    billing_address: Address | null;
-    mailing_address: Address | null;
-}
-
-export type UpdateOwnerProfileResponse = CommonResponse<
-    OwnerProfileFull,
-    FormErrorV2<OwnerProfileErrors>
+export type OwnerProfileUserInput = z.infer<typeof ownerProfileUserInputSchema>;
+export type OwnerProfile = z.infer<typeof ownerProfileSchema>;
+export type OwnerProfileErrors = z.infer<typeof ownerProfileErrorsSchema>;
+export type OwnerProfileFull = z.infer<typeof ownerProfileFullSchema>;
+export type UpdateOwnerProfileResponse = z.infer<
+    typeof updateOwnerProfileResponseSchema
 >;
-
-export type OwnerProfileFullResponse = CommonResponse<
-    OwnerProfileFull,
-    SimpleError
+export type OwnerProfileFullResponse = z.infer<
+    typeof ownerProfileFullResponseSchema
 >;

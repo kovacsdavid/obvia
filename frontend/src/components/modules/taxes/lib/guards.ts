@@ -17,152 +17,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { schemaGuard } from "@/lib/api/schemas";
 import {
-    isCommonResponse,
-    isFormError,
-    isPaginatedDataResponse,
-    isSimpleError,
-    isSimpleMessageData,
-} from "@/lib/interface.ts";
-import type {
-    CreateTaxResponse,
-    DeleteTaxResponse,
-    PaginatedTaxResolvedListResponse,
-    Tax,
-    TaxError,
-    TaxResolved,
-    TaxResolvedList,
-    TaxResolvedResponse,
-    TaxResponse,
-    UpdateTaxResponse,
-} from "@/components/modules/taxes/lib/interface.ts";
+    createTaxResponseSchema,
+    deleteTaxResponseSchema,
+    paginatedTaxResolvedListResponseSchema,
+    taxErrorSchema,
+    taxResolvedListSchema,
+    taxResolvedResponseSchema,
+    taxResolvedSchema,
+    taxResponseSchema,
+    taxSchema,
+    updateTaxResponseSchema,
+} from "./schemas";
 
-export function isTaxError(data: unknown): data is TaxError {
-    if (typeof data !== "object" || data === null) return false;
-    const fields = [
-        "id",
-        "rate",
-        "description",
-        "country_code",
-        "tax_category",
-        "is_rate_applicable",
-        "legal_text",
-        "reporting_code",
-        "is_default",
-        "status",
-    ] as const;
-    return fields.every(
-        (field) =>
-            field in data &&
-            (data[field as keyof typeof data] === null ||
-                typeof data[field as keyof typeof data] === "string"),
-    );
-}
-
-export function isCreateTaxResponse(data: unknown): data is CreateTaxResponse {
-    return isCommonResponse(data, isTax, isFormError);
-}
-
-export function isUpdateTaxResponse(data: unknown): data is UpdateTaxResponse {
-    return isCommonResponse(data, isTax, isFormError);
-}
-
-export function isDeleteTaxResponse(data: unknown): data is DeleteTaxResponse {
-    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
-}
-
-export function isTaxResolved(data: unknown): data is TaxResolved {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "rate" in data &&
-        (data.rate === null || typeof data.rate === "string") &&
-        "description" in data &&
-        typeof data.description === "string" &&
-        "country_code" in data &&
-        typeof data.country_code === "string" &&
-        "country" in data &&
-        typeof data.country === "string" &&
-        "tax_category" in data &&
-        typeof data.tax_category === "string" &&
-        "is_rate_applicable" in data &&
-        typeof data.is_rate_applicable === "boolean" &&
-        "legal_text" in data &&
-        (data.legal_text === null || typeof data.legal_text === "string") &&
-        "reporting_code" in data &&
-        (data.reporting_code === null ||
-            typeof data.reporting_code === "string") &&
-        "is_default" in data &&
-        typeof data.is_default === "boolean" &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_by" in data &&
-        typeof data.created_by === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
-    );
-}
-
-export function isTaxResolvedResponse(
-    data: unknown,
-): data is TaxResolvedResponse {
-    return isCommonResponse(data, isTaxResolved, isSimpleError);
-}
-
-export function isTaxResolvedList(data: unknown): data is TaxResolvedList {
-    return Array.isArray(data) && data.every((item) => isTaxResolved(item));
-}
-
-export function isPaginatedTaxResolvedListResponse(
-    data: unknown,
-): data is PaginatedTaxResolvedListResponse {
-    return isPaginatedDataResponse(data, isTaxResolvedList);
-}
-
-export function isTax(data: unknown): data is Tax {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "rate" in data &&
-        (data.rate === null || typeof data.rate === "string") &&
-        "description" in data &&
-        typeof data.description === "string" &&
-        "country_code" in data &&
-        typeof data.country_code === "string" &&
-        "tax_category" in data &&
-        typeof data.tax_category === "string" &&
-        "is_rate_applicable" in data &&
-        typeof data.is_rate_applicable === "boolean" &&
-        "legal_text" in data &&
-        (data.legal_text === null || typeof data.legal_text === "string") &&
-        "reporting_code" in data &&
-        (data.reporting_code === null ||
-            typeof data.reporting_code === "string") &&
-        "is_default" in data &&
-        typeof data.is_default === "boolean" &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
-    );
-}
-
-export function isTaxResponse(data: unknown): data is TaxResponse {
-    return isCommonResponse(data, isTax, isSimpleError);
-}
+export const isTaxError = schemaGuard(taxErrorSchema);
+export const isCreateTaxResponse = schemaGuard(createTaxResponseSchema);
+export const isUpdateTaxResponse = schemaGuard(updateTaxResponseSchema);
+export const isDeleteTaxResponse = schemaGuard(deleteTaxResponseSchema);
+export const isTaxResolved = schemaGuard(taxResolvedSchema);
+export const isTaxResolvedResponse = schemaGuard(taxResolvedResponseSchema);
+export const isTaxResolvedList = schemaGuard(taxResolvedListSchema);
+export const isPaginatedTaxResolvedListResponse = schemaGuard(
+    paginatedTaxResolvedListResponseSchema,
+);
+export const isTax = schemaGuard(taxSchema);
+export const isTaxResponse = schemaGuard(taxResponseSchema);

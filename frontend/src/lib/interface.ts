@@ -17,6 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { z } from "zod";
+import {
+    schemaGuard,
+    selectOptionListResponseSchema,
+    selectOptionListSchema,
+    selectOptionSchema,
+} from "@/lib/api/schemas";
+
 export interface SimpleError {
     message: string | null | undefined;
 }
@@ -97,43 +105,19 @@ export async function ProcessJsonResponse<T>(
     }
 }
 
-export interface SelectOption {
-    value: string;
-    title: string;
-}
+export type SelectOption = z.infer<typeof selectOptionSchema>;
+export type SelectOptionList = z.infer<typeof selectOptionListSchema>;
 
-export type SelectOptionList = SelectOption[];
+export const isSelectOption = schemaGuard(selectOptionSchema);
+export const isSelectOptionList = schemaGuard(selectOptionListSchema);
 
-export function isSelectOption(data: unknown): data is SelectOption {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "value" in data &&
-        typeof data.value === "string" &&
-        "title" in data &&
-        typeof data.title === "string"
-    );
-}
-
-export function isSelectOptionList(data: unknown): data is SelectOptionList {
-    return Array.isArray(data) && data.every((item) => isSelectOption(item));
-}
-
-export type SelectOptionListResponse = CommonResponse<
-    SelectOptionList,
-    SimpleError
+export type SelectOptionListResponse = z.infer<
+    typeof selectOptionListResponseSchema
 >;
 
-export function isSelectOptionListResponse(
-    data: unknown,
-): data is SelectOptionListResponse {
-    return isCommonResponse(data, isSelectOptionList, isSimpleError);
-}
-
-export interface CommonResponse<T, E> {
-    data?: T;
-    error?: E;
-}
+export const isSelectOptionListResponse = schemaGuard(
+    selectOptionListResponseSchema,
+);
 
 export interface SimpleMessageData {
     message: string;
@@ -159,62 +143,6 @@ export function isSimpleError(data: unknown): data is SimpleError {
     );
 }
 
-export function isCommonResponse<T, E>(
-    data: unknown,
-    dataGuard?: (value: unknown) => value is T,
-    errorGuard?: (value: unknown) => value is E,
-): data is CommonResponse<T, E> {
-    if (typeof data !== "object" || data === null) {
-        return false;
-    }
-
-    if ("data" in data && data.data !== undefined) {
-        if (dataGuard && !dataGuard(data.data)) {
-            return false;
-        }
-    }
-
-    if ("error" in data && data.error !== undefined) {
-        if (errorGuard && !errorGuard(data.error)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-export function isCommonResponseV2<T, E, F>(
-    data: unknown,
-    dataGuard?: (value: unknown) => value is T,
-    errorGuard?: (
-        value: unknown,
-        fieldChecker: (fields: unknown) => fields is F,
-    ) => value is E,
-    fieldChecker?: (fields: unknown) => fields is F,
-): data is CommonResponse<T, E> {
-    if (typeof data !== "object" || data === null) {
-        return false;
-    }
-
-    if ("data" in data && data.data !== undefined) {
-        if (dataGuard && !dataGuard(data.data)) {
-            return false;
-        }
-    }
-
-    if ("error" in data && data.error !== undefined) {
-        if (
-            errorGuard &&
-            fieldChecker &&
-            !errorGuard(data.error, fieldChecker)
-        ) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 export type PagerMeta = {
     page: number;
     limit: number;
@@ -234,43 +162,10 @@ export function isPagerMeta(data: unknown): data is PagerMeta {
     );
 }
 
-export interface PaginatedDataResponse<T, E> {
-    meta?: PagerMeta;
-    data?: T;
-    error?: E;
-}
-
-export function isPaginatedDataResponse<T, E>(
-    data: unknown,
-    dataGuard?: (value: unknown) => value is T,
-    errorGuard?: (value: unknown) => value is E,
-): data is PaginatedDataResponse<T, E> {
-    if (typeof data !== "object" || data === null) {
-        return false;
-    }
-
-    if ("meta" in data && data.meta !== undefined) {
-        if (!isPagerMeta(data.meta)) {
-            return false;
-        }
-    }
-
-    if ("data" in data && data.data !== undefined) {
-        if (dataGuard && !dataGuard(data.data)) {
-            return false;
-        }
-    }
-
-    if ("error" in data && data.error !== undefined) {
-        if (errorGuard && !errorGuard(data.error)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-export type Base64DataResponse = CommonResponse<string, SimpleError>;
+export type Base64DataResponse = {
+    data: string;
+    error?: never;
+};
 
 export interface FormErrorV2<TFields> extends SimpleError {
     fields?: TFields;

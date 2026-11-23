@@ -17,85 +17,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormError,
-    type PaginatedDataResponse,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
+import type { z } from "zod";
+import type {
+    inventoryUserInputSchema,
+    inventoryErrorSchema,
+    inventorySchema,
+    inventoryResolvedSchema,
+    inventoryResolvedListSchema,
+    inventoryResponseSchema,
+    inventoryResolvedResponseSchema,
+    createInventoryResponseSchema,
+    updateInventoryResponseSchema,
+    deleteInventoryResponseSchema,
+    paginatedInventoryResolvedListResponseSchema,
+} from "./schemas";
 
-export interface InventoryUserInput {
-    id: string | null;
-    productId: string;
-    warehouseId: string;
-    minimumStock: string;
-    maximumStock: string;
-    currencyCode: string;
-    status: string;
-}
-
-export interface InventoryError {
-    id: string | null;
-    product_id: string | null;
-    warehouse_id: string | null;
-    minimum_stock: string | null;
-    maximum_stock: string | null;
-    currency_code: string | null;
-    status: string | null;
-}
-
-export interface Inventory {
-    id: string;
-    product_id: string;
-    warehouse_id: string;
-    quantity_on_hand: string;
-    quantity_reserved: string;
-    quantity_available: string;
-    minimum_stock: string | null;
-    maximum_stock: string | null;
-    currency_code: string;
-    status: string;
-    created_by_id: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export interface InventoryResolved {
-    id: string;
-    product_id: string;
-    product: string;
-    warehouse_id: string;
-    warehouse: string;
-    quantity_on_hand: string;
-    quantity_reserved: string;
-    quantity_available: string;
-    minimum_stock: string | null;
-    maximum_stock: string | null;
-    currency_code: string;
-    currency: string;
-    status: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export type CreateInventoryResponse = CommonResponse<Inventory, FormError>;
-export type UpdateInventoryResponse = CommonResponse<Inventory, FormError>;
-export type DeleteInventoryResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type InventoryUserInput = z.infer<typeof inventoryUserInputSchema>;
+export type InventoryError = z.infer<typeof inventoryErrorSchema>;
+export type Inventory = z.infer<typeof inventorySchema>;
+export type InventoryResolved = z.infer<typeof inventoryResolvedSchema>;
+export type InventoryResolvedList = z.infer<typeof inventoryResolvedListSchema>;
+export type InventoryResponse = z.infer<typeof inventoryResponseSchema>;
+export type InventoryResolvedResponse = z.infer<
+    typeof inventoryResolvedResponseSchema
 >;
-export type InventoryResolvedList = InventoryResolved[];
-export type InventoryResponse = CommonResponse<Inventory, SimpleError>;
-export type InventoryResolvedResponse = CommonResponse<
-    InventoryResolved,
-    SimpleError
+export type CreateInventoryResponse = z.infer<
+    typeof createInventoryResponseSchema
 >;
-export type PaginatedInventoryResolvedListResponse = PaginatedDataResponse<
-    InventoryResolvedList,
-    SimpleError
+export type UpdateInventoryResponse = z.infer<
+    typeof updateInventoryResponseSchema
+>;
+export type DeleteInventoryResponse = z.infer<
+    typeof deleteInventoryResponseSchema
+>;
+export type PaginatedInventoryResolvedListResponse = z.infer<
+    typeof paginatedInventoryResolvedListResponseSchema
 >;

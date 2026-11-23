@@ -17,144 +17,41 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { schemaGuard } from "@/lib/api/schemas";
 import {
-    isCommonResponse,
-    isFormError,
-    isPaginatedDataResponse,
-    isSimpleError,
-    isSimpleMessageData,
-} from "@/lib/interface.ts";
-import type {
-    CreateInventoryReservationResponse,
-    DeleteInventoryReservationResponse,
-    InventoryReservation,
-    InventoryReservationError,
-    InventoryReservationResolved,
-    InventoryReservationResolvedList,
-    InventoryReservationResolvedResponse,
-    InventoryReservationResponse,
-    PaginatedInventoryReservationResolvedListResponse,
-} from "@/components/modules/inventory_reservations/lib/interface.ts";
+    inventoryReservationErrorSchema,
+    inventoryReservationSchema,
+    inventoryReservationResolvedSchema,
+    inventoryReservationResolvedListSchema,
+    inventoryReservationResponseSchema,
+    inventoryReservationResolvedResponseSchema,
+    createInventoryReservationResponseSchema,
+    deleteInventoryReservationResponseSchema,
+    paginatedInventoryReservationResolvedListResponseSchema,
+} from "./schemas";
 
-export function isInventoryReservationError(
-    data: unknown,
-): data is InventoryReservationError {
-    if (typeof data !== "object" || data === null) return false;
-    const fields = data as Record<string, unknown>;
-    return [
-        "id",
-        "inventory_id",
-        "quantity",
-        "reference_type",
-        "reference_id",
-        "reserved_until",
-        "status",
-    ].every((key) => fields[key] === null || typeof fields[key] === "string");
-}
-
-export function isInventoryReservationResolved(
-    data: unknown,
-): data is InventoryReservationResolved {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "inventory_id" in data &&
-        typeof data.inventory_id === "string" &&
-        "quantity" in data &&
-        typeof data.quantity === "string" &&
-        "reference_type" in data &&
-        (data.reference_type === null ||
-            typeof data.reference_type === "string") &&
-        "reference_id" in data &&
-        (data.reference_id === null || typeof data.reference_id === "string") &&
-        "reserved_until" in data &&
-        (data.reserved_until === null ||
-            typeof data.reserved_until === "string") &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_by" in data &&
-        typeof data.created_by === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string"
-    );
-}
-
-export function isInventoryReservationResolvedResponse(
-    data: unknown,
-): data is InventoryReservationResolvedResponse {
-    return isCommonResponse(
-        data,
-        isInventoryReservationResolved,
-        isSimpleError,
-    );
-}
-
-export function isInventoryReservation(
-    data: unknown,
-): data is InventoryReservation {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "inventory_id" in data &&
-        typeof data.inventory_id === "string" &&
-        "quantity" in data &&
-        typeof data.quantity === "string" &&
-        "reference_type" in data &&
-        (data.reference_type === null ||
-            typeof data.reference_type === "string") &&
-        "reference_id" in data &&
-        (data.reference_id === null || typeof data.reference_id === "string") &&
-        "reserved_until" in data &&
-        (data.reserved_until === null ||
-            typeof data.reserved_until === "string") &&
-        "status" in data &&
-        typeof data.status === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string"
-    );
-}
-
-export function isInventoryReservationResponse(
-    data: unknown,
-): data is InventoryReservationResponse {
-    return isCommonResponse(data, isInventoryReservation, isSimpleError);
-}
-
-export function isInventoryReservationResolvedList(
-    data: unknown,
-): data is InventoryReservationResolvedList {
-    return (
-        Array.isArray(data) &&
-        data.every((item) => isInventoryReservationResolved(item))
-    );
-}
-
-export function isPaginatedInventoryReservationResolvedListResponse(
-    data: unknown,
-): data is PaginatedInventoryReservationResolvedListResponse {
-    return isPaginatedDataResponse(data, isInventoryReservationResolvedList);
-}
-
-export function isCreateInventoryReservationResponse(
-    data: unknown,
-): data is CreateInventoryReservationResponse {
-    return isCommonResponse(data, isInventoryReservation, isFormError);
-}
-
-export function isDeleteInventoryReservationResponse(
-    data: unknown,
-): data is DeleteInventoryReservationResponse {
-    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
-}
+export const isInventoryReservationError = schemaGuard(
+    inventoryReservationErrorSchema,
+);
+export const isInventoryReservation = schemaGuard(inventoryReservationSchema);
+export const isInventoryReservationResolved = schemaGuard(
+    inventoryReservationResolvedSchema,
+);
+export const isInventoryReservationResolvedList = schemaGuard(
+    inventoryReservationResolvedListSchema,
+);
+export const isInventoryReservationResponse = schemaGuard(
+    inventoryReservationResponseSchema,
+);
+export const isInventoryReservationResolvedResponse = schemaGuard(
+    inventoryReservationResolvedResponseSchema,
+);
+export const isCreateInventoryReservationResponse = schemaGuard(
+    createInventoryReservationResponseSchema,
+);
+export const isDeleteInventoryReservationResponse = schemaGuard(
+    deleteInventoryReservationResponseSchema,
+);
+export const isPaginatedInventoryReservationResolvedListResponse = schemaGuard(
+    paginatedInventoryReservationResolvedListResponseSchema,
+);

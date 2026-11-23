@@ -18,44 +18,45 @@
  */
 
 import type {
-    Claims,
+    ClaimsResponse,
     ForgottenPasswordFields,
     ForgottenPasswordRequest,
-    LoginData,
+    ForgottenPasswordResponse,
+    LoginResponse,
     LoginFields,
     LoginRequest,
     NewPasswordFields,
     NewPasswordRequest,
+    NewPasswordResponse,
     RegisterFields,
     RegisterRequest,
+    RegisterResponse,
+    VerifyEmailResponse,
 } from "@/components/modules/auth/lib/interface.ts";
 import {
-    isAuthSuccess,
-    isClaims,
     isForgottenPasswordFields,
-    isLoginData,
     isLoginFields,
     isNewPasswordFields,
     isRegisterFields,
 } from "@/components/modules/auth/lib/guards.ts";
-import {
-    isSimpleMessageData,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
 import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
+import { schemaGuard } from "@/lib/api/schemas";
+import {
+    authClaimsSuccessSchema,
+    authLoginSuccessSchema,
+    authMessageSuccessSchema,
+    logoutSuccessSchema,
+} from "./schemas";
 
-const loginGuard = (data: unknown): data is { data: LoginData } =>
-    isAuthSuccess(data, isLoginData);
-const messageGuard = (data: unknown): data is { data: SimpleMessageData } =>
-    isAuthSuccess(data, isSimpleMessageData);
-const claimsGuard = (data: unknown): data is { data: Claims } =>
-    isAuthSuccess(data, isClaims);
+const loginGuard = schemaGuard(authLoginSuccessSchema);
+const messageGuard = schemaGuard(authMessageSuccessSchema);
+const claimsGuard = schemaGuard(authClaimsSuccessSchema);
 
 export async function login(
     { email, password, otp }: LoginRequest,
     signal?: AbortSignal,
-): Promise<ApiResult<{ data: LoginData }, LoginFields>> {
+): Promise<ApiResult<LoginResponse, LoginFields>> {
     return apiRequest("/api/auth/login", {
         method: "POST",
         body: {
@@ -71,7 +72,7 @@ export async function login(
     });
 }
 
-export async function refresh(): Promise<ApiResult<{ data: LoginData }>> {
+export async function refresh(): Promise<ApiResult<LoginResponse>> {
     return apiRequest("/api/auth/t/refresh", {
         method: "POST",
         guard: loginGuard,
@@ -81,14 +82,14 @@ export async function refresh(): Promise<ApiResult<{ data: LoginData }>> {
 export async function logout(): Promise<ApiResult<undefined>> {
     return apiRequest("/api/auth/t/logout", {
         method: "POST",
-        guard: (data): data is undefined => data === undefined,
+        guard: schemaGuard(logoutSuccessSchema),
     });
 }
 
 export async function register(
     { firstName, lastName, email, password, passwordConfirm }: RegisterRequest,
     signal?: AbortSignal,
-): Promise<ApiResult<{ data: SimpleMessageData }, RegisterFields>> {
+): Promise<ApiResult<RegisterResponse, RegisterFields>> {
     return apiRequest("/api/auth/register", {
         method: "POST",
         body: {
@@ -107,7 +108,7 @@ export async function register(
 export async function get_claims(
     token: string | null,
     signal?: AbortSignal,
-): Promise<ApiResult<{ data: Claims }>> {
+): Promise<ApiResult<ClaimsResponse>> {
     return apiRequest("/api/auth/get_claims", {
         token,
         signal,
@@ -118,7 +119,7 @@ export async function get_claims(
 export async function verfiy_email(
     id: string,
     signal?: AbortSignal,
-): Promise<ApiResult<{ data: SimpleMessageData }>> {
+): Promise<ApiResult<VerifyEmailResponse>> {
     return apiRequest(`/api/auth/verify_email?${new URLSearchParams({ id })}`, {
         signal,
         guard: messageGuard,
@@ -128,7 +129,7 @@ export async function verfiy_email(
 export async function forgottenPassword(
     { email }: ForgottenPasswordRequest,
     signal?: AbortSignal,
-): Promise<ApiResult<{ data: SimpleMessageData }, ForgottenPasswordFields>> {
+): Promise<ApiResult<ForgottenPasswordResponse, ForgottenPasswordFields>> {
     return apiRequest("/api/auth/forgotten_password", {
         method: "POST",
         body: { email },
@@ -142,7 +143,7 @@ export async function forgottenPassword(
 export async function newPassword(
     input: NewPasswordRequest,
     signal?: AbortSignal,
-): Promise<ApiResult<{ data: SimpleMessageData }, NewPasswordFields>> {
+): Promise<ApiResult<NewPasswordResponse, NewPasswordFields>> {
     return apiRequest("/api/auth/new_password", {
         method: "POST",
         body: {

@@ -198,4 +198,52 @@ describe("inventory movement API", () => {
             retryAfterSeconds: 5,
         });
     });
+
+    it("keeps response data intact and rejects 204 and non-PDF print responses", async () => {
+        const data = {
+            id: "m",
+            inventory_id: "i",
+            movement_type: "out",
+            quantity: "2",
+            reference_type: null,
+            reference_id: null,
+            unit_price: null,
+            total_price: null,
+            tax_id: "tax",
+            movement_date: "date",
+            created_by_id: "u",
+            created_at: "date",
+            extra: "preserved",
+        };
+        const body = { data, extra: true };
+        fetchMock.mockResolvedValueOnce(
+            new Response(JSON.stringify(body), {
+                headers: { "Content-Type": "application/json" },
+            }),
+        );
+        expect(await api.get("m", null)).toEqual({
+            kind: "success",
+            status: 200,
+            data: body,
+        });
+        expect(await api.get("m", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+        expect(await api.deleteItem("m", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+        expect(await api.print("m", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+        fetchMock.mockResolvedValueOnce(
+            new Response("bad", { headers: { "Content-Type": "text/plain" } }),
+        );
+        expect(await api.print("m", null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+    });
 });

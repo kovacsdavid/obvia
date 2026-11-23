@@ -200,6 +200,45 @@ describe("inventory reservation API", () => {
         });
     });
 
+    it("keeps response data intact and rejects 204 for JSON and PDF endpoints", async () => {
+        const data = {
+            id: "r",
+            inventory_id: "i",
+            quantity: "3",
+            reference_type: null,
+            reference_id: null,
+            reserved_until: null,
+            status: "active",
+            created_by_id: "u",
+            created_at: "date",
+            updated_at: "date",
+            extra: "preserved",
+        };
+        const body = { data, extra: true };
+        fetchMock.mockResolvedValueOnce(
+            new Response(JSON.stringify(body), {
+                headers: { "Content-Type": "application/json" },
+            }),
+        );
+        expect(await api.get("r", null)).toEqual({
+            kind: "success",
+            status: 200,
+            data: body,
+        });
+        expect(await api.get("r", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+        expect(await api.deleteItem("r", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+        expect(await api.print("r", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+    });
+
     it("classifies rate limits and transport failures", async () => {
         fetchMock
             .mockResolvedValueOnce(

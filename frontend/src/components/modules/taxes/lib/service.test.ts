@@ -213,4 +213,57 @@ describe("tax API", () => {
             status: 200,
         });
     });
+
+    it("validates paginated responses and preserves 204 behavior", async () => {
+        const data = [
+            {
+                id: "tax-1",
+                rate: null,
+                description: "VAT",
+                country_code: "HU",
+                country: "Hungary",
+                tax_category: "AK",
+                is_rate_applicable: false,
+                legal_text: null,
+                reporting_code: null,
+                is_default: false,
+                status: "active",
+                created_by_id: "user-1",
+                created_by: "User",
+                created_at: "date",
+                updated_at: "date",
+                deleted_at: null,
+                extra: "retained",
+            },
+        ];
+        const meta = { page: 1, limit: 10, total: 1 };
+        fetchMock
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ meta, data }), {
+                    headers: { "Content-Type": "application/json" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ data }), {
+                    headers: { "Content-Type": "application/json" },
+                }),
+            );
+        expect(await api.list(null, null)).toEqual({
+            kind: "success",
+            status: 200,
+            data: { meta, data },
+        });
+        expect(await api.list(null, null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+        expect(await api.deleteItem("tax-1", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+        expect(await api.print("tax-1", null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+    });
 });

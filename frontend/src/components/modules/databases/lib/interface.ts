@@ -17,136 +17,51 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { z } from "zod";
+import { schemaGuard } from "@/lib/api/schemas";
 import {
-    type CommonResponse,
-    type FormError,
-    isCommonResponse,
-    isFormError,
-    isPaginatedDataResponse,
-    isSimpleError,
-    type PaginatedDataResponse,
-    type SimpleError,
-} from "@/lib/interface.ts";
-import type { Claims } from "@/components/modules/auth/lib/interface.ts";
-import { isClaims } from "@/components/modules/auth/lib/guards.ts";
+    activeDatabaseResponseSchema,
+    createDatabaseSchema,
+    databaseErrorSchema,
+    databaseListSchema,
+    databaseResponseSchema,
+    databaseSchema,
+    newTokenResponseSchema,
+    paginatedDatabaseListResponseSchema,
+} from "./schemas";
 
-export interface CreateDatabase {
-    name: string;
-}
+export type CreateDatabase = z.infer<typeof createDatabaseSchema>;
+export type DatabaseError = z.infer<typeof databaseErrorSchema>;
+export const isDatabaseError = schemaGuard(databaseErrorSchema);
 
-export interface DatabaseError {
-    name: string | null;
-}
+export type CreateDatabaseResponse = z.infer<typeof databaseResponseSchema>;
 
-export function isDatabaseError(data: unknown): data is DatabaseError {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "name" in data &&
-        (data.name === null || typeof data.name === "string")
-    );
-}
+export const isCreateDatabaseResponse = schemaGuard(databaseResponseSchema);
 
-export type CreateDatabaseResponse = CommonResponse<Database, FormError>;
+export type Database = z.infer<typeof databaseSchema>;
 
-export function isCreateDatabaseResponse(
-    data: unknown,
-): data is CreateDatabaseResponse {
-    return isCommonResponse(data, isDatabase, isFormError);
-}
+export type DatabaseResponse = z.infer<typeof databaseResponseSchema>;
 
-export interface Database {
-    id: string;
-    name: string;
-    db_host: string;
-    db_port: number;
-    db_name: string;
-    db_user: string;
-    db_password: string;
-    db_max_pool_size: number;
-    db_ssl_mode: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
+export const isDatabaseResponse = schemaGuard(databaseResponseSchema);
 
-export type DatabaseResponse = CommonResponse<Database, SimpleError>;
+export type DatabaseList = z.infer<typeof databaseListSchema>;
+export const isDatabase = schemaGuard(databaseSchema);
+export const isDatabaseList = schemaGuard(databaseListSchema);
 
-export function isDatabaseResponse(data: unknown): data is DatabaseResponse {
-    return isCommonResponse(data, isDatabase, isSimpleError);
-}
-
-export type DatabaseList = Database[];
-
-export function isDatabase(data: unknown): data is Database {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "id" in data &&
-        typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
-        "db_host" in data &&
-        typeof data.db_host === "string" &&
-        "db_port" in data &&
-        typeof data.db_port === "number" &&
-        "db_name" in data &&
-        typeof data.db_name === "string" &&
-        "db_user" in data &&
-        typeof data.db_user === "string" &&
-        "db_password" in data &&
-        typeof data.db_password === "string" &&
-        "db_max_pool_size" in data &&
-        typeof data.db_max_pool_size === "number" &&
-        "db_ssl_mode" in data &&
-        typeof data.db_ssl_mode === "string" &&
-        "created_at" in data &&
-        typeof data.created_at === "string" &&
-        "updated_at" in data &&
-        typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
-    );
-}
-
-export function isDatabaseList(data: unknown): data is DatabaseList {
-    return Array.isArray(data) && data.every((item) => isDatabase(item));
-}
-
-export type PaginatedDatabaseListResponse = PaginatedDataResponse<
-    DatabaseList,
-    SimpleError
+export type PaginatedDatabaseListResponse = z.infer<
+    typeof paginatedDatabaseListResponseSchema
 >;
 
-export function isPaginatedDatabaseListResponse(
-    data: unknown,
-): data is PaginatedDatabaseListResponse {
-    return isPaginatedDataResponse(data, isDatabaseList);
-}
+export const isPaginatedDatabaseListResponse = schemaGuard(
+    paginatedDatabaseListResponseSchema,
+);
+export type NewTokenResponse = z.infer<typeof newTokenResponseSchema>;
+export const isNewTokenResponse = schemaGuard(newTokenResponseSchema);
 
-export interface NewTokenResponse {
-    token: string;
-    claims: Claims;
-}
-
-export function isNewTokenResponse(data: unknown): data is NewTokenResponse {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "token" in data &&
-        typeof data.token === "string" &&
-        "claims" in data &&
-        isClaims(data.claims)
-    );
-}
-
-export type ActiveDatabaseResponse = CommonResponse<
-    NewTokenResponse,
-    SimpleError
+export type ActiveDatabaseResponse = z.infer<
+    typeof activeDatabaseResponseSchema
 >;
 
-export function isActiveDatabaseResponse(
-    data: unknown,
-): data is ActiveDatabaseResponse {
-    return isCommonResponse(data, isNewTokenResponse, isSimpleError);
-}
+export const isActiveDatabaseResponse = schemaGuard(
+    activeDatabaseResponseSchema,
+);

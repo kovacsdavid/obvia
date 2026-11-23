@@ -17,14 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export interface CreateUser {
-    email: string;
-    lastName: string;
-    firstName: string;
-    phone: string;
-    status: string;
-}
+import type { z } from "zod";
+import type { enableOtpResponseSchema } from "@/components/modules/auth/lib/schemas";
+import type {
+    createUserSchema,
+    otpFieldsSchema,
+    otpMessageResponseSchema,
+} from "./schemas";
 
-export type OtpFields = {
-    otp: string | null;
-};
+export type CreateUser = z.infer<typeof createUserSchema>;
+export type OtpFields = z.infer<typeof otpFieldsSchema>;
+export type EnableOtpResponse = z.infer<typeof enableOtpResponseSchema>;
+export type OtpMessageResponse = z.infer<typeof otpMessageResponseSchema>;

@@ -17,68 +17,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormError,
-    type PaginatedDataResponse,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
+import type { z } from "zod";
+import type {
+    createWarehouseResponseSchema,
+    deleteWarehouseResponseSchema,
+    paginatedWarehouseResolvedListResponseSchema,
+    updateWarehouseResponseSchema,
+    warehouseErrorSchema,
+    warehouseResolvedListSchema,
+    warehouseResolvedResponseSchema,
+    warehouseResolvedSchema,
+    warehouseResponseSchema,
+    warehouseSchema,
+    warehouseUserInputSchema,
+} from "./schemas";
 
-export interface WarehouseUserInput {
-    id: string | null;
-    name: string;
-    contactName: string;
-    contactPhone: string;
-    status: string;
-}
-
-export interface WarehouseError {
-    id: string | null;
-    name: string | null;
-    contact_name: string | null;
-    contact_phone: string | null;
-    status: string | null;
-}
-
-export interface Warehouse {
-    id: string;
-    name: string;
-    contact_name: string | null;
-    contact_phone: string | null;
-    status: string;
-    created_by_id: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export interface WarehouseResolved {
-    id: string;
-    name: string;
-    contact_name: string | null;
-    contact_phone: string | null;
-    status: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export type CreateWarehouseResponse = CommonResponse<Warehouse, FormError>;
-export type UpdateWarehouseResponse = CommonResponse<Warehouse, FormError>;
-export type DeleteWarehouseResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type WarehouseUserInput = z.infer<typeof warehouseUserInputSchema>;
+export type WarehouseError = z.infer<typeof warehouseErrorSchema>;
+export type Warehouse = z.infer<typeof warehouseSchema>;
+export type WarehouseResolved = z.infer<typeof warehouseResolvedSchema>;
+export type CreateWarehouseResponse = z.infer<
+    typeof createWarehouseResponseSchema
 >;
-export type WarehouseResponse = CommonResponse<Warehouse, SimpleError>;
-export type WarehouseResolvedResponse = CommonResponse<
-    WarehouseResolved,
-    SimpleError
+export type UpdateWarehouseResponse = z.infer<
+    typeof updateWarehouseResponseSchema
 >;
-export type WarehouseResolvedList = WarehouseResolved[];
-export type PaginatedWarehouseResolvedListResponse = PaginatedDataResponse<
-    WarehouseResolvedList,
-    SimpleError
+export type DeleteWarehouseResponse = z.infer<
+    typeof deleteWarehouseResponseSchema
+>;
+export type WarehouseResponse = z.infer<typeof warehouseResponseSchema>;
+export type WarehouseResolvedResponse = z.infer<
+    typeof warehouseResolvedResponseSchema
+>;
+export type WarehouseResolvedList = z.infer<typeof warehouseResolvedListSchema>;
+export type PaginatedWarehouseResolvedListResponse = z.infer<
+    typeof paginatedWarehouseResolvedListResponseSchema
 >;

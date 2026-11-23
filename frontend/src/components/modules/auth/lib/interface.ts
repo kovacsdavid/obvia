@@ -17,112 +17,48 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormError,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
+import type { z } from "zod";
+import type {
+    claimsSchema,
+    claimsResponseSchema,
+    enableOtpResponseSchema,
+    userSchema,
+    loginDataSchema,
+    loginResponseSchema,
+    messageResponseSchema,
+    registerRequestSchema,
+    loginRequestSchema,
+    forgottenPasswordRequestSchema,
+    newPasswordRequestSchema,
+    registerFieldsSchema,
+    loginFieldsSchema,
+    forgottenPasswordFieldsSchema,
+    newPasswordFieldsSchema,
+} from "@/components/modules/auth/lib/schemas";
 
-export interface User {
-    id: string;
-    email: string;
-    first_name: string | null;
-    last_name: string | null;
-    status: string;
-    profile_picture_url: string | null;
-    is_mfa_enabled: boolean;
-}
-
-export interface RegisterRequest {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-    passwordConfirm: string;
-}
-
-export interface LoginRequest {
-    email: string;
-    password: string;
-    otp: string | null;
-}
-
-export interface LoginData {
-    claims: Claims;
-    user: User;
-    token: string;
-}
-
-export interface ForgottenPasswordRequest {
-    email: string;
-}
-
-export interface NewPasswordRequest {
-    token: string;
-    password: string;
-    password_confirm: string;
-}
-
-export type RegisterFields = Record<
-    "first_name" | "last_name" | "email" | "password" | "password_confirm",
-    string | null
+export type User = z.infer<typeof userSchema>;
+export type RegisterRequest = z.infer<typeof registerRequestSchema>;
+export type LoginRequest = z.infer<typeof loginRequestSchema>;
+export type LoginData = z.infer<typeof loginDataSchema>;
+export type ForgottenPasswordRequest = z.infer<
+    typeof forgottenPasswordRequestSchema
 >;
-export type LoginFields = Partial<
-    Record<"email" | "password" | "otp", string | null>
+export type NewPasswordRequest = z.infer<typeof newPasswordRequestSchema>;
+export type RegisterFields = z.infer<typeof registerFieldsSchema>;
+export type LoginFields = z.infer<typeof loginFieldsSchema>;
+export type ForgottenPasswordFields = z.infer<
+    typeof forgottenPasswordFieldsSchema
 >;
-export type ForgottenPasswordFields = Record<"email", string | null>;
-export type NewPasswordFields = Record<
-    "token" | "password" | "password_confirm",
-    string | null
->;
+export type NewPasswordFields = z.infer<typeof newPasswordFieldsSchema>;
 
-export interface Claims {
-    /** The subject of the token, which represents the user's unique identifier */
-    sub: string;
+export type Claims = z.infer<typeof claimsSchema>;
 
-    /** The expiration timestamp of the token in UNIX time */
-    exp: number;
-
-    /** The issued-at timestamp of the token in UNIX time */
-    iat: number;
-
-    /** The "not valid before" timestamp in UNIX time */
-    nbf: number;
-
-    /** The issuer of the token, typically representing the domain or service name */
-    iss: string;
-
-    /** The audience for the token, identifying the intended recipient(s) */
-    aud: string;
-
-    /** A unique identifier for the token, typically a UUID */
-    jti: string;
-
-    /** The user's locale. */
-    loc: string;
-
-    /** The user's timezone. */
-    tz: string;
-
-    family_id: string | null;
-
-    /** The UUID of the active tenant associated with the current context */
-    active_tenant: string | null;
-}
-
-export type RegisterResponse = CommonResponse<SimpleMessageData, FormError>;
-export type LoginResponse = CommonResponse<LoginData, FormError>;
-export type ClaimsResponse = CommonResponse<Claims, SimpleError>;
-export type VerifyEmailResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
->;
-export type ForgottenPasswordResponse = CommonResponse<
-    SimpleMessageData,
-    FormError
->;
-export type NewPasswordResponse = CommonResponse<SimpleMessageData, FormError>;
-export type EnableOtpResponse = CommonResponse<string, SimpleError>;
-export type VerifyOtpResponse = CommonResponse<SimpleMessageData, FormError>;
-export type DisableOtpResponse = CommonResponse<SimpleMessageData, FormError>;
+export type RegisterResponse = z.infer<typeof messageResponseSchema>;
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
+export type ClaimsResponse = z.infer<typeof claimsResponseSchema>;
+export type VerifyEmailResponse = z.infer<typeof messageResponseSchema>;
+export type ForgottenPasswordResponse = z.infer<typeof messageResponseSchema>;
+export type NewPasswordResponse = z.infer<typeof messageResponseSchema>;
+export type EnableOtpResponse = z.infer<typeof enableOtpResponseSchema>;
+export type VerifyOtpResponse = z.infer<typeof messageResponseSchema>;
+export type DisableOtpResponse = z.infer<typeof messageResponseSchema>;

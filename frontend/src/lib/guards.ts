@@ -17,16 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { isCommonResponse, isSimpleError } from "@/lib/interface.ts";
+import { base64DataResponseSchema, schemaGuard } from "@/lib/api/schemas";
 
-import type { Base64DataResponse } from "./interface";
-
-export function isBase64DataResponse(
-    data: unknown,
-): data is Base64DataResponse {
-    return isCommonResponse(
-        data,
-        (data: unknown): data is string => typeof data === "string",
-        isSimpleError,
-    );
-}
+export const isBase64DataResponse = schemaGuard(base64DataResponseSchema);

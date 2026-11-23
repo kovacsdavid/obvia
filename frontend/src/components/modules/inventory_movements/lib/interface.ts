@@ -17,86 +17,45 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { z } from "zod";
 import type {
-    CommonResponse,
-    FormError,
-    PaginatedDataResponse,
-    SimpleError,
-    SimpleMessageData,
-} from "@/lib/interface.ts";
+    inventoryMovementUserInputSchema,
+    inventoryMovementErrorSchema,
+    inventoryMovementSchema,
+    inventoryMovementResolvedSchema,
+    inventoryMovementResolvedListSchema,
+    inventoryMovementResponseSchema,
+    inventoryMovementResolvedResponseSchema,
+    createInventoryMovementResponseSchema,
+    deleteInventoryMovementResponseSchema,
+    paginatedInventoryMovementResolvedListResponseSchema,
+} from "./schemas";
 
-export interface InventoryMovementUserInput {
-    id: string | null;
-    inventoryId: string;
-    movementType: string;
-    quantity: string;
-    referenceType: string | null;
-    referenceId: string | null;
-    unitPrice: string | null;
-    totalPrice: string | null;
-    taxId: string;
-}
-
-export interface InventoryMovementError {
-    id: string | null;
-    inventory_id: string | null;
-    movement_type: string | null;
-    quantity: string | null;
-    reference_type: string | null;
-    reference_id: string | null;
-    unit_price: string | null;
-    total_price: string | null;
-    tax_id: string | null;
-}
-
-export interface InventoryMovement {
-    id: string;
-    inventory_id: string;
-    movement_type: string;
-    quantity: string;
-    reference_type: string | null;
-    reference_id: string | null;
-    unit_price: string | null; // BigDecimal serialized as string
-    total_price: string | null; // BigDecimal serialized as string
-    tax_id: string;
-    movement_date: string;
-    created_by_id: string;
-    created_at: string;
-}
-
-export interface InventoryMovementResolved {
-    id: string;
-    inventory_id: string;
-    movement_type: string;
-    quantity: string;
-    reference_type: string | null;
-    reference_id: string | null;
-    unit_price: string | null; // BigDecimal serialized as string
-    total_price: string | null; // BigDecimal serialized as string
-    tax_id: string;
-    tax: string | null;
-    movement_date: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-}
-
-export type CreateInventoryMovementResponse = CommonResponse<
-    InventoryMovement,
-    FormError
+export type InventoryMovementUserInput = z.infer<
+    typeof inventoryMovementUserInputSchema
 >;
-export type DeleteInventoryMovementResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type InventoryMovementError = z.infer<
+    typeof inventoryMovementErrorSchema
 >;
-export type InventoryMovementResponse = CommonResponse<
-    InventoryMovement,
-    SimpleError
+export type InventoryMovement = z.infer<typeof inventoryMovementSchema>;
+export type InventoryMovementResolved = z.infer<
+    typeof inventoryMovementResolvedSchema
 >;
-export type InventoryMovementResolvedResponse = CommonResponse<
-    InventoryMovementResolved,
-    SimpleError
+export type InventoryMovementResolvedList = z.infer<
+    typeof inventoryMovementResolvedListSchema
 >;
-export type InventoryMovementResolvedList = InventoryMovementResolved[];
-export type PaginatedInventoryMovementResolvedListResponse =
-    PaginatedDataResponse<InventoryMovementResolvedList, SimpleError>;
+export type InventoryMovementResponse = z.infer<
+    typeof inventoryMovementResponseSchema
+>;
+export type InventoryMovementResolvedResponse = z.infer<
+    typeof inventoryMovementResolvedResponseSchema
+>;
+export type CreateInventoryMovementResponse = z.infer<
+    typeof createInventoryMovementResponseSchema
+>;
+export type DeleteInventoryMovementResponse = z.infer<
+    typeof deleteInventoryMovementResponseSchema
+>;
+export type PaginatedInventoryMovementResolvedListResponse = z.infer<
+    typeof paginatedInventoryMovementResolvedListResponseSchema
+>;

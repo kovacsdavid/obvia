@@ -17,53 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { z } from "zod";
 import type {
-    CommonResponse,
-    FormError,
-    PaginatedDataResponse,
-    SimpleError,
-    SimpleMessageData,
-} from "@/lib/interface.ts";
+    activityFeedResolvedEntrySchema,
+    commentSchema,
+    commentErrorSchema,
+    deleteCommentResponseSchema,
+    paginatedActivityFeedResponseSchema,
+    postCommentResponseSchema,
+} from "./schemas";
 
-export interface ActivityFeedResolvedEntry {
-    id: string;
-    resource_id: string;
-    resource_type: string;
-    activity_type: string;
-    content: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export interface Comment {
-    id: string;
-    commentable_type: string;
-    commentable_id: string;
-    comment: string;
-    created_by_id: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-}
-
-export interface CommentError {
-    id?: string | null;
-    commentable_type?: string | null;
-    commentable_id?: string | null;
-    comment?: string | null;
-}
-
-export type PostCommentResponse = CommonResponse<Comment, FormError>;
-
-export type DeleteCommentResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type ActivityFeedResolvedEntry = z.infer<
+    typeof activityFeedResolvedEntrySchema
 >;
-
-export type PaginatedActivityFeedResponse = PaginatedDataResponse<
-    ActivityFeedResolvedEntry[],
-    SimpleError
+export type Comment = z.infer<typeof commentSchema>;
+export type CommentError = z.infer<typeof commentErrorSchema>;
+export type PostCommentResponse = z.infer<typeof postCommentResponseSchema>;
+export type DeleteCommentResponse = z.infer<typeof deleteCommentResponseSchema>;
+export type PaginatedActivityFeedResponse = z.infer<
+    typeof paginatedActivityFeedResponseSchema
 >;

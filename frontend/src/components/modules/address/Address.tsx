@@ -95,7 +95,6 @@ export default function Address({
     const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
     const [listError, setListError] = React.useState<string | null>(null);
     const listController = React.useRef<AbortController | null>(null);
-    const setErrorsRef = React.useRef(setErrors);
     const setField = <K extends keyof Address>(field: K, newValue: string) => {
         if (value !== null && typeof value !== "undefined") {
             onChange({
@@ -113,10 +112,6 @@ export default function Address({
         [setErrors],
     );
 
-    useEffect(() => {
-        setErrorsRef.current = setErrors;
-    }, [setErrors]);
-
     const loadLists = useCallback(() => {
         listController.current?.abort();
         const controller = new AbortController();
@@ -128,18 +123,9 @@ export default function Address({
             .then((result) => {
                 if (controller.signal.aborted) return;
                 handleApiResult(result, {
-                    onSuccess: ({ data, error }) => {
-                        if (data !== undefined) {
-                            setCountryList(data);
-                            setListError(null);
-                        }
-                        if (error !== undefined) {
-                            setErrorsRef.current?.(
-                                error.message ?? null,
-                                "country_code",
-                            );
-                            setListError(error.message ?? null);
-                        }
+                    onSuccess: ({ data }) => {
+                        setCountryList(data);
+                        setListError(null);
                     },
                     onError: setListError,
                 });

@@ -34,6 +34,20 @@ const claims = {
     active_tenant: "tenant",
 };
 const tokenData = { token: "new-token", claims };
+const database = {
+    id: "tenant",
+    name: "Company",
+    db_host: "host",
+    db_port: 5432,
+    db_name: "db",
+    db_user: "user",
+    db_password: "password",
+    db_max_pool_size: 10,
+    db_ssl_mode: "require",
+    created_at: "now",
+    updated_at: "now",
+    deleted_at: null,
+};
 
 describe("database API", () => {
     const fetchMock = vi.fn<typeof fetch>();
@@ -130,6 +144,104 @@ describe("database API", () => {
             kind: "http_error",
             status: 422,
             body: undefined,
+        });
+    });
+
+    it("validates database and paginated list envelopes, including nullable fields", async () => {
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ data: { ...database, extra: true } }),
+        );
+        expect(await api.get_resolved("tenant", null)).toMatchObject({
+            kind: "success",
+        });
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ data: { ...database, deleted_at: 4 } }),
+        );
+        expect(await api.get_resolved("tenant", null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ meta: { page: 1, limit: 10, total: 0 }, data: [] }),
+        );
+        expect(await api.list(null, null)).toMatchObject({ kind: "success" });
+        fetchMock.mockResolvedValueOnce(Response.json({ data: [database] }));
+        expect(await api.list(null, null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+        fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+        expect(await api.create({ name: "Company" }, null)).toEqual({
+            kind: "invalid_response",
+            status: 204,
+        });
+    });
+
+    it("distinguishes paginated lists from non-paginated database responses", async () => {
+        const meta = { page: 1, limit: 10, total: 1 };
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ meta, data: [database], extra: true }),
+        );
+        expect(await api.list(null, null)).toEqual({
+            kind: "success",
+            status: 200,
+            data: { meta, data: [database], extra: true },
+        });
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ meta: null, data: [database] }),
+        );
+        expect(await api.list(null, null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ meta: { ...meta, total: "1" }, data: [database] }),
+        );
+        expect(await api.list(null, null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ meta, data: database }),
+        );
+        expect(await api.create({ name: "Company" }, null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ data: database, error: { message: "error" } }),
+        );
+        expect(await api.get_resolved("tenant", null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
+        });
+        fetchMock.mockResolvedValueOnce(
+            Response.json({ meta: null, data: database }),
+        );
+        expect(await api.create({ name: "Company" }, null)).toMatchObject({
+            kind: "success",
+        });
+    });
+
+    it("validates nullable nested auth claims without discarding extra data", async () => {
+        const data = {
+            ...tokenData,
+            claims: { ...claims, active_tenant: null, extra: "kept" },
+        };
+        fetchMock.mockResolvedValueOnce(Response.json({ data }));
+        expect(await api.activate(null, null)).toEqual({
+            kind: "success",
+            status: 200,
+            data: { data },
+        });
+        fetchMock.mockResolvedValueOnce(
+            Response.json({
+                data: { ...data, claims: { ...data.claims, family_id: 3 } },
+            }),
+        );
+        expect(await api.activate(null, null)).toEqual({
+            kind: "invalid_response",
+            status: 200,
         });
     });
 

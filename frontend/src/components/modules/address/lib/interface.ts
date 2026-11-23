@@ -17,36 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export interface Address {
-    id: string;
-    type: string;
-    country_code: string;
-    postal_code: string;
-    settlement: string;
-    mailbox: string | null;
-    topographic_number: string | null;
-    name_of_public_space: string | null;
-    type_of_public_space: string | null;
-    house_number: string | null;
-    building: string | null;
-    stairway: string | null;
-    floor: string | null;
-    door: string | null;
-}
+import type { z } from "zod";
+import type { addressErrorsSchema, addressSchema } from "./schemas";
 
-export interface AddressErrors {
-    id: string | null;
-    type: string | null;
-    country_code: string | null;
-    postal_code: string | null;
-    settlement: string | null;
-    mailbox: string | null;
-    topographic_number: string | null;
-    name_of_public_space: string | null;
-    type_of_public_space: string | null;
-    house_number: string | null;
-    building: string | null;
-    stairway: string | null;
-    floor: string | null;
-    door: string | null;
-}
+export type Address = z.infer<typeof addressSchema>;
+export type AddressErrors = z.infer<typeof addressErrorsSchema>;

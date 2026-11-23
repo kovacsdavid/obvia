@@ -19,16 +19,16 @@
 
 import type {
     CreateUser,
+    EnableOtpResponse,
     OtpFields,
+    OtpMessageResponse,
 } from "@/components/modules/users/lib/interface.ts";
-import type { EnableOtpResponse } from "../../auth/lib/interface";
 import { isEnableOtpResponse } from "../../auth/lib/guards";
 import {
     isOtpFields,
     isOtpMessageResponse,
     isUnimplementedResponse,
 } from "./guards";
-import type { SimpleMessageData } from "@/lib/interface";
 import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
@@ -83,7 +83,7 @@ export async function verifyOtp(
     otp: string,
     token: string | null,
     signal?: AbortSignal,
-): Promise<ApiResult<{ data: SimpleMessageData }, OtpFields>> {
+): Promise<ApiResult<OtpMessageResponse, OtpFields>> {
     return apiRequest(`/api/users/otp/verify`, {
         method: "POST",
         token,
@@ -98,7 +98,7 @@ export async function disableOtp(
     otp: string,
     token: string | null,
     signal?: AbortSignal,
-): Promise<ApiResult<{ data: SimpleMessageData }, OtpFields>> {
+): Promise<ApiResult<OtpMessageResponse, OtpFields>> {
     return apiRequest(`/api/users/otp/disable`, {
         method: "POST",
         token,

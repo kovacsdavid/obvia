@@ -17,92 +17,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormErrorV2,
-    type PaginatedDataResponse,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
-import {
-    type Address,
-    type AddressErrors,
-    type Address as AddressInterface,
-} from "@/components/modules/address/lib/interface";
+import type { z } from "zod";
+import type {
+    createCustomerResponseSchema,
+    customerErrorsSchema,
+    customerFullResponseSchema,
+    customerFullSchema,
+    customerResolvedListSchema,
+    customerResponseSchema,
+    customerSchema,
+    customerUserInputSchema,
+    deleteCustomerResponseSchema,
+    paginatedCustomerResolvedListResponseSchema,
+    updateCustomerResponseSchema,
+} from "./schemas";
 
-export interface CustomerUserInput {
-    id: string | null;
-    name: string;
-    contactName: string;
-    email: string;
-    phoneNumber: string;
-    status: string | undefined;
-    customerType: string | undefined;
-    billingAddress: AddressInterface | null | undefined;
-    mailingAddress: AddressInterface | null | undefined;
-}
-
-export interface Customer {
-    id: string;
-    name: string;
-    contact_name: string | null;
-    email: string | null;
-    phone_number: string | null;
-    status: string;
-    customer_type: string;
-    created_by_id: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-    billing_address: string | null;
-    mailing_address: string | null;
-}
-
-export interface CustomerErrors {
-    id: string | null;
-    name: string | null;
-    contact_name: string | null;
-    email: string | null;
-    phone_number: string | null;
-    status: string | null;
-    customer_type: string | null;
-    billing_address: AddressErrors;
-    mailing_address: AddressErrors;
-}
-
-export interface CustomerFull {
-    id: string;
-    name: string;
-    contact_name: string | null;
-    email: string | null;
-    phone_number: string | null;
-    status: string;
-    customer_type: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-    billing_address: Address | null;
-    mailing_address: Address | null;
-}
-
-export type CreateCustomerResponse = CommonResponse<
-    Customer,
-    FormErrorV2<CustomerErrors>
+export type CustomerUserInput = z.infer<typeof customerUserInputSchema>;
+export type Customer = z.infer<typeof customerSchema>;
+export type CustomerErrors = z.infer<typeof customerErrorsSchema>;
+export type CustomerFull = z.infer<typeof customerFullSchema>;
+export type CustomerResolvedList = z.infer<typeof customerResolvedListSchema>;
+export type CreateCustomerResponse = z.infer<
+    typeof createCustomerResponseSchema
 >;
-export type UpdateCustomerResponse = CommonResponse<
-    Customer,
-    FormErrorV2<CustomerErrors>
+export type UpdateCustomerResponse = z.infer<
+    typeof updateCustomerResponseSchema
 >;
-export type DeleteCustomerResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type DeleteCustomerResponse = z.infer<
+    typeof deleteCustomerResponseSchema
 >;
-export type CustomerResolvedList = CustomerFull[];
-export type CustomerResponse = CommonResponse<Customer, SimpleError>;
-export type CustomerFullResponse = CommonResponse<CustomerFull, SimpleError>;
-export type PaginatedCustomerResolvedListResponse = PaginatedDataResponse<
-    CustomerResolvedList,
-    SimpleError
+export type CustomerResponse = z.infer<typeof customerResponseSchema>;
+export type CustomerFullResponse = z.infer<typeof customerFullResponseSchema>;
+export type PaginatedCustomerResolvedListResponse = z.infer<
+    typeof paginatedCustomerResolvedListResponseSchema
 >;

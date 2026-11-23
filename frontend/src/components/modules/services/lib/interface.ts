@@ -17,84 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    type CommonResponse,
-    type FormError,
-    type PaginatedDataResponse,
-    type SimpleError,
-    type SimpleMessageData,
-} from "@/lib/interface.ts";
+import type { z } from "zod";
+import type {
+    serviceUserInputSchema,
+    serviceErrorSchema,
+    serviceSchema,
+    serviceResolvedSchema,
+    serviceResolvedListSchema,
+    serviceResponseSchema,
+    createServiceResponseSchema,
+    updateServiceResponseSchema,
+    deleteServiceResponseSchema,
+    serviceResolvedResponseSchema,
+    paginatedServiceResolvedListResponseSchema,
+} from "./schemas";
 
-export interface ServiceUserInput {
-    id: string | null;
-    name: string;
-    description: string | null;
-    defaultPrice: string | null;
-    defaultTaxId: string | null;
-    currencyCode: string | null;
-    status: string;
-    unitOfMeasureId: string;
-    newUnitOfMeasure: string;
-}
-
-export interface ServiceError {
-    id: string | null;
-    name: string | null;
-    description: string | null;
-    default_price: string | null;
-    default_tax_id: string | null;
-    currency_code: string | null;
-    status: string | null;
-    unit_of_measure_id: string | null;
-    new_unit_of_measure: string | null;
-}
-
-export interface Service {
-    id: string;
-    name: string;
-    description: string | null;
-    default_price: string | null;
-    default_tax_id: string | null;
-    currency_code: string | null;
-    status: string;
-    created_by_id: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-    unit_of_measure_id: string;
-}
-
-export interface ServiceResolved {
-    id: string;
-    name: string;
-    description: string | null;
-    default_price: string | null;
-    default_tax_id: string | null;
-    default_tax: string | null;
-    currency_code: string | null;
-    status: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
-    unit_of_measure_id: string;
-    unit_of_measure: string;
-}
-
-export type CreateServiceResponse = CommonResponse<Service, FormError>;
-export type UpdateServiceResponse = CommonResponse<Service, FormError>;
-export type DeleteServiceResponse = CommonResponse<
-    SimpleMessageData,
-    SimpleError
+export type ServiceUserInput = z.infer<typeof serviceUserInputSchema>;
+export type ServiceError = z.infer<typeof serviceErrorSchema>;
+export type Service = z.infer<typeof serviceSchema>;
+export type ServiceResolved = z.infer<typeof serviceResolvedSchema>;
+export type ServiceResolvedList = z.infer<typeof serviceResolvedListSchema>;
+export type CreateServiceResponse = z.infer<typeof createServiceResponseSchema>;
+export type UpdateServiceResponse = z.infer<typeof updateServiceResponseSchema>;
+export type DeleteServiceResponse = z.infer<typeof deleteServiceResponseSchema>;
+export type ServiceResponse = z.infer<typeof serviceResponseSchema>;
+export type ServiceResolvedResponse = z.infer<
+    typeof serviceResolvedResponseSchema
 >;
-export type ServiceResolvedList = ServiceResolved[];
-export type ServiceResponse = CommonResponse<Service, SimpleError>;
-export type ServiceResolvedResponse = CommonResponse<
-    ServiceResolved,
-    SimpleError
->;
-export type PaginatedServiceResolvedListResponse = PaginatedDataResponse<
-    ServiceResolvedList,
-    SimpleError
+export type PaginatedServiceResolvedListResponse = z.infer<
+    typeof paginatedServiceResolvedListResponseSchema
 >;

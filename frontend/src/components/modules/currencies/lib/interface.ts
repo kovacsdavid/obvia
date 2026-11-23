@@ -17,8 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export interface Currency {
-    code: string;
-    number: string;
-    name: string;
-}
+import type { z } from "zod";
+import type { currencySchema } from "./schemas";
+
+export type Currency = z.infer<typeof currencySchema>;

@@ -90,6 +90,57 @@ const fields = {
     status: null,
 };
 
+it("keeps response data intact and rejects 204 for JSON and PDF endpoints", async () => {
+    const data = {
+        id: "i",
+        product_id: "p",
+        warehouse_id: "w",
+        quantity_on_hand: "2",
+        quantity_reserved: "1",
+        quantity_available: "1",
+        minimum_stock: null,
+        maximum_stock: null,
+        currency_code: "EUR",
+        status: "active",
+        created_by_id: "u",
+        created_at: "date",
+        updated_at: "date",
+        deleted_at: null,
+        extra: "preserved",
+    };
+    const body = { data, extra: true };
+    vi.stubGlobal(
+        "fetch",
+        vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(body), {
+                    headers: { "Content-Type": "application/json" },
+                }),
+            )
+            .mockImplementation(() =>
+                Promise.resolve(new Response(null, { status: 204 })),
+            ),
+    );
+    expect(await api.get("i", null)).toEqual({
+        kind: "success",
+        status: 200,
+        data: body,
+    });
+    expect(await api.get("i", null)).toEqual({
+        kind: "invalid_response",
+        status: 204,
+    });
+    expect(await api.deleteItem("i", null)).toEqual({
+        kind: "invalid_response",
+        status: 204,
+    });
+    expect(await api.print("i", null)).toEqual({
+        kind: "invalid_response",
+        status: 204,
+    });
+});
+
 it.each([
     [
         "create",

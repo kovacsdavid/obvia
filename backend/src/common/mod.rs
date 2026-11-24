@@ -18,8 +18,6 @@
  */
 
 use derive_builder::UninitializedFieldError;
-#[cfg(test)]
-use mockall::automock;
 use sqlx::PgPool;
 use std::{
     fmt::{Debug, Display},
@@ -34,7 +32,25 @@ use crate::{
         database::{DatabaseMigrator, PoolManager},
         error::RepositoryResult,
     },
-    manager::tenants::model::Tenant,
+    manager::{
+        auth::repository::AuthRepository,
+        tenants::{model::Tenant, repository::TenantsRepository},
+        users::repository::UsersRepository as ManagerUsersRepository,
+    },
+    tenant::{
+        activity_feed::repository::ActivityFeedRepository, address::repository::AddressRepository,
+        comments::repository::CommentsRepository, currencies::repository::CurrenciesRepository,
+        customers::repository::CustomersRepository,
+        handover_and_acceptance::Repository as HandoverAndAcceptanceRepository,
+        inventory::repository::InventoryRepository,
+        inventory_movements::repository::InventoryMovementsRepository,
+        inventory_reservations::repository::InventoryReservationsRepository,
+        owner_profile::repository::OwnerProfileRepository,
+        products::repository::ProductsRepository, services::repository::ServicesRepository,
+        tasks::repository::TasksRepository, taxes::repository::TaxesRepository,
+        users::repository::UsersRepository as TenantUsersRepository,
+        warehouses::repository::WarehousesRepository, worksheets::repository::WorksheetsRepository,
+    },
 };
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
@@ -62,11 +78,6 @@ pub(crate) mod types;
 pub(crate) mod utils;
 pub(crate) mod value_object;
 
-pub trait BaseModule:
-    ConfigProvider<Cfg = AppConfig> + Debug + MailTransporter + Send + Sync + 'static
-{
-}
-
 pub trait ConfigProvider {
     type Cfg;
     fn config(&self) -> &Self::Cfg;
@@ -77,6 +88,132 @@ pub trait MailTransporter {
         &self,
         message: Message,
     ) -> impl Future<Output = Result<Option<Response>, Error>> + Send;
+}
+
+pub trait ManagerRepositoryProvider: PoolManager {
+    fn auth_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn AuthRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn tenants_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TenantsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn users_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ManagerUsersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+}
+
+pub trait TenantRepositoryProvider: PoolManager {
+    fn activity_feed_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ActivityFeedRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn address_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn comments_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CommentsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn currencies_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn handover_and_acceptance_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn HandoverAndAcceptanceRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn inventory_movements_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn inventory_reservations_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn owner_profile_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn services_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn tasks_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TasksRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn users_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TenantUsersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 #[derive(Debug)]
@@ -124,7 +261,6 @@ where
     }
 }
 
-#[cfg_attr(test, automock)]
 impl<P, T> MailTransporter for AppState<P, T>
 where
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
@@ -197,11 +333,27 @@ where
     }
 }
 
-impl<P, T> BaseModule for AppState<P, T>
+impl<P, T> ManagerRepositoryProvider for AppState<P, T>
 where
-    P: PoolManager + Debug + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + 'static,
-    T::Error: Debug,
+    P: PoolManager,
+    T: Send + Sync,
+{
+}
+
+impl<P, T> TenantRepositoryProvider for AppState<P, T>
+where
+    P: PoolManager,
+    T: Send + Sync,
+{
+}
+
+pub trait AppStateInterface:
+    ConfigProvider
+    + MailTransporter
+    + DatabaseMigrator
+    + PoolManager
+    + ManagerRepositoryProvider
+    + TenantRepositoryProvider
 {
 }
 
@@ -229,3 +381,121 @@ pub static TEST_TIME_TZ: LazyLock<String> = LazyLock::new(|| {
         .format(&format!("%Y. %m. %d. %H:%M:%S ({})", *TEST_TZ))
         .to_string()
 });
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use error::RepositoryError;
+    use mockall::mock;
+
+    mock!(
+        pub AppState {}
+        impl Debug for AppState {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
+        impl ConfigProvider for AppState {
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
+        }
+        impl MailTransporter for AppState {
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
+        }
+        impl PoolManager for AppState {
+            fn get_main_pool(&self) -> Arc<PgPool>;
+            fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Arc<PgPool>, RepositoryError>;
+            fn add_tenant_pool(
+                &self,
+                tenant_id: Uuid,
+                config: &BasicDatabaseConfig,
+            ) -> impl Future<Output = Result<Uuid, RepositoryError>> + Send;
+            fn delete_tenant_pool(
+                &self,
+                tenant_id: Uuid,
+            ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
+        }
+        impl ManagerRepositoryProvider for AppState {
+            fn auth_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn AuthRepository + Send + Sync>>;
+            fn tenants_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TenantsRepository + Send + Sync>>;
+            fn users_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ManagerUsersRepository + Send + Sync>>;
+        }
+        impl TenantRepositoryProvider for AppState {
+            fn activity_feed_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ActivityFeedRepository + Send + Sync>>;
+            fn address_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
+            fn comments_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CommentsRepository + Send + Sync>>;
+            fn currencies_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
+            fn customers_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+            fn handover_and_acceptance_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn HandoverAndAcceptanceRepository + Send + Sync>>;
+            fn inventory_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
+            fn inventory_movements_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>>;
+            fn inventory_reservations_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>>;
+            fn owner_profile_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
+            fn products_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
+            fn services_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>>;
+            fn tasks_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TasksRepository + Send + Sync>>;
+            fn taxes_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
+            fn users_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TenantUsersRepository + Send + Sync>>;
+            fn warehouses_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
+            fn worksheets_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+        }
+    );
+}

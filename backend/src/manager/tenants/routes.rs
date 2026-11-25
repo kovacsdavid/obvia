@@ -17,24 +17,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::TenantsModuleInterface;
 use super::handler;
+use crate::common::AppStateInterface;
 use crate::manager::auth::middleware::require_auth;
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
 use std::sync::Arc;
 
-pub fn routes<M: TenantsModuleInterface>(tenants_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(tenants_module: Arc<A>) -> Router {
     Router::new().nest(
         "/tenants",
         Router::new()
-            .route("/create", post(handler::create::<M>))
-            .route("/get", get(handler::get::<M>))
-            .route("/get_resolved", get(handler::get_resolved::<M>))
-            .route("/list", get(handler::list::<M>))
-            .route("/activate", post(handler::activate::<M>))
-            .route("/delete", post(handler::delete::<M>))
+            .route("/create", post(handler::create::<A>))
+            .route("/get", get(handler::get::<A>))
+            .route("/get_resolved", get(handler::get_resolved::<A>))
+            .route("/list", get(handler::list::<A>))
+            .route("/activate", post(handler::activate::<A>))
+            .route("/delete", post(handler::delete::<A>))
             .layer(from_fn_with_state(tenants_module.clone(), require_auth))
             .with_state(tenants_module),
     )

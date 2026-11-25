@@ -17,92 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::PoolManager;
-use crate::common::error::RepositoryResult;
-use crate::common::{AppState, BaseModule};
-use crate::tenant::address::repository::AddressRepository;
-use crate::tenant::taxes::repository::TaxesRepository;
-use lettre::{
-    AsyncTransport,
-    transport::smtp::{Error, response::Response},
-};
-use std::fmt::Debug;
-use std::sync::Arc;
-use uuid::Uuid;
-
 pub mod dto;
-mod handler;
+pub mod handler;
 pub mod model;
-pub(crate) mod repository;
-pub(crate) mod routes;
+pub mod repository;
+pub mod routes;
 pub mod service;
-pub(crate) mod types;
-
-pub trait TaxesModuleInterface: BaseModule {
-    fn taxes_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
-    fn address_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
-}
-
-impl<P, T> TaxesModuleInterface for AppState<P, T>
-where
-    P: PoolManager + Debug + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + 'static,
-    T::Error: Debug,
-{
-    fn taxes_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
-    }
-    fn address_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-    use crate::common::config::AppConfig;
-    use crate::common::error::RepositoryResult;
-    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
-    use lettre::{
-        Message,
-        transport::smtp::{Error, response::Response},
-    };
-    use mockall::mock;
-
-    mock!(
-        pub TaxesModule {}
-        impl Debug for TaxesModule {
-            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
-        }
-        impl ConfigProvider for TaxesModule {
-            type Cfg = AppConfig;
-            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
-        }
-        impl MailTransporter for TaxesModule {
-            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
-        }
-        impl BaseModule for TaxesModule {}
-        impl TaxesModuleInterface for TaxesModule {
-            fn taxes_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
-            fn address_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
-        }
-    );
-}
+pub mod types;

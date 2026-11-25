@@ -24,6 +24,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use tracing::instrument;
 
+use crate::common::AppStateInterface;
 use crate::common::dto::EmptyType;
 use crate::tenant::address::service::AddressService;
 use crate::{
@@ -34,27 +35,23 @@ use crate::{
         service::BaseService,
     },
     manager::auth::middleware::AuthenticatedUser,
-    tenant::address::AddressModuleInterface,
 };
 
-#[instrument(
-    name = "obvia::tenant::address::handler::select_list",
-    skip(address_module)
-)]
-pub async fn select_list<M: AddressModuleInterface>(
+#[instrument(name = "obvia::tenant::address::handler::select_list", skip(app_state))]
+pub async fn select_list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(address_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), address_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
     let result = map_handler_err(
         service.get_select_list_items(&list_type).await,
-        address_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -63,7 +60,7 @@ pub async fn select_list<M: AddressModuleInterface>(
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        address_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -86,8 +83,9 @@ mod tests {
                 generate_valid_jwt,
             },
             model::SelectOption,
+            tests::MockAppState,
         },
-        tenant::address::{repository::MockAddressRepository, tests::MockAddressModule},
+        tenant::address::repository::MockAddressRepository,
     };
 
     use super::*;
@@ -116,7 +114,7 @@ mod tests {
                 move || Ok(select_options.clone())
             });
 
-        let mut app_state = MockAddressModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -169,7 +167,7 @@ mod tests {
     async fn test_select_list_unauthorized_expired() {
         let list = "countries";
 
-        let mut app_state = MockAddressModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -210,7 +208,7 @@ mod tests {
     async fn test_select_list_unauthorized_invalid_signature() {
         let list = "countries";
 
-        let mut app_state = MockAddressModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -250,7 +248,7 @@ mod tests {
     #[tokio::test]
     async fn test_select_list_unauthorized_missing() {
         let list = "countries";
-        let app_state = MockAddressModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -277,7 +275,7 @@ mod tests {
     async fn test_select_list_invalid_list() {
         let active_tenant_id = Uuid::now_v7();
         let list = "invalid_list";
-        let mut app_state = MockAddressModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()

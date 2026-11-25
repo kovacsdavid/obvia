@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput, ValidJson};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::tenants::TenantsModuleInterface;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, PublicTenantManaged, TenantIdRequest,
 };
@@ -37,37 +37,31 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(
-    name = "obvia::manager::tenants::handler::create",
-    skip(tenants_module)
-)]
-pub async fn create<M: TenantsModuleInterface>(
+#[instrument(name = "obvia::manager::tenants::handler::create", skip(app_state))]
+pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tenants_module.clone());
-    let result = map_handler_err(
-        service.create_managed(&user_input).await,
-        tenants_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result =
+        map_handler_err(service.create_managed(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(PublicTenantManaged::from(result))
             .build(),
-        tenants_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::manager::tenants::handler::get", skip(_tenants_module))]
-pub async fn get<M: TenantsModuleInterface>(
+#[instrument(name = "obvia::manager::tenants::handler::get", skip(_app_state))]
+pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
-    State(_tenants_module): State<Arc<M>>,
+    State(_app_state): State<Arc<A>>,
     _client_context: ClientContext,
 ) -> Response {
     todo!();
@@ -75,34 +69,31 @@ pub async fn get<M: TenantsModuleInterface>(
 
 #[instrument(
     name = "obvia::manager::tenants::handler::get_resolved",
-    skip(_tenants_module)
+    skip(_app_state)
 )]
-pub async fn get_resolved<M: TenantsModuleInterface>(
+pub async fn get_resolved<A: AppStateInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
-    State(_tenants_module): State<Arc<M>>,
+    State(_app_state): State<Arc<A>>,
     _client_context: ClientContext,
 ) -> Response {
     todo!();
 }
 
-#[instrument(name = "obvia::manager::tenants::handler::list", skip(tenants_module))]
-pub async fn list<M: TenantsModuleInterface>(
+#[instrument(name = "obvia::manager::tenants::handler::list", skip(app_state))]
+pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tenants_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.q()),
-        tenants_module.clone(),
+        app_state.clone(),
     )
     .await?;
-    let (meta, data) = map_handler_err(
-        service.get_paged(&resource_query).await,
-        tenants_module.clone(),
-    )
-    .await?;
+    let (meta, data) =
+        map_handler_err(service.get_paged(&resource_query).await, app_state.clone()).await?;
 
     Ok(map_handler_err(
         SuccessResponseBuilder::new()
@@ -110,54 +101,47 @@ pub async fn list<M: TenantsModuleInterface>(
             .meta(meta)
             .data(data)
             .build(),
-        tenants_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::manager::tenants::handler::activate",
-    skip(tenants_module)
-)]
-pub async fn activate<M: TenantsModuleInterface>(
+#[instrument(name = "obvia::manager::tenants::handler::activate", skip(app_state))]
+pub async fn activate<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tenants_module.clone());
-    let result = map_handler_err(service.activate(&payload).await, tenants_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.activate(&payload).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        tenants_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::manager::tenants::handler::delete",
-    skip(tenants_module)
-)]
-pub async fn delete<M: TenantsModuleInterface>(
+#[instrument(name = "obvia::manager::tenants::handler::delete", skip(app_state))]
+pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tenants_module.clone());
-    let result =
-        map_handler_err(service.delete(payload.uuid).await, tenants_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.delete(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        tenants_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -172,12 +156,12 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
+    use crate::common::tests::MockAppState;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::tenants;
     use crate::manager::tenants::dto::PublicTenant;
     use crate::manager::tenants::model::{Tenant, UserTenant};
     use crate::manager::tenants::repository::MockTenantsRepository;
-    use crate::manager::tenants::tests::MockTenantsModule;
     use crate::manager::users::model::User as ManagerUser;
     use crate::manager::users::repository::MockUsersRepository as MockManagerUserRepository;
     use crate::tenant::users::model::User as TenantUser;
@@ -281,36 +265,34 @@ mod tests {
         let manager_user_repo = Arc::new(manager_user_repo);
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut tenants_module = MockTenantsModule::new();
-        tenants_module
-            .expect_config()
-            .times(2)
-            .return_const(test_config);
-        tenants_module
+        let mut app_state = MockAppState::new();
+        app_state.expect_config().times(2).return_const(test_config);
+        app_state
             .expect_tenants_repo()
             .times(1)
             .returning(move || tenants_repo.clone());
-        tenants_module
-            .expect_tenant_user_repo()
+
+        app_state
+            .expect_tenant_users_repo()
             .times(1)
             .with(eq(new_tenant_id))
             .returning(move |_| Ok(tenant_user_repo.clone()));
-        tenants_module
-            .expect_manager_user_repo()
+        app_state
+            .expect_manager_users_repo()
             .times(1)
             .returning(move || manager_user_repo.clone());
-        tenants_module
+        app_state
             .expect_add_tenant_pool()
             .times(1)
             .returning(|tenant_id, _| Box::pin(ready(Ok(tenant_id))));
-        tenants_module
+        app_state
             .expect_migrate_tenant_db()
             .times(1)
             .returning(|_| Box::pin(ready(Ok(()))));
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -359,16 +341,13 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -403,16 +382,13 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -445,7 +421,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(MockTenantsModule::new()))),
+            Router::new().merge(tenants::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -475,16 +451,13 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -516,16 +489,13 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -555,7 +525,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(MockTenantsModule::new()))),
+            Router::new().merge(tenants::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -585,16 +555,13 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -626,16 +593,13 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -665,7 +629,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(MockTenantsModule::new()))),
+            Router::new().merge(tenants::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -723,21 +687,18 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
-        tenants_module
+        app_state
             .expect_tenants_repo()
             .times(1)
             .returning(move || repo.clone());
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -766,16 +727,13 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -805,16 +763,13 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -842,7 +797,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(MockTenantsModule::new()))),
+            Router::new().merge(tenants::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -905,19 +860,19 @@ mod tests {
 
         let repo = Arc::new(repo);
 
-        let mut tenants_module = MockTenantsModule::new();
-        tenants_module
+        let mut app_state = MockAppState::new();
+        app_state
             .expect_config()
             .times(2)
             .return_const(test_config.clone());
-        tenants_module
+        app_state
             .expect_tenants_repo()
             .times(1)
             .returning(move || repo.clone());
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -965,15 +920,15 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
-        tenants_module
+        let mut app_state = MockAppState::new();
+        app_state
             .expect_config()
             .times(1)
             .return_const(test_config.clone());
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1012,15 +967,15 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
-        tenants_module
+        let mut app_state = MockAppState::new();
+        app_state
             .expect_config()
             .times(1)
             .return_const(test_config.clone());
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1055,7 +1010,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(MockTenantsModule::new()))),
+            Router::new().merge(tenants::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1097,7 +1052,7 @@ mod tests {
             });
 
         let repo = Arc::new(repo);
-        let mut app_state = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         app_state
             .expect_tenants_repo()
             .times(1)
@@ -1175,16 +1130,13 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1216,16 +1168,13 @@ mod tests {
             .body("".to_string())
             .unwrap();
 
-        let mut tenants_module = MockTenantsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
-        tenants_module
-            .expect_config()
-            .times(1)
-            .return_const(test_config);
+        app_state.expect_config().times(1).return_const(test_config);
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -1255,7 +1204,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(MockTenantsModule::new()))),
+            Router::new().merge(tenants::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();

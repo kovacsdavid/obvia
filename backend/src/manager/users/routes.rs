@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::UsersModuleInterface;
 use super::handler;
+use crate::common::AppStateInterface;
 use crate::manager::auth::middleware::require_auth;
 use axum::middleware::from_fn_with_state;
 use axum::{
@@ -27,14 +27,14 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub fn routes<M: UsersModuleInterface>(users_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(users_module: Arc<A>) -> Router {
     Router::new().nest(
         "/users",
         Router::new()
-            .route("/get_claims", get(handler::get_claims::<M>))
-            .route("/otp/enable", get(handler::otp_enable::<M>))
-            .route("/otp/verify", post(handler::otp_verify::<M>))
-            .route("/otp/disable", post(handler::otp_disable::<M>))
+            .route("/get_claims", get(handler::get_claims::<A>))
+            .route("/otp/enable", get(handler::otp_enable::<A>))
+            .route("/otp/verify", post(handler::otp_verify::<A>))
+            .route("/otp/disable", post(handler::otp_disable::<A>))
             .layer(from_fn_with_state(users_module.clone(), require_auth))
             .with_state(users_module),
     )

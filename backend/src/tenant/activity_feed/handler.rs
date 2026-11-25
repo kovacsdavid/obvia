@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::SuccessResponseBuilder;
 use crate::common::extractors::ClientContext;
 use crate::common::handler::{HandlerResult, map_handler_err};
@@ -24,7 +25,6 @@ use crate::common::query_parser::ResourceQuery;
 use crate::common::service::BaseService;
 use crate::common::types::Empty;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::tenant::activity_feed::ActivityFeedModuleInterface;
 use crate::tenant::activity_feed::dto::ActivityFeedRawQuery;
 use crate::tenant::activity_feed::service::ActivityFeedService;
 use axum::extract::{Query, State};
@@ -34,20 +34,17 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(
-    name = "obvia::tenant::activity_feed::handler::list",
-    skip(activity_feed_module)
-)]
-pub async fn list<M: ActivityFeedModuleInterface>(
+#[instrument(name = "obvia::tenant::activity_feed::handler::list", skip(app_state))]
+pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(activity_feed_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), activity_feed_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<Empty, Empty>::from_str(payload.q()),
-        activity_feed_module.clone(),
+        app_state.clone(),
     )
     .await?;
     let (meta, data) = map_handler_err(
@@ -55,10 +52,10 @@ pub async fn list<M: ActivityFeedModuleInterface>(
             .get_all_paged(
                 &resource_query,
                 payload.resource_id(),
-                &map_handler_err(payload.resource_type(), activity_feed_module.clone()).await?,
+                &map_handler_err(payload.resource_type(), app_state.clone()).await?,
             )
             .await,
-        activity_feed_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -68,7 +65,7 @@ pub async fn list<M: ActivityFeedModuleInterface>(
             .meta(meta)
             .data(data)
             .build(),
-        activity_feed_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -83,14 +80,13 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
+    use crate::common::tests::MockAppState;
     use crate::common::value_object::ValueObjectRequired;
     use crate::tenant::activity_feed::model::ActivityFeedResolved;
     use crate::tenant::activity_feed::types::ResourceType;
     use crate::{
         common::config::tests::test_app_config_builder,
-        tenant::activity_feed::{
-            self, repository::MockActivityFeedRepository, tests::MockActivityFeedModule,
-        },
+        tenant::activity_feed::{self, repository::MockActivityFeedRepository},
     };
     use axum::{Router, http::Request};
     use chrono::Utc;
@@ -142,7 +138,7 @@ mod tests {
                 move |_, _, _| Ok((paginator_meta, vec![activity_feed_resolved.clone()]))
             });
 
-        let mut app_state = MockActivityFeedModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -195,7 +191,7 @@ mod tests {
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
 
-        let mut app_state = MockActivityFeedModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -240,7 +236,7 @@ mod tests {
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
 
-        let mut app_state = MockActivityFeedModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -284,7 +280,7 @@ mod tests {
         let resource_type = "worksheets"
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
-        let app_state = MockActivityFeedModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -327,7 +323,7 @@ mod tests {
             )
             .returning(|_, _, _| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockActivityFeedModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state

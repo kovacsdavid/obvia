@@ -99,14 +99,6 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
     }
 }
 
-#[expect(dead_code)]
-pub struct UserTenantConnect {
-    pub user_id: Uuid,
-    pub tenant_id: Uuid,
-    pub role: String,
-    pub invited_by: Option<Uuid>,
-}
-
 #[derive(Serialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum PublicTenant {

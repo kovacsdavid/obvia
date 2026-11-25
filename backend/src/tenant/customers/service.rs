@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -26,7 +25,7 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
-use crate::tenant::customers::CustomersModuleInterface;
+use crate::common::{AppStateInterface, CommonBuilderError};
 use crate::tenant::customers::dto::print::{CustomerFullPrint, test_customer_full_print_builder};
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerFull, CustomerResolved};
@@ -156,15 +155,11 @@ pub trait CustomerService {
 
 impl<'a, T> CustomerService for BaseService<'a, T>
 where
-    T: CustomersModuleInterface,
+    T: AppStateInterface,
 {
     async fn insert(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
         self.module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
+            .customers_repo(self.active_tenant()?)?
             .insert(payload, self.claims()?.sub())
             .await
             .map_err(|e| {
@@ -192,11 +187,7 @@ where
     async fn get(&self, payload: Uuid) -> CustomersServiceResult<Customer> {
         Ok(self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
+            .customers_repo(self.active_tenant()?)?
             .get_by_id(payload)
             .await?)
     }

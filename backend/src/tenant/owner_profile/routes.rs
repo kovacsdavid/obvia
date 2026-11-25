@@ -17,20 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::OwnerProfileModuleInterface;
 use super::handler;
+use crate::common::AppStateInterface;
 use crate::manager::auth::middleware::require_auth;
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{get, put};
 use std::sync::Arc;
 
-pub fn routes<M: OwnerProfileModuleInterface>(owner_profile_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(owner_profile_module: Arc<A>) -> Router {
     Router::new().nest(
         "/owner_profile",
         Router::new()
-            .route("/get_full", get(handler::get_full::<M>))
-            .route("/update", put(handler::update::<M>))
+            .route("/get_full", get(handler::get_full::<A>))
+            .route("/update", put(handler::update::<A>))
             .layer(from_fn_with_state(
                 owner_profile_module.clone(),
                 require_auth,

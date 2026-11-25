@@ -19,16 +19,14 @@
 
 use std::str::FromStr;
 
-use crate::{
-    common::{
-        error::{
-            RepositoryError,
-            v2::{AppError, AppErrorVisibility},
-        },
-        model::SelectOption,
-        service::{BaseService, BaseServiceError},
+use crate::common::{
+    AppStateInterface,
+    error::{
+        RepositoryError,
+        v2::{AppError, AppErrorVisibility},
     },
-    tenant::address::AddressModuleInterface,
+    model::SelectOption,
+    service::{BaseService, BaseServiceError},
 };
 use axum::http::StatusCode;
 use serde_json::json;
@@ -106,7 +104,7 @@ pub trait AddressService {
 
 impl<'a, T> AddressService for BaseService<'a, T>
 where
-    T: AddressModuleInterface,
+    T: AppStateInterface,
 {
     async fn get_select_list_items(
         &self,

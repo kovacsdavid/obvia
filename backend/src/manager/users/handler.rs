@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::UsersModuleInterface;
 use super::service::UserService;
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
@@ -29,13 +29,10 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(
-    name = "obvia::manager::users::handler::get_claims",
-    skip(users_module)
-)]
-pub async fn get_claims<M: UsersModuleInterface>(
+#[instrument(name = "obvia::manager::users::handler::get_claims", skip(app_state))]
+pub async fn get_claims<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(users_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
 ) -> HandlerResult {
     Ok(map_handler_err(
@@ -43,52 +40,43 @@ pub async fn get_claims<M: UsersModuleInterface>(
             .status_code(StatusCode::OK)
             .data(claims)
             .build(),
-        users_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::manager::users::handler::otp_enable",
-    skip(users_module)
-)]
-pub async fn otp_enable<M: UsersModuleInterface>(
-    State(users_module): State<Arc<M>>,
+#[instrument(name = "obvia::manager::users::handler::otp_enable", skip(app_state))]
+pub async fn otp_enable<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     client_context: ClientContext,
     AuthenticatedUser(claims): AuthenticatedUser,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), users_module.clone());
-    let response = map_handler_err(
-        service.otp_enable(&client_context).await,
-        users_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let response =
+        map_handler_err(service.otp_enable(&client_context).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(response)
             .build(),
-        users_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::manager::users::handler::otp_verify",
-    skip(users_module)
-)]
-pub async fn otp_verify<M: UsersModuleInterface>(
-    State(users_module): State<Arc<M>>,
+#[instrument(name = "obvia::manager::users::handler::otp_verify", skip(app_state))]
+pub async fn otp_verify<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     client_context: ClientContext,
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), users_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     map_handler_err(
         service.otp_verify(&user_input, &client_context).await,
-        users_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -99,26 +87,23 @@ pub async fn otp_verify<M: UsersModuleInterface>(
                 "A kétlépcsős azonosítás aktiválása megtörtént!",
             ))
             .build(),
-        users_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::manager::users::handler::otp_disable",
-    skip(users_module)
-)]
-pub async fn otp_disable<M: UsersModuleInterface>(
-    State(users_module): State<Arc<M>>,
+#[instrument(name = "obvia::manager::users::handler::otp_disable", skip(app_state))]
+pub async fn otp_disable<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     client_context: ClientContext,
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), users_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     map_handler_err(
         service.otp_disable(&user_input, &client_context).await,
-        users_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -129,7 +114,7 @@ pub async fn otp_disable<M: UsersModuleInterface>(
                 "A kétlépcsős azonosítás kikapcsolása megtörtént!",
             ))
             .build(),
-        users_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -145,11 +130,10 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
+    use crate::common::tests::MockAppState;
     use crate::manager::auth::model::{AccountEventLogEntry, AccountEventStatus, AccountEventType};
     use crate::manager::auth::repository::MockAuthRepository;
-    use crate::manager::users::{
-        self, model::User, repository::MockUsersRepository, tests::MockUsersModule,
-    };
+    use crate::manager::users::{self, model::User, repository::MockUsersRepository};
     use axum::body::Body;
     use axum::{Router, http::Request};
     use chrono::Utc;
@@ -204,7 +188,7 @@ mod tests {
             })
             .returning(Ok);
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let users_repo = Arc::new(repo);
         let auth_repo = Arc::new(MockAuthRepository::new());
         let test_config = test_app_config_builder().build().unwrap();
@@ -213,7 +197,7 @@ mod tests {
             .times(1)
             .returning(move || auth_repo.clone());
         app_state
-            .expect_users_repo()
+            .expect_manager_users_repo()
             .times(1)
             .returning(move || users_repo.clone());
         app_state
@@ -257,7 +241,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_enable_unauthorized_expired() {
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -296,7 +280,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_enable_unauthorized_invalid_signature() {
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -344,7 +328,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(users::routes::routes(Arc::new(MockUsersModule::new()))),
+            Router::new().merge(users::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -441,7 +425,7 @@ mod tests {
                 },
             );
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let users_repo = Arc::new(users_repo);
         let auth_repo = Arc::new(auth_repo);
         let test_config = test_app_config_builder().build().unwrap();
@@ -450,7 +434,7 @@ mod tests {
             .times(1)
             .returning(move || auth_repo.clone());
         app_state
-            .expect_users_repo()
+            .expect_manager_users_repo()
             .times(1)
             .returning(move || users_repo.clone());
         app_state
@@ -570,7 +554,7 @@ mod tests {
                 },
             );
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let users_repo = Arc::new(users_repo);
         let auth_repo = Arc::new(auth_repo);
         let test_config = test_app_config_builder().build().unwrap();
@@ -579,7 +563,7 @@ mod tests {
             .times(1)
             .returning(move || auth_repo.clone());
         app_state
-            .expect_users_repo()
+            .expect_manager_users_repo()
             .times(1)
             .returning(move || users_repo.clone());
         app_state
@@ -658,7 +642,7 @@ mod tests {
         assert!(!user.is_mfa_enabled());
         let user = user.init_mfa_secret();
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -729,7 +713,7 @@ mod tests {
         assert!(!user.is_mfa_enabled());
         let user = user.init_mfa_secret();
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -800,7 +784,7 @@ mod tests {
         assert!(!user.is_mfa_enabled());
         let user = user.init_mfa_secret();
 
-        let app_state = MockUsersModule::new();
+        let app_state = MockAppState::new();
 
         let payload = serde_json::to_string(&OtpUserInputHelper {
             otp: user.get_mfa_token().unwrap(),
@@ -913,7 +897,7 @@ mod tests {
                 },
             );
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let users_repo = Arc::new(users_repo);
         let auth_repo = Arc::new(auth_repo);
         let test_config = test_app_config_builder().build().unwrap();
@@ -922,7 +906,7 @@ mod tests {
             .times(2)
             .returning(move || auth_repo.clone());
         app_state
-            .expect_users_repo()
+            .expect_manager_users_repo()
             .times(1)
             .returning(move || users_repo.clone());
         app_state
@@ -1051,7 +1035,7 @@ mod tests {
                 },
             );
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let users_repo = Arc::new(users_repo);
         let auth_repo = Arc::new(auth_repo);
         let test_config = test_app_config_builder().build().unwrap();
@@ -1060,7 +1044,7 @@ mod tests {
             .times(2)
             .returning(move || auth_repo.clone());
         app_state
-            .expect_users_repo()
+            .expect_manager_users_repo()
             .times(1)
             .returning(move || users_repo.clone());
         app_state
@@ -1139,7 +1123,7 @@ mod tests {
         assert!(user.is_mfa_enabled());
         let user = user.init_mfa_secret();
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1210,7 +1194,7 @@ mod tests {
         assert!(user.is_mfa_enabled());
         let user = user.init_mfa_secret();
 
-        let mut app_state = MockUsersModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1295,7 +1279,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(users::routes::routes(Arc::new(MockUsersModule::new()))),
+            Router::new().merge(users::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();

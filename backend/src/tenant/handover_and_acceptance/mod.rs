@@ -17,23 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use lettre::{
-    AsyncTransport,
-    transport::smtp::{Error, response::Response},
-};
-use std::{fmt::Debug, sync::Arc};
-use uuid::Uuid;
-
-use crate::{
-    common::{AppState, BaseModule, database::PoolManager, error::RepositoryResult},
-    tenant::{
-        currencies::repository::CurrenciesRepository, customers::repository::CustomersRepository,
-        owner_profile::repository::OwnerProfileRepository,
-    },
-};
-
 pub mod dto;
-mod handler;
+pub mod handler;
 pub mod model;
 pub mod repository;
 pub mod routes;
@@ -47,99 +32,3 @@ pub use dto::{
 pub use repository::Repository;
 pub use routes::routes;
 pub use service::{Service, ServiceError};
-
-// TODO: define this interface
-pub trait ModuleInterface: BaseModule {
-    fn handover_and_acceptance_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn Repository + Send + Sync>>;
-    fn owner_profile_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
-    fn customers_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
-    fn currencies_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
-}
-
-// TODO: implement the interface
-impl<P, T> ModuleInterface for AppState<P, T>
-where
-    P: PoolManager + Debug,
-    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
-    T::Error: Debug,
-{
-    fn handover_and_acceptance_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn Repository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
-    }
-    fn owner_profile_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
-    }
-    fn customers_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
-    }
-    fn currencies_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use crate::common::{ConfigProvider, MailTransporter, config::AppConfig};
-    use lettre::Message;
-
-    use super::*;
-
-    use mockall::mock;
-
-    mock!(
-        pub Module {}
-        impl Debug for Module {
-            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
-        }
-        impl ConfigProvider for Module {
-            type Cfg = AppConfig;
-            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
-        }
-        impl MailTransporter for Module {
-            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
-        }
-        impl BaseModule for Module {}
-        impl ModuleInterface for Module {
-            fn handover_and_acceptance_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn Repository + Send + Sync>>;
-            fn owner_profile_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
-            fn customers_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
-            fn currencies_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
-        }
-    );
-}

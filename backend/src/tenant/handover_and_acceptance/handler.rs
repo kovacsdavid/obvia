@@ -28,6 +28,7 @@ use tracing::instrument;
 
 use crate::{
     common::{
+        AppStateInterface,
         dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam},
         extractors,
         handler::{HandlerResult, map_handler_err},
@@ -36,33 +37,29 @@ use crate::{
     },
     manager::auth::middleware::AuthenticatedUser,
     tenant::handover_and_acceptance::{
-        ModuleInterface, Service, UserInput, UserInputHelper,
+        Service, UserInput, UserInputHelper,
         types::{FilterBy, OrderBy},
     },
 };
 
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::get_full",
-    skip(handover_and_acceptance_module)
+    skip(app_state)
 )]
-pub async fn get_full<M: ModuleInterface>(
+pub async fn get_full<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(handover_and_acceptance_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: extractors::ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
-    let result = map_handler_err(
-        service.get_full(payload.uuid).await,
-        handover_and_acceptance_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.get_full(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        handover_and_acceptance_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -70,25 +67,22 @@ pub async fn get_full<M: ModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::list",
-    skip(handover_and_acceptance_module)
+    skip(app_state)
 )]
-pub async fn list<M: ModuleInterface>(
+pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(handover_and_acceptance_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: extractors::ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<OrderBy, FilterBy>::from_str(payload.q()),
-        handover_and_acceptance_module.clone(),
+        app_state.clone(),
     )
     .await?;
-    let (meta, data) = map_handler_err(
-        service.get_paged(&resource_query).await,
-        handover_and_acceptance_module.clone(),
-    )
-    .await?;
+    let (meta, data) =
+        map_handler_err(service.get_paged(&resource_query).await, app_state.clone()).await?;
 
     Ok(map_handler_err(
         SuccessResponseBuilder::new()
@@ -96,7 +90,7 @@ pub async fn list<M: ModuleInterface>(
             .meta(meta)
             .data(data)
             .build(),
-        handover_and_acceptance_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -104,21 +98,21 @@ pub async fn list<M: ModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::select_list",
-    skip(handover_and_acceptance_module)
+    skip(app_state)
 )]
-pub async fn select_list<M: ModuleInterface>(
+pub async fn select_list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(handover_and_acceptance_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: extractors::ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let list_type = payload.get("list").map(|v| v.as_str());
     let list_param = payload.get("param").map(|v| v.as_str());
 
     let result = map_handler_err(
         service.get_select_list_items(list_type, list_param).await,
-        handover_and_acceptance_module.clone(),
+        app_state.clone(),
     )
     .await?;
     Ok(map_handler_err(
@@ -126,7 +120,7 @@ pub async fn select_list<M: ModuleInterface>(
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        handover_and_acceptance_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -134,26 +128,22 @@ pub async fn select_list<M: ModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::create",
-    skip(handover_and_acceptance_module)
+    skip(app_state)
 )]
-pub async fn create<M: ModuleInterface>(
+pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(handover_and_acceptance_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: extractors::ClientContext,
     extractors::UserInput(user_input, _): extractors::UserInput<UserInput, UserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
-    let result = map_handler_err(
-        service.insert(&user_input).await,
-        handover_and_acceptance_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.insert(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(result)
             .build(),
-        handover_and_acceptance_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -161,26 +151,22 @@ pub async fn create<M: ModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::update",
-    skip(handover_and_acceptance_module)
+    skip(app_state)
 )]
-pub async fn update<M: ModuleInterface>(
+pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(handover_and_acceptance_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: extractors::ClientContext,
     extractors::UserInput(user_input, _): extractors::UserInput<UserInput, UserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
-    let result = map_handler_err(
-        service.update(&user_input).await,
-        handover_and_acceptance_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.update(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        handover_and_acceptance_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -188,20 +174,16 @@ pub async fn update<M: ModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::delete",
-    skip(handover_and_acceptance_module)
+    skip(app_state)
 )]
-pub async fn delete<M: ModuleInterface>(
+pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(handover_and_acceptance_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: extractors::ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
-    map_handler_err(
-        service.delete(payload.uuid).await,
-        handover_and_acceptance_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    map_handler_err(service.delete(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
@@ -209,7 +191,7 @@ pub async fn delete<M: ModuleInterface>(
                 "A vevő törlése sikeresen megtörtént",
             ))
             .build(),
-        handover_and_acceptance_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -217,21 +199,17 @@ pub async fn delete<M: ModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::print",
-    skip(handover_and_acceptance_module)
+    skip(app_state)
 )]
-pub async fn print<M: ModuleInterface>(
+pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(handover_and_acceptance_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: extractors::ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), handover_and_acceptance_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
 
-    let pdf = map_handler_err(
-        service.print(payload.uuid).await,
-        handover_and_acceptance_module,
-    )
-    .await?;
+    let pdf = map_handler_err(service.print(payload.uuid).await, app_state).await?;
 
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
@@ -278,6 +256,7 @@ mod tests {
                 tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text},
             },
             query_parser::ResourceQuery,
+            tests::MockAppState,
         },
         tenant::{
             address::model::test_address_resolved_builder,
@@ -288,7 +267,6 @@ mod tests {
                     test_handover_and_acceptance_builder, test_handover_and_acceptance_full_builder,
                 },
                 repository::MockRepository,
-                tests::MockModule,
             },
             owner_profile::{
                 dto::print::OwnerProfileFullPrint, model::tests::test_owner_profile_full_builder,
@@ -322,7 +300,7 @@ mod tests {
                 move |_| Ok(handover_and_acceptance_full.clone())
             });
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let handover_and_acceptance_repo = Arc::new(handover_and_acceptance_repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -372,7 +350,7 @@ mod tests {
     async fn test_get_full_unauthorized_expired() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -414,7 +392,7 @@ mod tests {
     async fn test_get_full_unauthorized_invalid_signature() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -455,7 +433,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_full_unauthorized_missing() {
         let handover_and_acceptance_id = Uuid::now_v7();
-        let app_state = MockModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -490,7 +468,7 @@ mod tests {
             .with(eq(handover_and_acceptance_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -602,7 +580,7 @@ mod tests {
                 }
             });
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let handover_and_acceptance_repo = Arc::new(handover_and_acceptance_repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -651,7 +629,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -689,7 +667,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -727,7 +705,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let app_state = MockModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -764,7 +742,7 @@ mod tests {
                 .unwrap()))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -881,7 +859,7 @@ mod tests {
                 move |_, _| Ok(handover_and_acceptance.clone())
             });
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -951,7 +929,7 @@ mod tests {
             received_at: TEST_TIME.to_rfc3339(),
         };
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1021,7 +999,7 @@ mod tests {
             received_at: TEST_TIME.to_rfc3339(),
         };
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1085,7 +1063,7 @@ mod tests {
             received_at: TEST_TIME.to_rfc3339(),
         };
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1149,7 +1127,7 @@ mod tests {
             received_at: TEST_TIME.to_rfc3339(),
         };
 
-        let app_state = MockModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1218,7 +1196,7 @@ mod tests {
                 move |_, _| Ok(handover_and_acceptance.clone())
             });
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1292,7 +1270,7 @@ mod tests {
             received_at: TEST_TIME.to_rfc3339(),
         };
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1359,7 +1337,7 @@ mod tests {
             received_at: TEST_TIME.to_rfc3339(),
         };
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1424,7 +1402,7 @@ mod tests {
             received_at: TEST_TIME.to_rfc3339(),
         };
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1489,7 +1467,7 @@ mod tests {
             received_at: TEST_TIME.to_rfc3339(),
         };
 
-        let app_state = MockModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1524,7 +1502,7 @@ mod tests {
             .with(eq(handover_and_acceptance_id))
             .returning(move |_| Ok(()));
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1575,7 +1553,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1614,7 +1592,7 @@ mod tests {
     async fn test_delete_unauthorized_expired() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1656,7 +1634,7 @@ mod tests {
     async fn test_delete_unauthorized_invalid_signature() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1698,7 +1676,7 @@ mod tests {
     async fn test_delete_unauthorized_missing() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let app_state = MockModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1762,7 +1740,7 @@ mod tests {
             move || Ok(owner_profile_full.clone())
         });
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let owner_profile_repo = Arc::new(owner_profile_repo);
         let test_config = test_app_config_builder().build().unwrap();
@@ -1857,7 +1835,7 @@ mod tests {
     async fn test_print_unauthorized_expired() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1900,7 +1878,7 @@ mod tests {
     async fn test_print_unauthorized_invalid_signature() {
         let handover_and_acceptance_id = Uuid::now_v7();
 
-        let mut app_state = MockModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1954,7 +1932,9 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(handover_and_acceptance::routes(Arc::new(MockModule::new()))),
+            Router::new().merge(handover_and_acceptance::routes(Arc::new(
+                MockAppState::new(),
+            ))),
         );
 
         let response = app.oneshot(request).await.unwrap();

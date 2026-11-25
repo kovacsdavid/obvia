@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -27,7 +28,6 @@ use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
 use crate::common::value_object::ValueObjectError;
-use crate::tenant::products::ProductsModuleInterface;
 use crate::tenant::products::dto::print::ProductsResolvedPrint;
 use crate::tenant::products::dto::user_input::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
@@ -166,7 +166,7 @@ pub trait ProductService {
 
 impl<'a, T> ProductService for BaseService<'a, T>
 where
-    T: ProductsModuleInterface,
+    T: AppStateInterface,
 {
     async fn insert(&self, payload: &ProductUserInput) -> ProductsServiceResult<Product> {
         Ok(self

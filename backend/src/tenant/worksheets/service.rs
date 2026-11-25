@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -27,6 +26,7 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
+use crate::common::{AppStateInterface, CommonBuilderError};
 use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::customers::dto::print::CustomerFullPrint;
 use crate::tenant::customers::dto::print::test_customer_full_print_builder;
@@ -47,7 +47,6 @@ use crate::tenant::tasks::dto::print::test_task_resolved_print_builder;
 use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
 use crate::tenant::warehouses::dto::print::test_warehouse_resolved_print_builder;
 use crate::tenant::warehouses::model::WarehouseResolved;
-use crate::tenant::worksheets::WorksheetsModuleInterface;
 use crate::tenant::worksheets::dto::print::{
     WorksheetResolvedPrint, WorksheetResolvedPrintError, test_worksheet_resolved_print_builder,
 };
@@ -204,7 +203,7 @@ pub trait WorksheetService {
 
 impl<'a, T> WorksheetService for BaseService<'a, T>
 where
-    T: WorksheetsModuleInterface,
+    T: AppStateInterface,
 {
     async fn insert(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
         Ok(self

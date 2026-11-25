@@ -17,69 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::PoolManager;
-use crate::common::{AppState, BaseModule};
-use crate::manager::auth::repository::AuthRepository;
-use lettre::{
-    AsyncTransport,
-    transport::smtp::{Error, response::Response},
-};
-use std::fmt::Debug;
-use std::sync::Arc;
-
 pub mod dto;
-mod handler;
-pub(crate) mod middleware;
-pub(crate) mod model;
-pub(crate) mod repository;
-pub(crate) mod routes;
-pub(crate) mod service;
-pub(crate) mod types;
-
-pub trait AuthModuleInterface: BaseModule {
-    fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync>;
-}
-
-impl<P, T> AuthModuleInterface for AppState<P, T>
-where
-    P: PoolManager + Debug + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
-    T::Error: Debug,
-{
-    fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync> {
-        self.get_main_pool()
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-    use crate::common::config::AppConfig;
-    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
-    use lettre::{
-        Message,
-        transport::smtp::{Error, response::Response},
-    };
-    use mockall::mock;
-
-    mock!(
-        pub AuthModule {}
-        impl Debug for AuthModule {
-            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
-        }
-        impl ConfigProvider for AuthModule {
-            type Cfg = AppConfig;
-            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
-        }
-        impl MailTransporter for AuthModule {
-            fn send(
-                &self,
-                message: Message,
-            ) -> impl Future<Output = Result<Option<Response>, Error>> + Send;
-        }
-        impl BaseModule for AuthModule {}
-        impl AuthModuleInterface for AuthModule {
-            fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync>;
-        }
-    );
-}
+pub mod handler;
+pub mod middleware;
+pub mod model;
+pub mod repository;
+pub mod routes;
+pub mod service;
+pub mod types;

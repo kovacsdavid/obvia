@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -26,7 +27,6 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
-use crate::tenant::taxes::TaxesModuleInterface;
 use crate::tenant::taxes::dto::print::TaxResolvedPrint;
 use crate::tenant::taxes::dto::user_input::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
@@ -170,7 +170,7 @@ pub trait TaxService {
 
 impl<'a, T> TaxService for BaseService<'a, T>
 where
-    T: TaxesModuleInterface,
+    T: AppStateInterface,
 {
     async fn insert(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
         self.module()

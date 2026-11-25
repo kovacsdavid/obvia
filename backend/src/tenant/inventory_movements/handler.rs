@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::tenant::inventory_movements::InventoryMovementsModuleInterface;
 use crate::tenant::inventory_movements::dto::user_input::{
     InventoryMovementUserInput, InventoryMovementUserInputHelper, InventoryMovementsRawQuery,
 };
@@ -41,26 +41,22 @@ use tracing::instrument;
 
 #[instrument(
     name = "obvia::tenant::inventory_movements::handler::get",
-    skip(inventory_movements_module)
+    skip(app_state)
 )]
-pub async fn get<M: InventoryMovementsModuleInterface>(
+pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_movements_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
-    let result = map_handler_err(
-        service.get(payload.uuid).await,
-        inventory_movements_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.get(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        inventory_movements_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -68,26 +64,23 @@ pub async fn get<M: InventoryMovementsModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::inventory_movements::handler::get_resolved",
-    skip(inventory_movements_module)
+    skip(app_state)
 )]
-pub async fn get_resolved<M: InventoryMovementsModuleInterface>(
+pub async fn get_resolved<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_movements_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
-    let result = map_handler_err(
-        service.get_resolved(payload.uuid).await,
-        inventory_movements_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result =
+        map_handler_err(service.get_resolved(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        inventory_movements_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -95,29 +88,25 @@ pub async fn get_resolved<M: InventoryMovementsModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::inventory_movements::handler::create",
-    skip(inventory_movements_module)
+    skip(app_state)
 )]
-pub async fn create<M: InventoryMovementsModuleInterface>(
+pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_movements_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<
         InventoryMovementUserInput,
         InventoryMovementUserInputHelper,
     >,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
-    let result = map_handler_err(
-        service.insert(&user_input).await,
-        inventory_movements_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.insert(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(result)
             .build(),
-        inventory_movements_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -125,29 +114,25 @@ pub async fn create<M: InventoryMovementsModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::inventory_movements::handler::update",
-    skip(inventory_movements_module)
+    skip(app_state)
 )]
-pub async fn update<M: InventoryMovementsModuleInterface>(
+pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_movements_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<
         InventoryMovementUserInput,
         InventoryMovementUserInputHelper,
     >,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
-    let result = map_handler_err(
-        service.update(&user_input).await,
-        inventory_movements_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.update(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        inventory_movements_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -155,20 +140,16 @@ pub async fn update<M: InventoryMovementsModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::inventory_movements::handler::delete",
-    skip(inventory_movements_module)
+    skip(app_state)
 )]
-pub async fn delete<M: InventoryMovementsModuleInterface>(
+pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_movements_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
-    map_handler_err(
-        service.delete(payload.uuid).await,
-        inventory_movements_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    map_handler_err(service.delete(payload.uuid).await, app_state.clone()).await?;
 
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -177,7 +158,7 @@ pub async fn delete<M: InventoryMovementsModuleInterface>(
                 "A készletmozgás törlése sikeresen megtörtént",
             ))
             .build(),
-        inventory_movements_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -185,25 +166,25 @@ pub async fn delete<M: InventoryMovementsModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::inventory_movements::handler::list",
-    skip(inventory_movements_module)
+    skip(app_state)
 )]
-pub async fn list<M: InventoryMovementsModuleInterface>(
+pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_movements_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<InventoryMovementsRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<InventoryMovementOrderBy, InventoryMovementFilterBy>::from_str(payload.q()),
-        inventory_movements_module.clone(),
+        app_state.clone(),
     )
     .await?;
     let (meta, data) = map_handler_err(
         service
             .get_paged(&resource_query, payload.inventory_id())
             .await,
-        inventory_movements_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -213,7 +194,7 @@ pub async fn list<M: InventoryMovementsModuleInterface>(
             .meta(meta)
             .data(data)
             .build(),
-        inventory_movements_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -221,22 +202,22 @@ pub async fn list<M: InventoryMovementsModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::inventory_movements::handler::select_list",
-    skip(inventory_movements_module)
+    skip(app_state)
 )]
-pub async fn select_list<M: InventoryMovementsModuleInterface>(
+pub async fn select_list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_movements_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
     let result = map_handler_err(
         service.get_select_list_items(&list_type).await,
-        inventory_movements_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -245,7 +226,7 @@ pub async fn select_list<M: InventoryMovementsModuleInterface>(
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        inventory_movements_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -253,21 +234,17 @@ pub async fn select_list<M: InventoryMovementsModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::inventory_movements::handler::print",
-    skip(inventory_movements_module)
+    skip(app_state)
 )]
-pub async fn print<M: InventoryMovementsModuleInterface>(
+pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_movements_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_movements_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
 
-    let pdf = map_handler_err(
-        service.print(payload.uuid).await,
-        inventory_movements_module,
-    )
-    .await?;
+    let pdf = map_handler_err(service.print(payload.uuid).await, app_state).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
@@ -291,6 +268,7 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::common::tests::MockAppState;
     use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
     use crate::tenant::inventory::model::tests::test_inventory_resolved_builder;
     use crate::tenant::inventory::repository::MockInventoryRepository;
@@ -307,7 +285,6 @@ mod tests {
         common::config::tests::test_app_config_builder,
         tenant::inventory_movements::{
             self, model::InventoryMovement, repository::MockInventoryMovementsRepository,
-            tests::MockInventoryMovementsModule,
         },
     };
     use axum::body::Body;
@@ -402,7 +379,7 @@ mod tests {
                 move |_| Ok(inventory_movement.clone())
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -452,7 +429,7 @@ mod tests {
     async fn test_get_unauthorized_expired() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -494,7 +471,7 @@ mod tests {
     async fn test_get_unauthorized_invalid_signature() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -535,7 +512,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
         let inventory_movement_id = Uuid::now_v7();
-        let app_state = MockInventoryMovementsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -571,7 +548,7 @@ mod tests {
             .with(eq(inventory_movement_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -653,7 +630,7 @@ mod tests {
                 move |_| Ok(inventory_movement_resolved.clone())
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -703,7 +680,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_expired() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -745,7 +722,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_invalid_signature() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -786,7 +763,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
         let inventory_movement_id = Uuid::now_v7();
-        let app_state = MockInventoryMovementsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -821,7 +798,7 @@ mod tests {
             .with(eq(inventory_movement_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -913,7 +890,7 @@ mod tests {
                 move |_, _| Ok((paginator_meta, vec![inventory_movement_resolved.clone()]))
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -963,7 +940,7 @@ mod tests {
     async fn test_list_unauthorized_expired() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1005,7 +982,7 @@ mod tests {
     async fn test_list_unauthorized_invalid_signature() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1046,7 +1023,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
         let inventory_id = Uuid::now_v7();
-        let app_state = MockInventoryMovementsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -1085,7 +1062,7 @@ mod tests {
             })
             .returning(|_, _| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1190,7 +1167,7 @@ mod tests {
                 move |_, _| Ok(inventory_movement.clone())
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1254,7 +1231,7 @@ mod tests {
             tax_id: tax_id.to_string(),
         };
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1339,7 +1316,7 @@ mod tests {
                 )))
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1402,7 +1379,7 @@ mod tests {
             tax_id: tax_id.to_string(),
         };
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1456,7 +1433,7 @@ mod tests {
             tax_id: tax_id.to_string(),
         };
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1509,7 +1486,7 @@ mod tests {
             tax_id: tax_id.to_string(),
         };
 
-        let app_state = MockInventoryMovementsModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1579,7 +1556,7 @@ mod tests {
                 move |_| Ok(inventory_movement.clone())
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1655,7 +1632,7 @@ mod tests {
                 )))
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1720,7 +1697,7 @@ mod tests {
             tax_id: tax_id.to_string(),
         };
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1778,7 +1755,7 @@ mod tests {
             tax_id: tax_id.to_string(),
         };
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1833,7 +1810,7 @@ mod tests {
             tax_id: tax_id.to_string(),
         };
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1888,7 +1865,7 @@ mod tests {
             tax_id: tax_id.to_string(),
         };
 
-        let app_state = MockInventoryMovementsModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1928,7 +1905,7 @@ mod tests {
                 )))
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1987,7 +1964,7 @@ mod tests {
             .with(eq(inventory_movement_id))
             .returning(move |_| Ok(()));
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -2040,7 +2017,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2079,7 +2056,7 @@ mod tests {
     async fn test_delete_unauthorized_expired() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2121,7 +2098,7 @@ mod tests {
     async fn test_delete_unauthorized_invalid_signature() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2163,7 +2140,7 @@ mod tests {
     async fn test_delete_unauthorized_missing() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let app_state = MockInventoryMovementsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -2264,7 +2241,7 @@ mod tests {
                 move |_| Ok(warehouse_resolved.clone())
             });
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let inventory_movements_repo = Arc::new(inventory_movements_repo);
         let inventory_repo = Arc::new(inventory_repo);
         let products_repo = Arc::new(products_repo);
@@ -2367,7 +2344,7 @@ mod tests {
     async fn test_print_unauthorized_expired() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2410,7 +2387,7 @@ mod tests {
     async fn test_print_unauthorized_invalid_signature() {
         let inventory_movement_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryMovementsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2465,7 +2442,7 @@ mod tests {
         let app = Router::new().nest(
             "/api",
             Router::new().merge(inventory_movements::routes::routes(Arc::new(
-                MockInventoryMovementsModule::new(),
+                MockAppState::new(),
             ))),
         );
 

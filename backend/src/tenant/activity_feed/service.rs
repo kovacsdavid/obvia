@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -24,7 +25,6 @@ use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
 use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
-use crate::tenant::activity_feed::ActivityFeedModuleInterface;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
 use axum::http::StatusCode;
@@ -90,7 +90,7 @@ pub trait ActivityFeedService {
 
 impl<'a, T> ActivityFeedService for BaseService<'a, T>
 where
-    T: ActivityFeedModuleInterface,
+    T: AppStateInterface,
 {
     async fn get_all_paged(
         &self,

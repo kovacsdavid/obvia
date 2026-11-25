@@ -17,70 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::PoolManager;
-use crate::common::{AppState, BaseModule};
-use crate::manager::auth::repository::AuthRepository;
-use crate::manager::users::repository::UsersRepository;
-use lettre::{
-    AsyncTransport,
-    transport::smtp::{Error, response::Response},
-};
-use std::fmt::Debug;
-use std::sync::Arc;
-
-pub(crate) mod error;
-pub(crate) mod handler;
-pub(crate) mod model;
-pub(crate) mod repository;
-pub(crate) mod routes;
-pub(crate) mod service;
-
-pub trait UsersModuleInterface: BaseModule {
-    fn users_repo(&self) -> Arc<dyn UsersRepository + Send + Sync>;
-    fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync>;
-}
-
-impl<P, T> UsersModuleInterface for AppState<P, T>
-where
-    P: PoolManager + Debug + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + Send + Sync + 'static,
-    T::Error: Debug,
-{
-    fn users_repo(&self) -> Arc<dyn UsersRepository + Send + Sync> {
-        self.get_main_pool()
-    }
-    fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync> {
-        self.get_main_pool()
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-    use crate::common::config::AppConfig;
-    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
-    use lettre::{
-        Message,
-        transport::smtp::{Error, response::Response},
-    };
-    use mockall::mock;
-
-    mock!(
-        pub UsersModule {}
-        impl Debug for UsersModule {
-            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
-        }
-        impl ConfigProvider for UsersModule {
-            type Cfg = AppConfig;
-            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
-        }
-        impl MailTransporter for UsersModule {
-            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
-        }
-        impl BaseModule for UsersModule {}
-        impl UsersModuleInterface for UsersModule {
-            fn users_repo(&self) -> Arc<dyn UsersRepository + Send + Sync>;
-            fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync>;
-        }
-    );
-}
+pub mod error;
+pub mod handler;
+pub mod model;
+pub mod repository;
+pub mod routes;
+pub mod service;

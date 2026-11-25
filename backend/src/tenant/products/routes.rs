@@ -17,26 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::ProductsModuleInterface;
 use super::handler;
+use crate::common::AppStateInterface;
 use crate::manager::auth::middleware::require_auth;
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes<M: ProductsModuleInterface>(products_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(products_module: Arc<A>) -> Router {
     Router::new().nest(
         "/products",
         Router::new()
-            .route("/get", get(handler::get::<M>))
-            .route("/get_resolved", get(handler::get_resolved::<M>))
-            .route("/list", get(handler::list::<M>))
-            .route("/select_list", get(handler::select_list::<M>))
-            .route("/create", post(handler::create::<M>))
-            .route("/update", put(handler::update::<M>))
-            .route("/delete", delete(handler::delete::<M>))
-            .route("/print", get(handler::print::<M>))
+            .route("/get", get(handler::get::<A>))
+            .route("/get_resolved", get(handler::get_resolved::<A>))
+            .route("/list", get(handler::list::<A>))
+            .route("/select_list", get(handler::select_list::<A>))
+            .route("/create", post(handler::create::<A>))
+            .route("/update", put(handler::update::<A>))
+            .route("/delete", delete(handler::delete::<A>))
+            .route("/print", get(handler::print::<A>))
             .layer(from_fn_with_state(products_module.clone(), require_auth))
             .with_state(products_module),
     )

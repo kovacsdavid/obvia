@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::tenant::warehouses::WarehousesModuleInterface;
 use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
 use crate::tenant::warehouses::dto::user_input::{WarehouseUserInput, WarehouseUserInputHelper};
 use crate::tenant::warehouses::service::WarehouseService;
@@ -37,95 +37,77 @@ use tracing::instrument;
 
 #[instrument(
     name = "obvia::tenant::warehouses::handler::get_resolved",
-    skip(warehouses_module)
+    skip(app_state)
 )]
-pub async fn get_resolved<M: WarehousesModuleInterface>(
+pub async fn get_resolved<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), warehouses_module.clone());
-    let result = map_handler_err(
-        service.get_resolved(payload.uuid).await,
-        warehouses_module.clone(),
-    )
-    .await?;
-    Ok(map_handler_err(
-        SuccessResponseBuilder::<EmptyType, _>::new()
-            .status_code(StatusCode::OK)
-            .data(result)
-            .build(),
-        warehouses_module,
-    )
-    .await?
-    .into_response())
-}
-
-#[instrument(
-    name = "obvia::tenant::warehouses::handler::get",
-    skip(warehouses_module)
-)]
-pub async fn get<M: WarehousesModuleInterface>(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<M>>,
-    _client_context: ClientContext,
-    Query(payload): Query<UuidParam>,
-) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let result =
-        map_handler_err(service.get(payload.uuid).await, warehouses_module.clone()).await?;
+        map_handler_err(service.get_resolved(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        warehouses_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::warehouses::handler::update",
-    skip(warehouses_module)
-)]
-pub async fn update<M: WarehousesModuleInterface>(
+#[instrument(name = "obvia::tenant::warehouses::handler::get", skip(app_state))]
+pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
+    _client_context: ClientContext,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.get(payload.uuid).await, app_state.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        app_state,
+    )
+    .await?
+    .into_response())
+}
+
+#[instrument(name = "obvia::tenant::warehouses::handler::update", skip(app_state))]
+pub async fn update<A: AppStateInterface>(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), warehouses_module.clone());
-    let result =
-        map_handler_err(service.update(&user_input).await, warehouses_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.update(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        warehouses_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::warehouses::handler::delete",
-    skip(warehouses_module)
-)]
-pub async fn delete<M: WarehousesModuleInterface>(
+#[instrument(name = "obvia::tenant::warehouses::handler::delete", skip(app_state))]
+pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), warehouses_module.clone());
-    map_handler_err(
-        service.delete(payload.uuid).await,
-        warehouses_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    map_handler_err(service.delete(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
@@ -133,57 +115,47 @@ pub async fn delete<M: WarehousesModuleInterface>(
                 "A raktár törlése sikeresen megtörtént",
             ))
             .build(),
-        warehouses_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::warehouses::handler::create",
-    skip(warehouses_module)
-)]
-pub async fn create<M: WarehousesModuleInterface>(
+#[instrument(name = "obvia::tenant::warehouses::handler::create", skip(app_state))]
+pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), warehouses_module.clone());
-    let result =
-        map_handler_err(service.insert(&user_input).await, warehouses_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.insert(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(result)
             .build(),
-        warehouses_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::warehouses::handler::list",
-    skip(warehouses_module)
-)]
-pub async fn list<M: WarehousesModuleInterface>(
+#[instrument(name = "obvia::tenant::warehouses::handler::list", skip(app_state))]
+pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<WarehouseOrderBy, WarehouseFilterBy>::from_str(payload.q()),
-        warehouses_module.clone(),
+        app_state.clone(),
     )
     .await?;
-    let (meta, data) = map_handler_err(
-        service.get_paged(&resource_query).await,
-        warehouses_module.clone(),
-    )
-    .await?;
+    let (meta, data) =
+        map_handler_err(service.get_paged(&resource_query).await, app_state.clone()).await?;
 
     Ok(map_handler_err(
         SuccessResponseBuilder::new()
@@ -191,36 +163,25 @@ pub async fn list<M: WarehousesModuleInterface>(
             .meta(meta)
             .data(data)
             .build(),
-        warehouses_module,
+        app_state,
     )
     .await
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::warehouses::handler::print",
-    skip(warehouses_module)
-)]
-pub async fn print<M: WarehousesModuleInterface>(
+#[instrument(name = "obvia::tenant::warehouses::handler::print", skip(app_state))]
+pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), warehouses_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let warehouse_resolved_print = WarehouseResolvedPrint::new(
-        map_handler_err(
-            service.get_resolved(payload.uuid).await,
-            warehouses_module.clone(),
-        )
-        .await?,
-        map_handler_err(claims.tz(), warehouses_module.clone()).await?,
+        map_handler_err(service.get_resolved(payload.uuid).await, app_state.clone()).await?,
+        map_handler_err(claims.tz(), app_state.clone()).await?,
     );
-    let pdf = map_handler_err(
-        service.print(&[warehouse_resolved_print]).await,
-        warehouses_module,
-    )
-    .await?;
+    let pdf = map_handler_err(service.print(&[warehouse_resolved_print]).await, app_state).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
@@ -243,13 +204,11 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::common::tests::MockAppState;
     use crate::tenant::warehouses::model::WarehouseResolved;
     use crate::{
         common::config::tests::test_app_config_builder,
-        tenant::warehouses::{
-            self, model::Warehouse, repository::MockWarehousesRepository,
-            tests::MockWarehousesModule,
-        },
+        tenant::warehouses::{self, model::Warehouse, repository::MockWarehousesRepository},
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
@@ -290,7 +249,7 @@ mod tests {
                 move |_| Ok(warehouse.clone())
             });
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -338,7 +297,7 @@ mod tests {
     async fn test_get_unauthorized_expired() {
         let warehouse_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -378,7 +337,7 @@ mod tests {
     async fn test_get_unauthorized_invalid_signature() {
         let warehouse_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -417,7 +376,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
         let warehouse_id = Uuid::now_v7();
-        let app_state = MockWarehousesModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -451,7 +410,7 @@ mod tests {
             .with(eq(warehouse_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -524,7 +483,7 @@ mod tests {
                 move |_| Ok(warehouse_resolved.clone())
             });
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -572,7 +531,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_expired() {
         let warehouse_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -612,7 +571,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_invalid_signature() {
         let warehouse_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -651,7 +610,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
         let warehouse_id = Uuid::now_v7();
-        let app_state = MockWarehousesModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -684,7 +643,7 @@ mod tests {
             .with(eq(warehouse_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -764,7 +723,7 @@ mod tests {
                 move |_| Ok((paginator_meta, vec![warehouse_resolved.clone()]))
             });
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -810,7 +769,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -848,7 +807,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -886,7 +845,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let app_state = MockWarehousesModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -920,7 +879,7 @@ mod tests {
                 .unwrap()))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1011,7 +970,7 @@ mod tests {
                 move |_, _| Ok(warehouse.clone())
             });
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1069,7 +1028,7 @@ mod tests {
             status: "activee".to_string(),
         };
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1122,7 +1081,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1169,7 +1128,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1216,7 +1175,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let app_state = MockWarehousesModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1276,7 +1235,7 @@ mod tests {
                 move |_| Ok(warehouse.clone())
             });
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1334,7 +1293,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1386,7 +1345,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1435,7 +1394,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1484,7 +1443,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let app_state = MockWarehousesModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1519,7 +1478,7 @@ mod tests {
             .with(eq(warehouse_id))
             .returning(move |_| Ok(()));
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1570,7 +1529,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1609,7 +1568,7 @@ mod tests {
     async fn test_delete_unauthorized_expired() {
         let warehouse_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1649,7 +1608,7 @@ mod tests {
     async fn test_delete_unauthorized_invalid_signature() {
         let warehouse_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1689,7 +1648,7 @@ mod tests {
     async fn test_delete_unauthorized_missing() {
         let warehouse_id = Uuid::now_v7();
 
-        let app_state = MockWarehousesModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1741,7 +1700,7 @@ mod tests {
                 move |_| Ok(warehouse_resolved.clone())
             });
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1818,7 +1777,7 @@ mod tests {
     async fn test_print_unauthorized_expired() {
         let warehouse_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1859,7 +1818,7 @@ mod tests {
     async fn test_print_unauthorized_invalid_signature() {
         let warehouse_id = Uuid::now_v7();
 
-        let mut app_state = MockWarehousesModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1909,9 +1868,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(warehouses::routes::routes(Arc::new(
-                MockWarehousesModule::new(),
-            ))),
+            Router::new().merge(warehouses::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();

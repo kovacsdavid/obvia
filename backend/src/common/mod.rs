@@ -207,7 +207,6 @@ pub trait TenantRepositoryProvider: PoolManager {
     }
 }
 
-//NOTE: I write this here because I can not find how to rerun a job on the github web interface
 #[derive(Debug)]
 pub struct AppState<P, T>
 where

@@ -20,10 +20,13 @@
 use std::str::FromStr;
 
 use crate::common::{
-    AppStateInterface, error::{
+    AppStateInterface,
+    error::{
         RepositoryError,
         v2::{AppError, AppErrorVisibility},
-    }, model::SelectOption, service::{BaseService, BaseServiceError},
+    },
+    model::SelectOption,
+    service::{BaseService, BaseServiceError},
 };
 use axum::http::StatusCode;
 use serde_json::json;

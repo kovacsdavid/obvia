@@ -17,12 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::{CommentUserInput, CommentUserInputHelper};
 use crate::tenant::comments::service::CommentService;
 use axum::extract::{Query, State};
@@ -31,38 +31,35 @@ use axum::response::IntoResponse;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(name = "obvia::tenant::comments::handler::post", skip(comments_module))]
-pub async fn post<M: CommentsModuleInterface>(
+#[instrument(name = "obvia::tenant::comments::handler::post", skip(app_state))]
+pub async fn post<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(comments_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CommentUserInput, CommentUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), comments_module.clone());
-    let result = map_handler_err(service.post(&user_input).await, comments_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.post(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(result)
             .build(),
-        comments_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::comments::handler::delete",
-    skip(comments_module)
-)]
-pub async fn delete<M: CommentsModuleInterface>(
+#[instrument(name = "obvia::tenant::comments::handler::delete", skip(app_state))]
+pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(comments_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), comments_module.clone());
-    map_handler_err(service.delete(payload.uuid).await, comments_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    map_handler_err(service.delete(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
@@ -70,7 +67,7 @@ pub async fn delete<M: CommentsModuleInterface>(
                 "A megjegyzés törlése sikeresen megtörtént",
             ))
             .build(),
-        comments_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -83,11 +80,10 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
+    use crate::common::tests::MockAppState;
     use crate::{
         common::config::tests::test_app_config_builder,
-        tenant::comments::{
-            self, model::Comment, repository::MockCommentsRepository, tests::MockCommentsModule,
-        },
+        tenant::comments::{self, model::Comment, repository::MockCommentsRepository},
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
@@ -142,7 +138,7 @@ mod tests {
                 move |_, _| Ok(comment.clone())
             });
 
-        let mut app_state = MockCommentsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -200,7 +196,7 @@ mod tests {
             comment: "".to_string(),
         };
 
-        let mut app_state = MockCommentsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -254,7 +250,7 @@ mod tests {
             comment: "Test comment".to_string(),
         };
 
-        let mut app_state = MockCommentsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -302,7 +298,7 @@ mod tests {
             comment: "Test comment".to_string(),
         };
 
-        let mut app_state = MockCommentsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -349,7 +345,7 @@ mod tests {
             comment: "Test comment".to_string(),
         };
 
-        let app_state = MockCommentsModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -385,7 +381,7 @@ mod tests {
             .with(eq(comment_id))
             .returning(move |_| Ok(()));
 
-        let mut app_state = MockCommentsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -434,7 +430,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let mut app_state = MockCommentsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -473,7 +469,7 @@ mod tests {
     async fn test_delete_unauthorized_expired() {
         let comment_id = Uuid::now_v7();
 
-        let mut app_state = MockCommentsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -513,7 +509,7 @@ mod tests {
     async fn test_delete_unauthorized_invalid_signature() {
         let comment_id = Uuid::now_v7();
 
-        let mut app_state = MockCommentsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -553,7 +549,7 @@ mod tests {
     async fn test_delete_unauthorized_missing() {
         let comment_id = Uuid::now_v7();
 
-        let app_state = MockCommentsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("DELETE")

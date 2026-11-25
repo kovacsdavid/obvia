@@ -19,18 +19,18 @@
 
 use std::sync::Arc;
 
-use super::CommentsModuleInterface;
 use super::handler;
+use crate::common::AppStateInterface;
 use crate::manager::auth::middleware::require_auth;
 use axum::middleware::from_fn_with_state;
 use axum::{Router, routing::delete, routing::post};
 
-pub fn routes<M: CommentsModuleInterface>(comments_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(comments_module: Arc<A>) -> Router {
     Router::new().nest(
         "/comments",
         Router::new()
-            .route("/post", post(handler::post::<M>))
-            .route("/delete", delete(handler::delete::<M>))
+            .route("/post", post(handler::post::<A>))
+            .route("/delete", delete(handler::delete::<A>))
             .layer(from_fn_with_state(comments_module.clone(), require_auth))
             .with_state(comments_module),
     )

@@ -17,12 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::tenant::owner_profile::OwnerProfileModuleInterface;
 use crate::tenant::owner_profile::dto::user_input::{
     OwnerProfileUserInput, OwnerProfileUserInputHelper,
 };
@@ -35,21 +35,21 @@ use tracing::instrument;
 
 #[instrument(
     name = "obvia::tenant::owner_profile::handler::get_full",
-    skip(owner_profile_module)
+    skip(app_state)
 )]
-pub async fn get_full<M: OwnerProfileModuleInterface>(
+pub async fn get_full<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(owner_profile_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), owner_profile_module.clone());
-    let result = map_handler_err(service.get_full().await, owner_profile_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.get_full().await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        owner_profile_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -57,26 +57,22 @@ pub async fn get_full<M: OwnerProfileModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::owner_profile::handler::update",
-    skip(owner_profile_module)
+    skip(app_state)
 )]
-pub async fn update<M: OwnerProfileModuleInterface>(
+pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(owner_profile_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<OwnerProfileUserInput, OwnerProfileUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), owner_profile_module.clone());
-    let result = map_handler_err(
-        service.update(&user_input).await,
-        owner_profile_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.update(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        owner_profile_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -91,13 +87,12 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
+    use crate::common::tests::MockAppState;
     use crate::tenant::address::model::test_address_resolved_builder;
     use crate::tenant::owner_profile::model::tests::test_owner_profile_full_builder;
     use crate::{
         common::config::tests::test_app_config_builder,
-        tenant::owner_profile::{
-            self, repository::MockOwnerProfileRepository, tests::MockOwnerProfileModule,
-        },
+        tenant::owner_profile::{self, repository::MockOwnerProfileRepository},
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
@@ -137,7 +132,7 @@ mod tests {
             move || Ok(owner_profile_full.clone())
         });
 
-        let mut app_state = MockOwnerProfileModule::new();
+        let mut app_state = MockAppState::new();
         let owner_profile_repo = Arc::new(owner_profile_repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -187,7 +182,7 @@ mod tests {
     async fn test_get_full_unauthorized_expired() {
         let owner_profile_id = Uuid::now_v7();
 
-        let mut app_state = MockOwnerProfileModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -229,7 +224,7 @@ mod tests {
     async fn test_get_full_unauthorized_invalid_signature() {
         let owner_profile_id = Uuid::now_v7();
 
-        let mut app_state = MockOwnerProfileModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -270,7 +265,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_full_unauthorized_missing() {
         let owner_profile_id = Uuid::now_v7();
-        let app_state = MockOwnerProfileModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -305,7 +300,7 @@ mod tests {
             .with()
             .returning(|| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockOwnerProfileModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -386,7 +381,7 @@ mod tests {
                 move |_, _| Ok(owner_profile.clone())
             });
 
-        let mut app_state = MockOwnerProfileModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -449,7 +444,7 @@ mod tests {
             mailing_address: None,
         };
 
-        let mut app_state = MockOwnerProfileModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -503,7 +498,7 @@ mod tests {
             mailing_address: None,
         };
 
-        let mut app_state = MockOwnerProfileModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -555,7 +550,7 @@ mod tests {
             mailing_address: None,
         };
 
-        let mut app_state = MockOwnerProfileModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -607,7 +602,7 @@ mod tests {
             mailing_address: None,
         };
 
-        let app_state = MockOwnerProfileModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")

@@ -18,15 +18,15 @@
  */
 
 use super::handler;
-use crate::{manager::auth::middleware::require_auth, tenant::address::AddressModuleInterface};
+use crate::{common::AppStateInterface, manager::auth::middleware::require_auth};
 use axum::{Router, middleware::from_fn_with_state, routing::get};
 use std::sync::Arc;
 
-pub fn routes<M: AddressModuleInterface>(address_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(address_module: Arc<A>) -> Router {
     Router::new().nest(
         "/address",
         Router::new()
-            .route("/select_list", get(handler::select_list::<M>))
+            .route("/select_list", get(handler::select_list::<A>))
             .layer(from_fn_with_state(address_module.clone(), require_auth))
             .with_state(address_module),
     )

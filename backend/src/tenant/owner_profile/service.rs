@@ -17,11 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::CommonBuilderError;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::service::{BaseService, BaseServiceError};
-use crate::tenant::owner_profile::OwnerProfileModuleInterface;
+use crate::common::{AppStateInterface, CommonBuilderError};
 use crate::tenant::owner_profile::dto::user_input::OwnerProfileUserInput;
 use crate::tenant::owner_profile::model::OwnerProfileFull;
 use axum::http::StatusCode;
@@ -106,7 +105,7 @@ pub trait OwnerProfileService {
 
 impl<'a, T> OwnerProfileService for BaseService<'a, T>
 where
-    T: OwnerProfileModuleInterface,
+    T: AppStateInterface,
 {
     async fn get_full(&self) -> OwnerProfileServiceResult<OwnerProfileFull> {
         Ok(self

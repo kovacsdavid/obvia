@@ -20,13 +20,13 @@
 use axum::response::Response;
 use std::sync::Arc;
 
-use crate::common::{BaseModule, error::v2::AppError};
+use crate::common::{ConfigProvider, MailTransporter, config::AppConfig, error::v2::AppError};
 
 pub async fn map_handler_err<R, E, M>(result: Result<R, E>, mailer: Arc<M>) -> Result<R, AppError>
 where
     R: Send + Sync,
     E: Into<AppError> + Send + Sync,
-    M: BaseModule + Send + Sync,
+    M: MailTransporter + ConfigProvider<Cfg = AppConfig>,
 {
     match result {
         Ok(v) => Ok(v),

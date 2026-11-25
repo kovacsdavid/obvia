@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::config::database_config::BasicDatabaseConfig;
 use crate::common::database::{DatabaseMigrator, PoolManager};
 use crate::common::dto::PaginatorMeta;
@@ -26,7 +27,6 @@ use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
 use crate::common::utils::generate_string_csprng;
 use crate::common::value_object::ValueObjectError;
-use crate::manager::tenants::TenantsModuleInterface;
 use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant, TenantIdRequest};
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
@@ -107,7 +107,7 @@ pub trait TenantService {
 
 impl<'a, T> TenantService for BaseService<'a, T>
 where
-    T: TenantsModuleInterface,
+    T: AppStateInterface,
 {
     async fn create_managed(&self, payload: &CreateTenant) -> TenantsServiceResult<Tenant> {
         let config = self.module().config();
@@ -145,12 +145,12 @@ where
 
         let manager_user = self
             .module()
-            .manager_user_repo()
+            .manager_users_repo()
             .get_by_uuid(self.claims()?.sub())
             .await?;
 
         self.module()
-            .tenant_user_repo(tenant.id)?
+            .tenant_users_repo(tenant.id)?
             .insert_from_manager(manager_user.into())
             .await?;
 

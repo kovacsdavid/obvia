@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -25,7 +26,6 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
-use crate::tenant::warehouses::WarehousesModuleInterface;
 use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
 use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
@@ -138,7 +138,7 @@ pub trait WarehouseService {
 
 impl<'a, T> WarehouseService for BaseService<'a, T>
 where
-    T: WarehousesModuleInterface,
+    T: AppStateInterface,
 {
     async fn insert(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
         Ok(self

@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
@@ -31,7 +32,6 @@ use crate::common::service::{BaseService, BaseServiceError};
 use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::print::test_inventory_resolved_print_builder;
-use crate::tenant::inventory_movements::InventoryMovementsModuleInterface;
 use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
 use crate::tenant::inventory_movements::dto::print::test_inventory_movement_resolved_print_builder;
 use crate::tenant::inventory_movements::dto::user_input::InventoryMovementUserInput;
@@ -204,7 +204,7 @@ pub trait InventoryMovementService {
 
 impl<'a, T> InventoryMovementService for BaseService<'a, T>
 where
-    T: InventoryMovementsModuleInterface,
+    T: AppStateInterface,
 {
     async fn insert(
         &self,

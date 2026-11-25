@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -27,11 +26,11 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
+use crate::common::{AppStateInterface, CommonBuilderError};
 use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::inventory::dto::print::{
     InventoryResolvedPrint, test_inventory_resolved_print_builder,
 };
-use crate::tenant::inventory_reservations::InventoryReservationsModuleInterface;
 use crate::tenant::inventory_reservations::dto::print::{
     InventoryReservationResolvedPrint, test_inventory_reservation_resolved_print_builder,
 };
@@ -201,7 +200,7 @@ pub trait InventoryReservationService {
 
 impl<'a, T> InventoryReservationService for BaseService<'a, T>
 where
-    T: InventoryReservationsModuleInterface,
+    T: AppStateInterface,
 {
     async fn insert(
         &self,

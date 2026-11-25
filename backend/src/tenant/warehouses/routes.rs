@@ -17,25 +17,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::WarehousesModuleInterface;
 use super::handler;
+use crate::common::AppStateInterface;
 use crate::manager::auth::middleware::require_auth;
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes<M: WarehousesModuleInterface>(warehouses_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(warehouses_module: Arc<A>) -> Router {
     Router::new().nest(
         "/warehouses",
         Router::new()
-            .route("/get", get(handler::get::<M>))
-            .route("/get_resolved", get(handler::get_resolved::<M>))
-            .route("/list", get(handler::list::<M>))
-            .route("/create", post(handler::create::<M>))
-            .route("/update", put(handler::update::<M>))
-            .route("/delete", delete(handler::delete::<M>))
-            .route("/print", get(handler::print::<M>))
+            .route("/get", get(handler::get::<A>))
+            .route("/get_resolved", get(handler::get_resolved::<A>))
+            .route("/list", get(handler::list::<A>))
+            .route("/create", post(handler::create::<A>))
+            .route("/update", put(handler::update::<A>))
+            .route("/delete", delete(handler::delete::<A>))
+            .route("/print", get(handler::print::<A>))
             .layer(from_fn_with_state(warehouses_module.clone(), require_auth))
             .with_state(warehouses_module),
     )

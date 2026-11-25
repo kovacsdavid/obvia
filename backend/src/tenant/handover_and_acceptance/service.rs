@@ -30,7 +30,7 @@ use uuid::Uuid;
 use crate::common::pdf::PdfGenerator;
 use crate::{
     common::{
-        CommonBuilderError,
+        AppStateInterface, CommonBuilderError,
         dto::PaginatorMeta,
         error::{
             RepositoryError,
@@ -45,7 +45,7 @@ use crate::{
     tenant::{
         customers::dto::print::test_customer_full_print_builder,
         handover_and_acceptance::{
-            self, ModuleInterface, Print, UserInput,
+            self, Print, UserInput,
             model::{HandoverAndAcceptance, HandoverAndAcceptanceFull},
             test_handover_and_acceptance_full_print_builder,
         },
@@ -190,7 +190,7 @@ pub trait Service {
 
 impl<'a, T> Service for BaseService<'a, T>
 where
-    T: ModuleInterface,
+    T: AppStateInterface,
 {
     async fn insert(&self, payload: &UserInput) -> ServiceResult<HandoverAndAcceptance> {
         Ok(self

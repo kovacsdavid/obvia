@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -27,7 +26,7 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
-use crate::tenant::services::ServicesModule;
+use crate::common::{AppStateInterface, CommonBuilderError};
 use crate::tenant::services::dto::print::{
     ServicesResolvedPrint, test_service_resolved_print_builder,
 };
@@ -179,7 +178,7 @@ pub trait ServiceService {
 
 impl<'a, T> ServiceService for BaseService<'a, T>
 where
-    T: ServicesModule,
+    T: AppStateInterface,
 {
     async fn insert(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
         self.module()

@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::user_input::{TaskUserInput, TaskUserInputHelper};
 use crate::tenant::tasks::service::TaskService;
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
@@ -35,82 +35,76 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(
-    name = "obvia::tenant::tasks::handler::get_resolved",
-    skip(tasks_module)
-)]
-pub async fn get_resolved<M: TasksModule>(
+#[instrument(name = "obvia::tenant::tasks::handler::get_resolved", skip(app_state))]
+pub async fn get_resolved<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tasks_module.clone());
-    let result = map_handler_err(
-        service.get_resolved(payload.uuid).await,
-        tasks_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result =
+        map_handler_err(service.get_resolved(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        tasks_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::tenant::tasks::handler::get", skip(tasks_module))]
-pub async fn get<M: TasksModule>(
+#[instrument(name = "obvia::tenant::tasks::handler::get", skip(app_state))]
+pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tasks_module.clone());
-    let result = map_handler_err(service.get(payload.uuid).await, tasks_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.get(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        tasks_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::tenant::tasks::handler::update", skip(tasks_module))]
-pub async fn update<M: TasksModule>(
+#[instrument(name = "obvia::tenant::tasks::handler::update", skip(app_state))]
+pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tasks_module.clone());
-    let result = map_handler_err(service.update(&user_input).await, tasks_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.update(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        tasks_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::tenant::tasks::handler::delete", skip(tasks_module))]
-pub async fn delete<M: TasksModule>(
+#[instrument(name = "obvia::tenant::tasks::handler::delete", skip(app_state))]
+pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tasks_module.clone());
-    map_handler_err(service.delete(payload.uuid).await, tasks_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    map_handler_err(service.delete(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
@@ -118,43 +112,40 @@ pub async fn delete<M: TasksModule>(
                 "A feladat törlése sikeresen megtörtént",
             ))
             .build(),
-        tasks_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::tenant::tasks::handler::create", skip(tasks_module))]
-pub async fn create<M: TasksModule>(
+#[instrument(name = "obvia::tenant::tasks::handler::create", skip(app_state))]
+pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tasks_module.clone());
-    let result = map_handler_err(service.insert(&user_input).await, tasks_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.insert(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(result)
             .build(),
-        tasks_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::tasks::handler::select_list",
-    skip(tasks_module)
-)]
-pub async fn select_list<M: TasksModule>(
+#[instrument(name = "obvia::tenant::tasks::handler::select_list", skip(app_state))]
+pub async fn select_list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let list_type = payload
         .get("list")
         .cloned()
@@ -162,7 +153,7 @@ pub async fn select_list<M: TasksModule>(
 
     let result = map_handler_err(
         service.get_select_list_items(&list_type).await,
-        tasks_module.clone(),
+        app_state.clone(),
     )
     .await?;
     Ok(map_handler_err(
@@ -170,51 +161,48 @@ pub async fn select_list<M: TasksModule>(
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        tasks_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::tenant::tasks::handler::list", skip(tasks_module))]
-pub async fn list<M: TasksModule>(
+#[instrument(name = "obvia::tenant::tasks::handler::list", skip(app_state))]
+pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tasks_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<TaskOrderBy, TaskFilterBy>::from_str(payload.q()),
-        tasks_module.clone(),
+        app_state.clone(),
     )
     .await?;
-    let (meta, data) = map_handler_err(
-        service.get_paged(&resource_query).await,
-        tasks_module.clone(),
-    )
-    .await?;
+    let (meta, data) =
+        map_handler_err(service.get_paged(&resource_query).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::new()
             .status_code(StatusCode::OK)
             .meta(meta)
             .data(data)
             .build(),
-        tasks_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::tenant::tasks::handler::print", skip(tasks_module))]
-pub async fn print<M: TasksModule>(
+#[instrument(name = "obvia::tenant::tasks::handler::print", skip(app_state))]
+pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), tasks_module.clone());
-    let pdf = map_handler_err(service.print(payload.uuid).await, tasks_module).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let pdf = map_handler_err(service.print(payload.uuid).await, app_state).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
@@ -238,6 +226,7 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::common::tests::MockAppState;
     use crate::tenant::services::dto::print::ServicesResolvedPrint;
     use crate::tenant::services::model::tests::test_service_resolved_builder;
     use crate::tenant::services::repository::MockServicesRepository;
@@ -246,9 +235,7 @@ mod tests {
     use crate::tenant::tasks::model::tests::test_task_resolved_builder;
     use crate::{
         common::config::tests::test_app_config_builder,
-        tenant::tasks::{
-            self, model::Task, repository::MockTasksRepository, tests::MockTasksModule,
-        },
+        tenant::tasks::{self, model::Task, repository::MockTasksRepository},
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
@@ -298,7 +285,7 @@ mod tests {
                 move |_| Ok(task.clone())
             });
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -346,7 +333,7 @@ mod tests {
     async fn test_get_unauthorized_expired() {
         let task_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -386,7 +373,7 @@ mod tests {
     async fn test_get_unauthorized_invalid_signature() {
         let task_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -425,7 +412,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
         let task_id = Uuid::now_v7();
-        let app_state = MockTasksModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -458,7 +445,7 @@ mod tests {
             .with(eq(task_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -543,7 +530,7 @@ mod tests {
                 move |_| Ok(task_resolved.clone())
             });
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -591,7 +578,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_expired() {
         let task_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -631,7 +618,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_invalid_signature() {
         let task_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -670,7 +657,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
         let task_id = Uuid::now_v7();
-        let app_state = MockTasksModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -703,7 +690,7 @@ mod tests {
             .with(eq(task_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -795,7 +782,7 @@ mod tests {
                 move |_| Ok((paginator_meta, vec![task_resolved.clone()]))
             });
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -841,7 +828,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -879,7 +866,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -917,7 +904,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let app_state = MockTasksModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -951,7 +938,7 @@ mod tests {
                 .unwrap()))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1063,7 +1050,7 @@ mod tests {
                 move |_, _| Ok(task.clone())
             });
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1130,7 +1117,7 @@ mod tests {
             description: "".to_string(),
         };
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1192,7 +1179,7 @@ mod tests {
             description: "".to_string(),
         };
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1249,7 +1236,7 @@ mod tests {
             description: "".to_string(),
         };
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1306,7 +1293,7 @@ mod tests {
             description: "".to_string(),
         };
 
-        let app_state = MockTasksModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1381,7 +1368,7 @@ mod tests {
                 move |_| Ok(task.clone())
             });
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1448,7 +1435,7 @@ mod tests {
             description: "".to_string(),
         };
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1509,7 +1496,7 @@ mod tests {
             description: "".to_string(),
         };
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1567,7 +1554,7 @@ mod tests {
             description: "".to_string(),
         };
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1625,7 +1612,7 @@ mod tests {
             description: "".to_string(),
         };
 
-        let app_state = MockTasksModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1660,7 +1647,7 @@ mod tests {
             .with(eq(task_id))
             .returning(move |_| Ok(()));
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1711,7 +1698,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1750,7 +1737,7 @@ mod tests {
     async fn test_delete_unauthorized_expired() {
         let task_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1790,7 +1777,7 @@ mod tests {
     async fn test_delete_unauthorized_invalid_signature() {
         let task_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1830,7 +1817,7 @@ mod tests {
     async fn test_delete_unauthorized_missing() {
         let task_id = Uuid::now_v7();
 
-        let app_state = MockTasksModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1891,7 +1878,7 @@ mod tests {
                 move |_| Ok(service_resolved.clone())
             });
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let tasks_repo = Arc::new(tasks_repo);
         let services_repo = Arc::new(services_repo);
         let test_config = test_app_config_builder().build().unwrap();
@@ -1971,7 +1958,7 @@ mod tests {
     async fn test_print_unauthorized_expired() {
         let task_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2012,7 +1999,7 @@ mod tests {
     async fn test_print_unauthorized_invalid_signature() {
         let task_id = Uuid::now_v7();
 
-        let mut app_state = MockTasksModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2062,7 +2049,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(tasks::routes::routes(Arc::new(MockTasksModule::new()))),
+            Router::new().merge(tasks::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::UsersModuleInterface;
+use crate::common::AppStateInterface;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::extractors::ClientContext;
@@ -105,10 +105,10 @@ pub trait UserService {
 
 impl<'a, T> UserService for BaseService<'a, T>
 where
-    T: UsersModuleInterface,
+    T: AppStateInterface,
 {
     async fn otp_enable(&self, client_context: &ClientContext) -> UsersServiceResult<String> {
-        let users_repo = self.module().users_repo();
+        let users_repo = self.module().manager_users_repo();
         let auth_repo = self.module().auth_repo();
         let user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
             Ok(v) => v,
@@ -201,7 +201,7 @@ where
         payload: &OtpUserInput,
         client_context: &ClientContext,
     ) -> UsersServiceResult<()> {
-        let users_repo = self.module().users_repo();
+        let users_repo = self.module().manager_users_repo();
         let auth_repo = self.module().auth_repo();
         let mut user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
             Ok(v) => v,
@@ -315,7 +315,7 @@ where
             AccountEventType::MfaDisable,
         )
         .await?;
-        let users_repo = self.module().users_repo();
+        let users_repo = self.module().manager_users_repo();
         let auth_repo = self.module().auth_repo();
         let mut user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
             Ok(v) => v,
@@ -409,7 +409,7 @@ async fn rate_limit_by_event_type<T>(
     event_type: AccountEventType,
 ) -> UsersServiceResult<()>
 where
-    T: UsersModuleInterface + ?Sized,
+    T: AppStateInterface + ?Sized,
 {
     let event_log_entries = match users_module
         .auth_repo()

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::AuthModuleInterface;
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
@@ -37,17 +37,17 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(name = "obvia::manager::auth::handler::login", skip(auth_module, jar))]
-pub async fn login<M: AuthModuleInterface>(
-    State(auth_module): State<Arc<M>>,
+#[instrument(name = "obvia::manager::auth::handler::login", skip(app_state, jar))]
+pub async fn login<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     jar: CookieJar,
     client_context: ClientContext,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
-    let service = BaseService::new(None, auth_module.clone());
+    let service = BaseService::new(None, app_state.clone());
     let (access_token, access_claims, refresh_token, _, user_public) = map_handler_err(
         service.try_login(&payload, &client_context).await,
-        auth_module.clone(),
+        app_state.clone(),
     )
     .await?;
     let response = map_handler_err(
@@ -55,7 +55,7 @@ pub async fn login<M: AuthModuleInterface>(
             .status_code(StatusCode::OK)
             .data(LoginResponse::new(access_claims, user_public, access_token))
             .build(),
-        auth_module.clone(),
+        app_state.clone(),
     )
     .await?
     .into_response();
@@ -70,25 +70,22 @@ pub async fn login<M: AuthModuleInterface>(
                 .auth()
                 .refresh_token_expiration_mins(),
         ),
-        auth_module,
+        app_state,
     )
     .await?;
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-#[instrument(
-    name = "obvia::manager::auth::handler::refresh",
-    skip(auth_module, jar)
-)]
-pub async fn refresh<M: AuthModuleInterface>(
-    State(auth_module): State<Arc<M>>,
+#[instrument(name = "obvia::manager::auth::handler::refresh", skip(app_state, jar))]
+pub async fn refresh<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let service = BaseService::new(None, auth_module.clone());
+    let service = BaseService::new(None, app_state.clone());
     let (access_token, access_claims, refresh_token, _, user_public) = map_handler_err(
         service.refresh(jar.clone(), &client_context).await,
-        auth_module.clone(),
+        app_state.clone(),
     )
     .await?;
     let response = map_handler_err(
@@ -96,7 +93,7 @@ pub async fn refresh<M: AuthModuleInterface>(
             .status_code(StatusCode::OK)
             .data(LoginResponse::new(access_claims, user_public, access_token))
             .build(),
-        auth_module.clone(),
+        app_state.clone(),
     )
     .await?
     .into_response();
@@ -111,22 +108,22 @@ pub async fn refresh<M: AuthModuleInterface>(
                 .auth()
                 .refresh_token_expiration_mins(),
         ),
-        auth_module,
+        app_state,
     )
     .await?;
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-#[instrument(name = "obvia::manager::auth::handler::logout", skip(auth_module, jar))]
-pub async fn logout<M: AuthModuleInterface>(
-    State(auth_module): State<Arc<M>>,
+#[instrument(name = "obvia::manager::auth::handler::logout", skip(app_state, jar))]
+pub async fn logout<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let service = BaseService::new(None, auth_module.clone());
+    let service = BaseService::new(None, app_state.clone());
     map_handler_err(
         service.logout(jar.clone(), &client_context).await,
-        auth_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -135,14 +132,14 @@ pub async fn logout<M: AuthModuleInterface>(
         .into_response())
 }
 
-#[instrument(name = "obvia::manager::auth::handler::register", skip(auth_module))]
-pub async fn register<M: AuthModuleInterface>(
-    State(auth_module): State<Arc<M>>,
+#[instrument(name = "obvia::manager::auth::handler::register", skip(app_state))]
+pub async fn register<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(None, auth_module.clone());
-    map_handler_err(service.try_register(&user_input).await, auth_module.clone()).await?;
+    let service = BaseService::new(None, app_state.clone());
+    map_handler_err(service.try_register(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
@@ -150,7 +147,7 @@ pub async fn register<M: AuthModuleInterface>(
                 "A felhasználó sikeresen létrehozva",
             ))
             .build(),
-        auth_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -158,19 +155,19 @@ pub async fn register<M: AuthModuleInterface>(
 
 #[instrument(
     name = "obvia::manager::auth::handler::verify_email",
-    skip(auth_module, payload)
+    skip(app_state, payload)
 )]
-pub async fn verify_email<M: AuthModuleInterface>(
-    State(auth_module): State<Arc<M>>,
+pub async fn verify_email<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(None, auth_module.clone());
+    let service = BaseService::new(None, app_state.clone());
     let token = payload
         .get("id")
         .cloned()
         .unwrap_or(String::from("missing_token"));
-    map_handler_err(service.verify_email(&token).await, auth_module.clone()).await?;
+    map_handler_err(service.verify_email(&token).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
@@ -178,7 +175,7 @@ pub async fn verify_email<M: AuthModuleInterface>(
                 "Az e-mail cím megerősítése sikeresen megtörtént",
             ))
             .build(),
-        auth_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -186,20 +183,20 @@ pub async fn verify_email<M: AuthModuleInterface>(
 
 #[instrument(
     name = "obvia::manager::auth::handler::resend_email_verification",
-    skip(auth_module)
+    skip(app_state)
 )]
-pub async fn resend_email_verification<M: AuthModuleInterface>(
-    State(auth_module): State<Arc<M>>,
+pub async fn resend_email_verification<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<
         ResendEmailValidationRequest,
         ResendEmailValidationRequestHelper,
     >,
 ) -> HandlerResult {
-    let service = BaseService::new(None, auth_module.clone());
+    let service = BaseService::new(None, app_state.clone());
     map_handler_err(
         service.resend_email_verification(user_input).await,
-        auth_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -210,7 +207,7 @@ pub async fn resend_email_verification<M: AuthModuleInterface>(
                 "A megerősítő e-mail újraküldése sikeresen megtörtént",
             ))
             .build(),
-        auth_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -218,19 +215,19 @@ pub async fn resend_email_verification<M: AuthModuleInterface>(
 
 #[instrument(
     name = "obvia::manager::auth::handler::forgotten_password",
-    skip(auth_module)
+    skip(app_state)
 )]
-pub async fn forgotten_password<M: AuthModuleInterface>(
-    State(auth_module): State<Arc<M>>,
+pub async fn forgotten_password<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(None, auth_module.clone());
+    let service = BaseService::new(None, app_state.clone());
     map_handler_err(
         service
             .forgotten_password(user_input, &client_context)
             .await,
-        auth_module.clone(),
+        app_state.clone(),
     )
     .await?;
     Ok(map_handler_err(
@@ -240,23 +237,20 @@ pub async fn forgotten_password<M: AuthModuleInterface>(
             "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
         ))
         .build(),
-        auth_module
+        app_state
         ).await?.into_response())
 }
 
-#[instrument(
-    name = "obvia::manager::auth::handler::new_password",
-    skip(auth_module)
-)]
-pub async fn new_password<M: AuthModuleInterface>(
-    State(auth_module): State<Arc<M>>,
+#[instrument(name = "obvia::manager::auth::handler::new_password", skip(app_state))]
+pub async fn new_password<A: AppStateInterface>(
+    State(app_state): State<Arc<A>>,
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(None, auth_module.clone());
+    let service = BaseService::new(None, app_state.clone());
     map_handler_err(
         service.new_password(user_input, &client_context).await,
-        auth_module.clone(),
+        app_state.clone(),
     )
     .await?;
     Ok(map_handler_err(
@@ -266,7 +260,7 @@ pub async fn new_password<M: AuthModuleInterface>(
                 "A jelszó megváltoztatása sikeresen megtörtént",
             ))
             .build(),
-        auth_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -305,6 +299,7 @@ mod tests {
     use crate::common::handler::tests::generate_expired_refresh_token;
     use crate::common::handler::tests::generate_refresh_token_with_invalid_signature;
     use crate::common::handler::tests::generate_valid_refresh_token;
+    use crate::common::tests::MockAppState;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::common::value_object::ValueObjectRequired;
     use crate::manager::auth::dto::claims::Claims;
@@ -318,7 +313,6 @@ mod tests {
     use crate::manager::auth::model::RefreshToken;
     use crate::manager::auth::repository::MockAuthRepository;
     use crate::manager::auth::repository::unix_seconds_to_utc;
-    use crate::manager::auth::tests::MockAuthModule;
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
         auth,
@@ -326,7 +320,6 @@ mod tests {
         users::model::User,
     };
     use pretty_assertions::{assert_eq, assert_ne};
-    use std::future::ready;
 
     #[tokio::test]
     async fn test_login_success() {
@@ -404,7 +397,7 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -526,7 +519,7 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -631,20 +624,20 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
 
         app_state.expect_send().times(1).returning(|_| {
-            Box::pin(ready(Ok(Some(Response::new(
+            Ok(Some(Response::new(
                 Code::new(
                     Severity::PositiveIntermediate,
                     Category::Connections,
                     Detail::One,
                 ),
                 vec![],
-            )))))
+            )))
         });
 
         let request = Request::builder()
@@ -693,7 +686,7 @@ mod tests {
         });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -813,7 +806,7 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -928,7 +921,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -969,7 +962,7 @@ mod tests {
             .returning(|_| Err(RepositoryError::Custom("something went wrong".to_string())));
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -1041,19 +1034,19 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
         app_state.expect_send().times(1).returning(|_| {
-            Box::pin(ready(Ok(Some(Response::new(
+            Ok(Some(Response::new(
                 Code::new(
                     Severity::PositiveIntermediate,
                     Category::Connections,
                     Detail::One,
                 ),
                 vec![],
-            )))))
+            )))
         });
 
         let mut payload = HashMap::new();
@@ -1097,7 +1090,7 @@ mod tests {
             .returning(move |_| Err(RepositoryError::Custom("user_not_found".to_string())));
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -1214,19 +1207,19 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
         app_state.expect_send().times(1).returning(|_| {
-            Box::pin(ready(Ok(Some(Response::new(
+            Ok(Some(Response::new(
                 Code::new(
                     Severity::PositiveIntermediate,
                     Category::Connections,
                     Detail::One,
                 ),
                 vec![],
-            )))))
+            )))
         });
 
         let mut payload = HashMap::new();
@@ -1329,7 +1322,7 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -1462,7 +1455,7 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -1544,7 +1537,7 @@ mod tests {
             });
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -1704,7 +1697,7 @@ mod tests {
             );
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config.clone());
@@ -1803,7 +1796,7 @@ mod tests {
             );
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -1838,7 +1831,7 @@ mod tests {
     #[tokio::test]
     async fn test_refresh_unauthorized_missing() {
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(MockAuthRepository::new());
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -1916,7 +1909,7 @@ mod tests {
             );
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -1991,7 +1984,7 @@ mod tests {
             );
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -2062,7 +2055,7 @@ mod tests {
             );
 
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
@@ -2100,7 +2093,7 @@ mod tests {
     #[tokio::test]
     async fn test_logout_unauthorized_missing_token() {
         let test_config = test_app_config_builder().build().unwrap();
-        let mut app_state = MockAuthModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(MockAuthRepository::new());
         app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);

@@ -17,25 +17,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::ModuleInterface;
 use super::handler;
+use crate::common::AppStateInterface;
 use crate::manager::auth::middleware::require_auth;
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes<M: ModuleInterface>(handover_and_acceptance_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(handover_and_acceptance_module: Arc<A>) -> Router {
     Router::new().nest(
         "/handover_and_acceptance",
         Router::new()
-            .route("/get_full", get(handler::get_full::<M>))
-            .route("/list", get(handler::list::<M>))
-            .route("/select_list", get(handler::select_list::<M>))
-            .route("/create", post(handler::create::<M>))
-            .route("/update", put(handler::update::<M>))
-            .route("/delete", delete(handler::delete::<M>))
-            .route("/print", get(handler::print::<M>))
+            .route("/get_full", get(handler::get_full::<A>))
+            .route("/list", get(handler::list::<A>))
+            .route("/select_list", get(handler::select_list::<A>))
+            .route("/create", post(handler::create::<A>))
+            .route("/update", put(handler::update::<A>))
+            .route("/delete", delete(handler::delete::<A>))
+            .route("/print", get(handler::print::<A>))
             .layer(from_fn_with_state(
                 handover_and_acceptance_module.clone(),
                 require_auth,

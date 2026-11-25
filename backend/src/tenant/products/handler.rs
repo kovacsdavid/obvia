@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::tenant::products::ProductsModuleInterface;
 use crate::tenant::products::dto::print::ProductsResolvedPrint;
 use crate::tenant::products::dto::user_input::{ProductUserInput, ProductUserInputHelper};
 use crate::tenant::products::service::ProductService;
@@ -38,87 +38,77 @@ use tracing::instrument;
 
 #[instrument(
     name = "obvia::tenant::products::handler::get_resolved",
-    skip(products_module)
+    skip(app_state)
 )]
-pub async fn get_resolved<M: ProductsModuleInterface>(
+pub async fn get_resolved<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), products_module.clone());
-    let result = map_handler_err(
-        service.get_resolved(payload.uuid).await,
-        products_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result =
+        map_handler_err(service.get_resolved(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        products_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::tenant::products::handler::get", skip(products_module))]
-pub async fn get<M: ProductsModuleInterface>(
+#[instrument(name = "obvia::tenant::products::handler::get", skip(app_state))]
+pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), products_module.clone());
-    let result = map_handler_err(service.get(payload.uuid).await, products_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.get(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        products_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::products::handler::update",
-    skip(products_module)
-)]
-pub async fn update<M: ProductsModuleInterface>(
+#[instrument(name = "obvia::tenant::products::handler::update", skip(app_state))]
+pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), products_module.clone());
-    let result =
-        map_handler_err(service.update(&user_input).await, products_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.update(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        products_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::products::handler::delete",
-    skip(products_module)
-)]
-pub async fn delete<M: ProductsModuleInterface>(
+#[instrument(name = "obvia::tenant::products::handler::delete", skip(app_state))]
+pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), products_module.clone());
-    map_handler_err(service.delete(payload.uuid).await, products_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    map_handler_err(service.delete(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
@@ -126,61 +116,54 @@ pub async fn delete<M: ProductsModuleInterface>(
                 "A termék törlése sikeresen megtörtént",
             ))
             .build(),
-        products_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::products::handler::create",
-    skip(products_module)
-)]
-pub async fn create<M: ProductsModuleInterface>(
+#[instrument(name = "obvia::tenant::products::handler::create", skip(app_state))]
+pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), products_module.clone());
-    let result =
-        map_handler_err(service.insert(&user_input).await, products_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.insert(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(result)
             .build(),
-        products_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(name = "obvia::tenant::products::handler::list", skip(products_module))]
-pub async fn list<M: ProductsModuleInterface>(
+#[instrument(name = "obvia::tenant::products::handler::list", skip(app_state))]
+pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<ProductOrderBy, ProductFilterBy>::from_str(payload.q()),
-        products_module.clone(),
+        app_state.clone(),
     )
     .await?;
-    let (meta, data) = map_handler_err(
-        service.get_paged(&resource_query).await,
-        products_module.clone(),
-    )
-    .await?;
+    let (meta, data) =
+        map_handler_err(service.get_paged(&resource_query).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::new()
             .status_code(StatusCode::OK)
             .meta(meta)
             .data(data)
             .build(),
-        products_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -188,15 +171,15 @@ pub async fn list<M: ProductsModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::products::handler::select_list",
-    skip(products_module)
+    skip(app_state)
 )]
-pub async fn select_list<M: ProductsModuleInterface>(
+pub async fn select_list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let list_type = payload
         .get("list")
         .cloned()
@@ -204,7 +187,7 @@ pub async fn select_list<M: ProductsModuleInterface>(
 
     let result = map_handler_err(
         service.get_select_list_items(&list_type).await,
-        products_module.clone(),
+        app_state.clone(),
     )
     .await?;
 
@@ -213,36 +196,25 @@ pub async fn select_list<M: ProductsModuleInterface>(
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        products_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::products::handler::print",
-    skip(products_module)
-)]
-pub async fn print<M: ProductsModuleInterface>(
+#[instrument(name = "obvia::tenant::products::handler::print", skip(app_state))]
+pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), products_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let product_resolved_print = ProductsResolvedPrint::new(
-        map_handler_err(
-            service.get_resolved(payload.uuid).await,
-            products_module.clone(),
-        )
-        .await?,
-        map_handler_err(claims.tz(), products_module.clone()).await?,
+        map_handler_err(service.get_resolved(payload.uuid).await, app_state.clone()).await?,
+        map_handler_err(claims.tz(), app_state.clone()).await?,
     );
-    let pdf = map_handler_err(
-        service.print(&[product_resolved_print]).await,
-        products_module,
-    )
-    .await?;
+    let pdf = map_handler_err(service.print(&[product_resolved_print]).await, app_state).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
@@ -269,12 +241,11 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::common::tests::MockAppState;
     use crate::tenant::products::model::ProductResolved;
     use crate::{
         common::config::tests::test_app_config_builder,
-        tenant::products::{
-            self, model::Product, repository::MockProductsRepository, tests::MockProductsModule,
-        },
+        tenant::products::{self, model::Product, repository::MockProductsRepository},
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
@@ -313,7 +284,7 @@ mod tests {
                 move |_| Ok(product.clone())
             });
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -361,7 +332,7 @@ mod tests {
     async fn test_get_unauthorized_expired() {
         let product_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -401,7 +372,7 @@ mod tests {
     async fn test_get_unauthorized_invalid_signature() {
         let product_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -440,7 +411,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
         let product_id = Uuid::now_v7();
-        let app_state = MockProductsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -473,7 +444,7 @@ mod tests {
             .with(eq(product_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -548,7 +519,7 @@ mod tests {
                 move |_| Ok(product_resolved.clone())
             });
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -596,7 +567,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_expired() {
         let product_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -636,7 +607,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_invalid_signature() {
         let product_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -675,7 +646,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
         let product_id = Uuid::now_v7();
-        let app_state = MockProductsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -708,7 +679,7 @@ mod tests {
             .with(eq(product_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -790,7 +761,7 @@ mod tests {
                 move |_| Ok((paginator_meta, vec![product_resolved.clone()]))
             });
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -836,7 +807,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -874,7 +845,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -912,7 +883,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let app_state = MockProductsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -946,7 +917,7 @@ mod tests {
                 .unwrap()))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1040,7 +1011,7 @@ mod tests {
                 move |_, _| Ok(product.clone())
             });
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1100,7 +1071,7 @@ mod tests {
             status: "activee".to_string(),
         };
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1156,7 +1127,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1206,7 +1177,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1256,7 +1227,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let app_state = MockProductsModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1318,7 +1289,7 @@ mod tests {
                 move |_, _| Ok(product.clone())
             });
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1378,7 +1349,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1432,7 +1403,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1483,7 +1454,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1534,7 +1505,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let app_state = MockProductsModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1569,7 +1540,7 @@ mod tests {
             .with(eq(product_id))
             .returning(move |_| Ok(()));
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1620,7 +1591,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1659,7 +1630,7 @@ mod tests {
     async fn test_delete_unauthorized_expired() {
         let product_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1699,7 +1670,7 @@ mod tests {
     async fn test_delete_unauthorized_invalid_signature() {
         let product_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1739,7 +1710,7 @@ mod tests {
     async fn test_delete_unauthorized_missing() {
         let product_id = Uuid::now_v7();
 
-        let app_state = MockProductsModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1793,7 +1764,7 @@ mod tests {
                 move |_| Ok(product_resolved.clone())
             });
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1867,7 +1838,7 @@ mod tests {
     async fn test_print_unauthorized_expired() {
         let product_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1908,7 +1879,7 @@ mod tests {
     async fn test_print_unauthorized_invalid_signature() {
         let product_id = Uuid::now_v7();
 
-        let mut app_state = MockProductsModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1958,9 +1929,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(products::routes::routes(
-                Arc::new(MockProductsModule::new()),
-            )),
+            Router::new().merge(products::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();

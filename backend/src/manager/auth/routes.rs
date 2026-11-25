@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::AuthModuleInterface;
+use crate::common::AppStateInterface;
+
 use super::handler;
 use axum::{
     Router,
@@ -25,24 +26,24 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub fn routes<M: AuthModuleInterface>(auth_module: Arc<M>) -> Router {
+pub fn routes<A: AppStateInterface>(auth_module: Arc<A>) -> Router {
     Router::new().nest(
         "/auth",
         Router::new()
-            .route("/register", post(handler::register::<M>))
-            .route("/login", post(handler::login::<M>))
-            .route("/verify_email", get(handler::verify_email::<M>))
+            .route("/register", post(handler::register::<A>))
+            .route("/login", post(handler::login::<A>))
+            .route("/verify_email", get(handler::verify_email::<A>))
             .route(
                 "/resend_email_verification",
-                get(handler::resend_email_verification::<M>),
+                get(handler::resend_email_verification::<A>),
             )
             .route(
                 "/forgotten_password",
-                post(handler::forgotten_password::<M>),
+                post(handler::forgotten_password::<A>),
             )
-            .route("/new_password", post(handler::new_password::<M>))
-            .route("/t/refresh", post(handler::refresh::<M>)) // "[t]oken" nest is for cookie path restriction
-            .route("/t/logout", post(handler::logout::<M>)) // "[t]oken" nest is for cookie path restriction
+            .route("/new_password", post(handler::new_password::<A>))
+            .route("/t/refresh", post(handler::refresh::<A>)) // "[t]oken" nest is for cookie path restriction
+            .route("/t/logout", post(handler::logout::<A>)) // "[t]oken" nest is for cookie path restriction
             .with_state(auth_module),
     )
 }

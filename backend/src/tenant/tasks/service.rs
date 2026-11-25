@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -27,11 +26,11 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{BaseService, BaseServiceError};
+use crate::common::{AppStateInterface, CommonBuilderError};
 use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::services::dto::print::{
     ServicesResolvedPrint, test_service_resolved_print_builder,
 };
-use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::print::{TaskResolvedPrint, test_task_resolved_print_builder};
 use crate::tenant::tasks::dto::user_input::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
@@ -170,7 +169,7 @@ pub trait TaskService {
 
 impl<'a, T> TaskService for BaseService<'a, T>
 where
-    T: TasksModule,
+    T: AppStateInterface,
 {
     async fn insert(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
         Ok(self

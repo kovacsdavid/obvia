@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::BaseService;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::tenant::inventory::InventoryModuleInterface;
 use crate::tenant::inventory::dto::user_input::{InventoryUserInput, InventoryUserInputHelper};
 use crate::tenant::inventory::service::InventoryService;
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
@@ -37,90 +37,77 @@ use tracing::instrument;
 
 #[instrument(
     name = "obvia::tenant::inventory::handler::get_resolved",
-    skip(inventory_module)
+    skip(app_state)
 )]
-pub async fn get_resolved<M: InventoryModuleInterface>(
+pub async fn get_resolved<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_module.clone());
-    let result = map_handler_err(
-        service.get_resolved(payload.uuid).await,
-        inventory_module.clone(),
-    )
-    .await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result =
+        map_handler_err(service.get_resolved(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        inventory_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::inventory::handler::get",
-    skip(inventory_module)
-)]
-pub async fn get<M: InventoryModuleInterface>(
+#[instrument(name = "obvia::tenant::inventory::handler::get", skip(app_state))]
+pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_module.clone());
-    let result = map_handler_err(service.get(payload.uuid).await, inventory_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.get(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        inventory_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::inventory::handler::update",
-    skip(inventory_module)
-)]
-pub async fn update<M: InventoryModuleInterface>(
+#[instrument(name = "obvia::tenant::inventory::handler::update", skip(app_state))]
+pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<InventoryUserInput, InventoryUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_module.clone());
-    let result =
-        map_handler_err(service.update(&user_input).await, inventory_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.update(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        inventory_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::inventory::handler::delete",
-    skip(inventory_module)
-)]
-pub async fn delete<M: InventoryModuleInterface>(
+#[instrument(name = "obvia::tenant::inventory::handler::delete", skip(app_state))]
+pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_module.clone());
-    map_handler_err(service.delete(payload.uuid).await, inventory_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    map_handler_err(service.delete(payload.uuid).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::OK)
@@ -128,64 +115,54 @@ pub async fn delete<M: InventoryModuleInterface>(
                 "A raktárkészlet törlése sikeresen megtörtént",
             ))
             .build(),
-        inventory_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::inventory::handler::create",
-    skip(inventory_module)
-)]
-pub async fn create<M: InventoryModuleInterface>(
+#[instrument(name = "obvia::tenant::inventory::handler::create", skip(app_state))]
+pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     UserInput(user_input, _): UserInput<InventoryUserInput, InventoryUserInputHelper>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_module.clone());
-    let result =
-        map_handler_err(service.insert(&user_input).await, inventory_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let result = map_handler_err(service.insert(&user_input).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(result)
             .build(),
-        inventory_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::inventory::handler::list",
-    skip(inventory_module)
-)]
-pub async fn list<M: InventoryModuleInterface>(
+#[instrument(name = "obvia::tenant::inventory::handler::list", skip(app_state))]
+pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let resource_query = map_handler_err(
         ResourceQuery::<InventoryOrderBy, InventoryFilterBy>::from_str(payload.q()),
-        inventory_module.clone(),
+        app_state.clone(),
     )
     .await?;
-    let (meta, data) = map_handler_err(
-        service.get_paged(&resource_query).await,
-        inventory_module.clone(),
-    )
-    .await?;
+    let (meta, data) =
+        map_handler_err(service.get_paged(&resource_query).await, app_state.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::new()
             .status_code(StatusCode::OK)
             .meta(meta)
             .data(data)
             .build(),
-        inventory_module,
+        app_state,
     )
     .await?
     .into_response())
@@ -193,22 +170,22 @@ pub async fn list<M: InventoryModuleInterface>(
 
 #[instrument(
     name = "obvia::tenant::inventory::handler::select_list",
-    skip(inventory_module)
+    skip(app_state)
 )]
-pub async fn select_list<M: InventoryModuleInterface>(
+pub async fn select_list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_module.clone());
+    let service = BaseService::new(Some(&claims), app_state.clone());
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
     let result = map_handler_err(
         service.get_select_list_items(&list_type).await,
-        inventory_module.clone(),
+        app_state.clone(),
     )
     .await?;
     Ok(map_handler_err(
@@ -216,24 +193,21 @@ pub async fn select_list<M: InventoryModuleInterface>(
             .status_code(StatusCode::OK)
             .data(result)
             .build(),
-        inventory_module,
+        app_state,
     )
     .await?
     .into_response())
 }
 
-#[instrument(
-    name = "obvia::tenant::inventory::handler::print",
-    skip(inventory_module)
-)]
-pub async fn print<M: InventoryModuleInterface>(
+#[instrument(name = "obvia::tenant::inventory::handler::print", skip(app_state))]
+pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<M>>,
+    State(app_state): State<Arc<A>>,
     _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let service = BaseService::new(Some(&claims), inventory_module.clone());
-    let pdf = map_handler_err(service.print(payload.uuid).await, inventory_module.clone()).await?;
+    let service = BaseService::new(Some(&claims), app_state.clone());
+    let pdf = map_handler_err(service.print(payload.uuid).await, app_state.clone()).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
@@ -261,6 +235,7 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::common::tests::MockAppState;
     use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
     use crate::tenant::inventory::model::InventoryResolved;
     use crate::tenant::inventory::model::tests::test_inventory_resolved_builder;
@@ -272,9 +247,7 @@ mod tests {
     use crate::tenant::warehouses::repository::MockWarehousesRepository;
     use crate::{
         common::config::tests::test_app_config_builder,
-        tenant::inventory::{
-            self, model::Inventory, repository::MockInventoryRepository, tests::MockInventoryModule,
-        },
+        tenant::inventory::{self, model::Inventory, repository::MockInventoryRepository},
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
@@ -320,7 +293,7 @@ mod tests {
                 move |_| Ok(inventory.clone())
             });
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -368,7 +341,7 @@ mod tests {
     async fn test_get_unauthorized_expired() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -408,7 +381,7 @@ mod tests {
     async fn test_get_unauthorized_invalid_signature() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -447,7 +420,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
         let inventory_id = Uuid::now_v7();
-        let app_state = MockInventoryModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -481,7 +454,7 @@ mod tests {
             .with(eq(inventory_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -565,7 +538,7 @@ mod tests {
                 move |_| Ok(inventory_resolved.clone())
             });
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -613,7 +586,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_expired() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -653,7 +626,7 @@ mod tests {
     async fn test_get_resolved_unauthorized_invalid_signature() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -692,7 +665,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
         let inventory_id = Uuid::now_v7();
-        let app_state = MockInventoryModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -726,7 +699,7 @@ mod tests {
             .with(eq(inventory_id))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -817,7 +790,7 @@ mod tests {
                 move |_| Ok((paginator_meta, vec![inventory_resolved.clone()]))
             });
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -863,7 +836,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -901,7 +874,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -939,7 +912,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let app_state = MockInventoryModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
@@ -974,7 +947,7 @@ mod tests {
                 .unwrap()))
             .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1076,7 +1049,7 @@ mod tests {
                 move |_, _| Ok(inventory.clone())
             });
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1138,7 +1111,7 @@ mod tests {
             status: "activee".to_string(),
         };
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1196,7 +1169,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1248,7 +1221,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1300,7 +1273,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let app_state = MockInventoryModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1370,7 +1343,7 @@ mod tests {
                 move |_| Ok(inventory.clone())
             });
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1432,7 +1405,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1488,7 +1461,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1541,7 +1514,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1594,7 +1567,7 @@ mod tests {
             status: "active".to_string(),
         };
 
-        let app_state = MockInventoryModule::new();
+        let app_state = MockAppState::new();
         let payload = serde_json::to_string(&user_input_helper).unwrap();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1630,7 +1603,7 @@ mod tests {
             .with(eq(inventory_id))
             .returning(move |_| Ok(()));
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let repo = Arc::new(repo);
         let test_config = test_app_config_builder().build().unwrap();
         app_state
@@ -1681,7 +1654,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let user_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1720,7 +1693,7 @@ mod tests {
     async fn test_delete_unauthorized_expired() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1760,7 +1733,7 @@ mod tests {
     async fn test_delete_unauthorized_invalid_signature() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -1800,7 +1773,7 @@ mod tests {
     async fn test_delete_unauthorized_missing() {
         let inventory_id = Uuid::now_v7();
 
-        let app_state = MockInventoryModule::new();
+        let app_state = MockAppState::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1879,7 +1852,7 @@ mod tests {
                 move |_| Ok(warehouse_resolved.clone())
             });
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let inventory_repo = Arc::new(inventory_repo);
         let products_repo = Arc::new(products_repo);
         let warehouses_repo = Arc::new(warehouses_repo);
@@ -1970,7 +1943,7 @@ mod tests {
     async fn test_print_unauthorized_expired() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2011,7 +1984,7 @@ mod tests {
     async fn test_print_unauthorized_invalid_signature() {
         let inventory_id = Uuid::now_v7();
 
-        let mut app_state = MockInventoryModule::new();
+        let mut app_state = MockAppState::new();
         let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
@@ -2061,9 +2034,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(inventory::routes::routes(Arc::new(
-                MockInventoryModule::new(),
-            ))),
+            Router::new().merge(inventory::routes::routes(Arc::new(MockAppState::new()))),
         );
 
         let response = app.oneshot(request).await.unwrap();

@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::AppStateInterface;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::service::{BaseService, BaseServiceError};
-use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
 use axum::http::StatusCode;
@@ -77,7 +77,7 @@ pub trait CommentService {
 
 impl<'a, T> CommentService for BaseService<'a, T>
 where
-    T: CommentsModuleInterface,
+    T: AppStateInterface,
 {
     async fn post(&self, payload: &CommentUserInput) -> CommentsServiceResult<Comment> {
         Ok(self

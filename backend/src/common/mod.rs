@@ -91,23 +91,14 @@ pub trait MailTransporter {
 }
 
 pub trait ManagerRepositoryProvider: PoolManager {
-    fn auth_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn AuthRepository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
+    fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync> {
+        self.get_main_pool()
     }
-    fn tenants_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn TenantsRepository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
+    fn tenants_repo(&self) -> Arc<dyn TenantsRepository + Send + Sync> {
+        self.get_main_pool()
     }
-    fn users_repo(
-        &self,
-        tenant_id: Uuid,
-    ) -> RepositoryResult<Arc<dyn ManagerUsersRepository + Send + Sync>> {
-        Ok(self.get_tenant_pool(tenant_id)?)
+    fn manager_users_repo(&self) -> Arc<dyn ManagerUsersRepository + Send + Sync> {
+        self.get_main_pool()
     }
 }
 
@@ -196,7 +187,7 @@ pub trait TenantRepositoryProvider: PoolManager {
     ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn users_repo(
+    fn tenant_users_repo(
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn TenantUsersRepository + Send + Sync>> {
@@ -348,12 +339,20 @@ where
 }
 
 pub trait AppStateInterface:
-    ConfigProvider
+    ConfigProvider<Cfg = AppConfig>
     + MailTransporter
     + DatabaseMigrator
     + PoolManager
     + ManagerRepositoryProvider
     + TenantRepositoryProvider
+    + 'static
+{
+}
+
+impl<P, T> AppStateInterface for AppState<P, T>
+where
+    P: PoolManager + DatabaseMigrator,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
 {
 }
 
@@ -413,19 +412,27 @@ pub mod tests {
                 tenant_id: Uuid,
             ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
         }
+        impl DatabaseMigrator for AppState {
+            fn migrate_main_db(&self) -> impl Future<Output = RepositoryResult<()>> + Send;
+            fn migrate_tenant_db(
+                &self,
+                tenant_id: Uuid,
+            ) -> impl Future<Output = RepositoryResult<()>> + Send;
+            fn migrate_all_tenant_dbs(
+                &self,
+                tenants: &[Tenant],
+            ) -> impl Future<Output = RepositoryResult<()>> + Send;
+        }
         impl ManagerRepositoryProvider for AppState {
             fn auth_repo(
                 &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn AuthRepository + Send + Sync>>;
+            ) -> Arc<dyn AuthRepository + Send + Sync>;
             fn tenants_repo(
                 &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn TenantsRepository + Send + Sync>>;
-            fn users_repo(
+            ) -> Arc<dyn TenantsRepository + Send + Sync>;
+            fn manager_users_repo(
                 &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn ManagerUsersRepository + Send + Sync>>;
+            ) -> Arc<dyn ManagerUsersRepository + Send + Sync>;
         }
         impl TenantRepositoryProvider for AppState {
             fn activity_feed_repo(
@@ -484,7 +491,7 @@ pub mod tests {
                 &self,
                 tenant_id: Uuid,
             ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
-            fn users_repo(
+            fn tenant_users_repo(
                 &self,
                 tenant_id: Uuid,
             ) -> RepositoryResult<Arc<dyn TenantUsersRepository + Send + Sync>>;
@@ -497,5 +504,6 @@ pub mod tests {
                 tenant_id: Uuid,
             ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
         }
+        impl AppStateInterface for AppState {}
     );
 }

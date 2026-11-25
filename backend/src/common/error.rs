@@ -127,9 +127,7 @@ pub mod v2 {
     use serde_json::json;
     use tracing::{Level, event};
 
-    use crate::common::{
-        BaseModule, ConfigProvider, MailTransporter, config::AppConfig, dto::ErrorResponse,
-    };
+    use crate::common::{ConfigProvider, MailTransporter, config::AppConfig, dto::ErrorResponse};
 
     #[derive(Debug, PartialEq)]
     pub enum AppErrorVisibility {
@@ -235,7 +233,7 @@ pub mod v2 {
         }
         pub async fn notify_admin_if_internal<M>(&self, mailer: Arc<M>)
         where
-            M: BaseModule,
+            M: MailTransporter + ConfigProvider<Cfg = AppConfig>,
         {
             if self.visibility == AppErrorVisibility::Internal {
                 self.notify_admin(mailer).await

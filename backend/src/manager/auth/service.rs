@@ -17,10 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::{
-    AuthModuleInterface,
-    dto::{claims::Claims, login::UserPublic},
-};
+use super::dto::{claims::Claims, login::UserPublic};
+use crate::common::AppStateInterface;
 use crate::manager::auth::dto::register::{ForgottenPasswordRequest, NewPasswordRequest};
 use crate::{common::error::RepositoryError, manager::auth::model::ForgottenPassword};
 use crate::{
@@ -212,7 +210,7 @@ pub trait AuthService {
 
 impl<'a, T> AuthService for BaseService<'a, T>
 where
-    T: AuthModuleInterface,
+    T: AppStateInterface,
 {
     async fn try_login(
         &self,
@@ -1420,7 +1418,7 @@ async fn rate_limit_by_event_status<T>(
     event_type: AccountEventType,
 ) -> AuthServiceResult<()>
 where
-    T: AuthModuleInterface,
+    T: AppStateInterface,
 {
     let event_log_entries = match auth_module
         .auth_repo()
@@ -1481,7 +1479,7 @@ async fn rate_limit_by_event_type<T>(
     event_type: AccountEventType,
 ) -> AuthServiceResult<()>
 where
-    T: AuthModuleInterface,
+    T: AppStateInterface,
 {
     let event_log_entries = match auth_module
         .auth_repo()
@@ -1598,7 +1596,7 @@ async fn send_email_verification<T>(
     email_verification: EmailVerification,
 ) -> AuthServiceResult<()>
 where
-    T: AuthModuleInterface,
+    T: AppStateInterface,
 {
     let handlebars = Handlebars::new();
     let hostname = auth_module.config().server().public_base_url().to_owned();
@@ -1656,7 +1654,7 @@ async fn send_forgotten_password_email<T>(
     forgotten_password: ForgottenPassword,
 ) -> AuthServiceResult<()>
 where
-    T: AuthModuleInterface,
+    T: AppStateInterface,
 {
     let handlebars = Handlebars::new();
     let hostname = auth_module.config().server().public_base_url().to_owned();

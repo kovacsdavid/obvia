@@ -46,7 +46,7 @@ RUN case "${TARGETPLATFORM}" in \
  && install -m 0755 /opt/typst/typst /usr/local/bin/typst \
  && typst --version
 
-FROM --platform=$BUILDPLATFORM rust:1.99.1 AS builder
+FROM --platform=$BUILDPLATFORM rust:1.100.1 AS builder
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
@@ -66,7 +66,7 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "$TARGETPL
     cp target/release/obvia_server /opt; \
     fi
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 WORKDIR /opt
 EXPOSE 3000

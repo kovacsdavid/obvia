@@ -24,8 +24,12 @@ describe("derived form schemas", () => {
     });
 
     it("keeps numeric and derived fields outside their form schemas", () => {
-        expect(inventoryFormSchema.keyof().options).not.toContain("minimum_stock");
-        expect(inventoryFormSchema.keyof().options).not.toContain("maximum_stock");
+        expect(inventoryFormSchema.keyof().options).not.toContain(
+            "minimum_stock",
+        );
+        expect(inventoryFormSchema.keyof().options).not.toContain(
+            "maximum_stock",
+        );
         expect(inventoryMovementFormSchema.keyof().options).toEqual([
             "inventory_id",
             "movement_type",
@@ -35,7 +39,9 @@ describe("derived form schemas", () => {
             "quantity",
         );
         expect(taskFormSchema.keyof().options).not.toContain("price");
-        expect(serviceFormSchema.keyof().options).not.toContain("default_price");
+        expect(serviceFormSchema.keyof().options).not.toContain(
+            "default_price",
+        );
     });
 
     it("uses text for nullable service fields in the form", () => {

@@ -90,7 +90,8 @@ describe("tax schemas", () => {
         };
         expect(taxUserInputSchema.safeParse(input).success).toBe(true);
         expect(
-            taxUserInputSchema.safeParse({ ...input, is_default: null }).success,
+            taxUserInputSchema.safeParse({ ...input, is_default: null })
+                .success,
         ).toBe(false);
     });
 });

@@ -108,14 +108,7 @@ export default function Edit({
             },
             onFieldErrors: setErrors,
         });
-    }, [
-        dispatch,
-        form,
-        id,
-        navigate,
-        onSuccess,
-        setErrors,
-    ]);
+    }, [dispatch, form, id, navigate, onSuccess, setErrors]);
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -145,13 +138,7 @@ export default function Edit({
             },
             onFieldErrors: setErrors,
         });
-    }, [
-        dispatch,
-        form,
-        id,
-        navigate,
-        setErrors,
-    ]);
+    }, [dispatch, form, id, navigate, setErrors]);
 
     useEffect(() => {
         if (typeof id === "string") {

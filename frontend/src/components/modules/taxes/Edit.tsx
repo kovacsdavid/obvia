@@ -199,10 +199,9 @@ export default function Edit({
                                     description: data.description,
                                     country_code: data.country_code,
                                     tax_category: data.tax_category,
-                                    is_rate_applicable:
-                                        data.is_rate_applicable
-                                            ? "true"
-                                            : "false",
+                                    is_rate_applicable: data.is_rate_applicable
+                                        ? "true"
+                                        : "false",
                                     legal_text: data.legal_text ?? "",
                                     reporting_code: data.reporting_code ?? "",
                                     is_default: data.is_default,
@@ -313,7 +312,10 @@ export default function Edit({
                                             value={form.rate}
                                             onChange={(e) => {
                                                 resetError("rate");
-                                                setFormField("rate", e.target.value);
+                                                setFormField(
+                                                    "rate",
+                                                    e.target.value,
+                                                );
                                             }}
                                             aria-invalid={isInvalidField(
                                                 "rate",

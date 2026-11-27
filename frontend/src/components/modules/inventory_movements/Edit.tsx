@@ -307,7 +307,10 @@ export default function Edit({
                                             value={form.inventory_id}
                                             onValueChange={(val) => {
                                                 resetError("inventory_id");
-                                                setFormField("inventory_id", val);
+                                                setFormField(
+                                                    "inventory_id",
+                                                    val,
+                                                );
                                             }}
                                         >
                                             <SelectTrigger

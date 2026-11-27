@@ -301,7 +301,7 @@ export default function Edit({
                             </Field>
                             <Field data-invalid={isInvalidField("name")}>
                                 <FieldLabel htmlFor="name">
-                                        {form.customer_type === "legal"
+                                    {form.customer_type === "legal"
                                         ? "Jogi személy neve"
                                         : "Név"}
                                 </FieldLabel>
@@ -357,7 +357,7 @@ export default function Edit({
                             ) : null}
                             <Field data-invalid={isInvalidField("email")}>
                                 <FieldLabel htmlFor="email">
-                                        {form.customer_type === "legal"
+                                    {form.customer_type === "legal"
                                         ? "Kapcsolattartó e-mail címe"
                                         : "E-mail cím"}
                                 </FieldLabel>
@@ -378,7 +378,7 @@ export default function Edit({
                                 data-invalid={isInvalidField("phone_number")}
                             >
                                 <FieldLabel htmlFor="phone_number">
-                                        {form.customer_type === "legal"
+                                    {form.customer_type === "legal"
                                         ? "Kapcsolattartó telefonszáma"
                                         : "Telefonszám"}
                                 </FieldLabel>

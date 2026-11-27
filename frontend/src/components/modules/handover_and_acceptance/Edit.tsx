@@ -651,7 +651,9 @@ export default function Edit({
                                                     form.item_identifier_type_id,
                                             ) && (
                                                 <SelectItem
-                                                    value={form.item_identifier_type_id}
+                                                    value={
+                                                        form.item_identifier_type_id
+                                                    }
                                                 >
                                                     Meglévő típus
                                                 </SelectItem>

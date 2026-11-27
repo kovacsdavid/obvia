@@ -164,8 +164,7 @@ export default function Edit({
                                 ...previous,
                                 name: data.name,
                                 description: data.description ?? "",
-                                unit_of_measure_id:
-                                    data.unit_of_measure_id,
+                                unit_of_measure_id: data.unit_of_measure_id,
                                 status: data.status,
                             }));
                         }
@@ -255,10 +254,7 @@ export default function Edit({
                                     value={form.unit_of_measure_id}
                                     onValueChange={(val) => {
                                         resetError("unit_of_measure_id");
-                                        setFormField(
-                                            "unit_of_measure_id",
-                                            val,
-                                        );
+                                        setFormField("unit_of_measure_id", val);
                                     }}
                                 >
                                     <SelectTrigger

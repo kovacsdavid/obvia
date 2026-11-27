@@ -62,21 +62,22 @@ use lettre::{
 use std::sync::LazyLock;
 use tracing::{error, info};
 
+pub mod api_docs;
 pub mod config;
 pub mod database;
-pub(crate) mod dto;
-pub(crate) mod error;
-pub(crate) mod extractors;
-pub(crate) mod handler;
+pub mod dto;
+pub mod error;
+pub mod extractors;
+pub mod handler;
 pub mod init;
-pub(crate) mod macros;
-pub(crate) mod model;
-pub(crate) mod pdf;
-pub(crate) mod query_parser;
+pub mod macros;
+pub mod model;
+pub mod pdf;
+pub mod query_parser;
 pub mod service;
-pub(crate) mod types;
-pub(crate) mod utils;
-pub(crate) mod value_object;
+pub mod types;
+pub mod utils;
+pub mod value_object;
 
 pub trait ConfigProvider {
     type Cfg;

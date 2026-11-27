@@ -30,7 +30,7 @@ use serde_json::json;
 use std::fmt::{Display, Formatter};
 use tracing::Level;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct CustomerUserInputHelper {
     pub id: Option<String>,
     pub name: String,
@@ -43,7 +43,7 @@ pub struct CustomerUserInputHelper {
     pub mailing_address: Option<AddressUserInputHelper>,
 }
 
-#[derive(Debug, Serialize, Default, PartialEq)]
+#[derive(Debug, Serialize, Default, PartialEq, utoipa::ToSchema)]
 pub struct CustomerUserInputError {
     pub id: Option<String>,
     pub name: Option<String>,

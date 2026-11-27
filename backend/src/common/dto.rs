@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct SuccessResponse<M, D>
 where
     M: Serialize,
@@ -92,7 +92,7 @@ where
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct EmptyType;
 
 impl Display for EmptyType {
@@ -101,7 +101,7 @@ impl Display for EmptyType {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct ErrorResponse<E>
 where
     E: Serialize,
@@ -109,6 +109,17 @@ where
     #[serde(skip_serializing)]
     pub status_code: StatusCode,
     pub error: E,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+#[schema(as = ErrorMessageResponse<F>)]
+pub struct ErrorMessageResponse<F>
+where
+    F: Serialize + utoipa::ToSchema,
+{
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fields: Option<F>,
 }
 
 impl<E> IntoResponse for ErrorResponse<E>
@@ -120,7 +131,7 @@ where
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct SimpleMessageResponse {
     pub message: String,
 }
@@ -133,7 +144,7 @@ impl SimpleMessageResponse {
     }
 }
 
-#[derive(Copy, Clone, Serialize)]
+#[derive(Copy, Clone, Serialize, utoipa::ToSchema)]
 pub struct PaginatorMeta {
     pub page: i32,
     pub limit: i32,

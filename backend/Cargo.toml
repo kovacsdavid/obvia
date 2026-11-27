@@ -38,6 +38,8 @@ clap = { version = "4.6.2", features = ["derive"] }
 derive_builder = "0.20.2"
 unicode-segmentation = "1.13.3"
 tracing-appender = "0.2.5"
+utoipa = { version = "6.0.0", features = ["uuid", "chrono"] }
+utoipa-swagger-ui = { version = "10.0.2", features = ["axum", "vendored"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

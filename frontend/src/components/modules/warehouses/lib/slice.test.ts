@@ -51,8 +51,8 @@ vi.mock("@/components/modules/auth/lib/slice.ts", async () => {
 const input = {
     id: null,
     name: "Main",
-    contactName: "",
-    contactPhone: "",
+    contact_name: "",
+    contact_phone: "",
     status: "active",
 };
 const result = { kind: "http_error", status: 500 } as const;

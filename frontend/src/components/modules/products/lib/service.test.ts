@@ -24,8 +24,8 @@ const input = {
     id: "product-1",
     name: "Product",
     description: "Description",
-    unitOfMeasureId: "other",
-    newUnitOfMeasure: "box",
+    unit_of_measure_id: "other",
+    new_unit_of_measure: "box",
     status: "active",
 };
 const fields = {
@@ -143,8 +143,8 @@ describe("products API", () => {
                 id: input.id,
                 name: input.name,
                 description: input.description,
-                unit_of_measure_id: input.unitOfMeasureId,
-                new_unit_of_measure: input.newUnitOfMeasure,
+                unit_of_measure_id: input.unit_of_measure_id,
+                new_unit_of_measure: input.new_unit_of_measure,
                 status: input.status,
             });
             expect(options?.headers).not.toHaveProperty("Authorization");

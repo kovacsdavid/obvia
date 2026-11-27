@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { handoverFormSchema } from "./lib/schemas";
 import { useNavigate, useParams } from "react-router";
 import { Plus, Trash } from "lucide-react";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
@@ -67,6 +69,8 @@ interface EditProps {
     onCancel?: () => void;
 }
 
+type HandoverFormState = z.infer<typeof handoverFormSchema>;
+
 export default function Edit({
     showCard = true,
     onSuccess,
@@ -79,38 +83,37 @@ export default function Edit({
     const id = React.useMemo(() => params["id"] ?? null, [params]);
     const accessoryId = React.useId();
 
-    const [customerId, setCustomerId] = React.useState("");
+    const [form, setForm] = React.useState<HandoverFormState>({
+        customer_id: "",
+        item_make_id: "",
+        new_item_make: "",
+        item_model_id: "",
+        new_item_model: "",
+        item_identifier_type_id: "",
+        new_item_identifier_type: "",
+        item_identifier_value: "",
+        reported_issue: "",
+        condition_at_receipt: "",
+        included_accessories: [],
+        authorized_work: "",
+        repair_limit: "",
+        currency_code: "HUF",
+        terms_version: "",
+        received_at: "",
+    });
     const [customersList, setCustomersList] = React.useState<SelectOptionList>(
         [],
     );
-    const [itemMakeId, setItemMakeId] = React.useState("");
     const [itemMakesList, setItemMakesList] = React.useState<SelectOptionList>(
         [],
     );
-    const [newItemMake, setNewItemMake] = React.useState("");
-    const [itemModelId, setItemModelId] = React.useState("");
     const [itemModelsList, setItemModelsList] =
         React.useState<SelectOptionList>([]);
-    const [newItemModel, setNewItemModel] = React.useState("");
-    const [itemIdentifierTypeId, setItemIdentifierTypeId] = React.useState("");
     const [itemIdentifierTypesList, setItemIdentifierTypesList] =
         React.useState<SelectOptionList>([]);
-    const [newItemIdentifierType, setNewItemIdentifierType] =
-        React.useState("");
-    const [itemIdentifierValue, setItemIdentifierValue] = React.useState("");
-    const [reportedIssue, setReportedIssue] = React.useState("");
-    const [conditionAtReceipt, setConditionAtReceipt] = React.useState("");
-    const [includedAccessories, setIncludedAccessories] = React.useState<
-        string[]
-    >([]);
-    const [authorizedWork, setAuthorizedWork] = React.useState("");
-    const [repairLimit, setRepairLimit] = React.useState("");
-    const [currencyCode, setCurrencyCode] = React.useState("HUF");
     const [currencyList, setCurrencyList] = React.useState<SelectOptionList>(
         [],
     );
-    const [termsVersion, setTermsVersion] = React.useState("");
-    const [receivedAt, setReceivedAt] = React.useState("");
     const [defaultReceivedAt] = React.useState(() => new Date().toISOString());
     const [originalReceivedAt, setOriginalReceivedAt] = React.useState<
         string | null
@@ -126,6 +129,13 @@ export default function Edit({
     const savingRef = React.useRef(false);
     const [openNewCustomerDialog, setOpenNewCustomerDialog] =
         React.useState(false);
+
+    function setFormField<Key extends keyof HandoverFormState>(
+        field: Key,
+        value: HandoverFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
 
     const itemModelsRequestRef = React.useRef(0);
     const loadItemModels = useCallback(
@@ -204,21 +214,27 @@ export default function Edit({
                         } else {
                             setItemModelsList([]);
                         }
-                        setCustomerId(data.customer.id);
-                        setItemMakeId(data.item_make?.id ?? "");
-                        setNewItemMake("");
-                        setItemModelId(data.item_model?.id ?? "");
-                        setNewItemModel("");
-                        setItemIdentifierTypeId(data.item_identifier_type.id);
-                        setNewItemIdentifierType("");
-                        setItemIdentifierValue(data.item_identifier_value);
-                        setReportedIssue(data.reported_issue ?? "");
-                        setConditionAtReceipt(data.condition_at_receipt ?? "");
-                        setIncludedAccessories(data.included_accessories ?? []);
-                        setAuthorizedWork(data.authorized_work ?? "");
-                        setRepairLimit(data.repair_limit ?? "");
-                        setCurrencyCode(data.currency_code?.code ?? "");
-                        setTermsVersion(data.terms_version ?? "");
+                        setForm({
+                            customer_id: data.customer.id,
+                            item_make_id: data.item_make?.id ?? "",
+                            new_item_make: "",
+                            item_model_id: data.item_model?.id ?? "",
+                            new_item_model: "",
+                            item_identifier_type_id:
+                                data.item_identifier_type.id,
+                            new_item_identifier_type: "",
+                            item_identifier_value: data.item_identifier_value,
+                            reported_issue: data.reported_issue ?? "",
+                            condition_at_receipt:
+                                data.condition_at_receipt ?? "",
+                            included_accessories:
+                                data.included_accessories ?? [],
+                            authorized_work: data.authorized_work ?? "",
+                            repair_limit: data.repair_limit ?? "",
+                            currency_code: data.currency_code?.code ?? "",
+                            terms_version: data.terms_version ?? "",
+                            received_at: "",
+                        });
                         setOriginalReceivedAt(data.received_at);
                         setReceivedAtChanged(false);
                         setReceivedAtOffset("");
@@ -233,7 +249,7 @@ export default function Edit({
     const receiptTimeValue =
         !receivedAtChanged && unchangedReceivedAt
             ? formatReceiptTime(unchangedReceivedAt, claims?.tz)
-            : receivedAt;
+            : form.received_at;
     const receiptTimeResult = resolveReceiptTime(receiptTimeValue, claims?.tz);
 
     const handleSubmit = async (e: React.SubmitEvent) => {
@@ -278,23 +294,9 @@ export default function Edit({
         setReceivedAtError(null);
 
         const input = {
+            ...form,
             id,
-            customerId,
-            itemMakeId,
-            newItemMake,
-            itemModelId,
-            newItemModel,
-            itemIdentifierTypeId,
-            newItemIdentifierType,
-            itemIdentifierValue,
-            reportedIssue,
-            conditionAtReceipt,
-            includedAccessories,
-            authorizedWork,
-            repairLimit,
-            currencyCode,
-            termsVersion,
-            receivedAt: receivedAtUtc,
+            received_at: receivedAtUtc,
         };
 
         savingRef.current = true;
@@ -332,7 +334,7 @@ export default function Edit({
 
     const handleEditCustomersSuccess = (customer: Customer) => {
         loadLists().then(() => {
-            setCustomerId(customer.id);
+            setFormField("customer_id", customer.id);
             setOpenNewCustomerDialog(false);
         });
     };
@@ -349,13 +351,21 @@ export default function Edit({
                   }
                 : prev,
         );
-        setIncludedAccessories((prev) =>
-            prev.map((item, itemIndex) => (itemIndex === index ? value : item)),
-        );
+        setForm((previous) => ({
+            ...previous,
+            included_accessories: previous.included_accessories.map(
+                (item, itemIndex) => (itemIndex === index ? value : item),
+            ),
+        }));
     };
 
     const removeAccessory = (index: number) => {
-        setIncludedAccessories((prev) => prev.filter((_, i) => i !== index));
+        setForm((previous) => ({
+            ...previous,
+            included_accessories: previous.included_accessories.filter(
+                (_, i) => i !== index,
+            ),
+        }));
         setErrors((prev) =>
             prev?.included_accessories
                 ? {
@@ -413,10 +423,10 @@ export default function Edit({
                                     </Button>
                                 </div>
                                 <Select
-                                    value={customerId}
+                                    value={form.customer_id}
                                     onValueChange={(value) => {
                                         clearError("customer_id");
-                                        setCustomerId(value);
+                                        setFormField("customer_id", value);
                                     }}
                                 >
                                     <SelectTrigger
@@ -451,13 +461,17 @@ export default function Edit({
                                     Tárgy gyártója
                                 </FieldLabel>
                                 <Select
-                                    value={itemMakeId === "" ? "" : itemMakeId}
+                                    value={
+                                        form.item_make_id === ""
+                                            ? ""
+                                            : form.item_make_id
+                                    }
                                     onValueChange={(value) => {
                                         clearError("item_make_id");
                                         clearError("new_item_make");
-                                        setItemMakeId(value);
-                                        setItemModelId("");
-                                        setNewItemModel("");
+                                        setFormField("item_make_id", value);
+                                        setFormField("item_model_id", "");
+                                        setFormField("new_item_model", "");
                                         void loadItemModels(value);
                                     }}
                                 >
@@ -476,13 +490,16 @@ export default function Edit({
                                                 {make.title}
                                             </SelectItem>
                                         ))}
-                                        {itemMakeId &&
-                                            itemMakeId !== "other" &&
+                                        {form.item_make_id &&
+                                            form.item_make_id !== "other" &&
                                             !itemMakesList.some(
                                                 (make) =>
-                                                    make.value === itemMakeId,
+                                                    make.value ===
+                                                    form.item_make_id,
                                             ) && (
-                                                <SelectItem value={itemMakeId}>
+                                                <SelectItem
+                                                    value={form.item_make_id}
+                                                >
                                                     Meglévő gyártó
                                                 </SelectItem>
                                             )}
@@ -491,12 +508,15 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {itemMakeId === "other" && (
+                                {form.item_make_id === "other" && (
                                     <Input
-                                        value={newItemMake}
+                                        value={form.new_item_make}
                                         onChange={(e) => {
                                             clearError("new_item_make");
-                                            setNewItemMake(e.target.value);
+                                            setFormField(
+                                                "new_item_make",
+                                                e.target.value,
+                                            );
                                         }}
                                         placeholder="Gyártó neve"
                                     />
@@ -520,12 +540,14 @@ export default function Edit({
                                 </FieldLabel>
                                 <Select
                                     value={
-                                        itemModelId === "" ? "" : itemModelId
+                                        form.item_model_id === ""
+                                            ? ""
+                                            : form.item_model_id
                                     }
                                     onValueChange={(value) => {
                                         clearError("item_model_id");
                                         clearError("new_item_model");
-                                        setItemModelId(value);
+                                        setFormField("item_model_id", value);
                                     }}
                                 >
                                     <SelectTrigger className="w-full">
@@ -543,13 +565,16 @@ export default function Edit({
                                                 {model.title}
                                             </SelectItem>
                                         ))}
-                                        {itemModelId &&
-                                            itemModelId !== "other" &&
+                                        {form.item_model_id &&
+                                            form.item_model_id !== "other" &&
                                             !itemModelsList.some(
                                                 (model) =>
-                                                    model.value === itemModelId,
+                                                    model.value ===
+                                                    form.item_model_id,
                                             ) && (
-                                                <SelectItem value={itemModelId}>
+                                                <SelectItem
+                                                    value={form.item_model_id}
+                                                >
                                                     Meglévő típus
                                                 </SelectItem>
                                             )}
@@ -558,12 +583,15 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {itemModelId === "other" && (
+                                {form.item_model_id === "other" && (
                                     <Input
-                                        value={newItemModel}
+                                        value={form.new_item_model}
                                         onChange={(e) => {
                                             clearError("new_item_model");
-                                            setNewItemModel(e.target.value);
+                                            setFormField(
+                                                "new_item_model",
+                                                e.target.value,
+                                            );
                                         }}
                                         placeholder="Típus neve"
                                     />
@@ -587,14 +615,17 @@ export default function Edit({
                                 </FieldLabel>
                                 <Select
                                     value={
-                                        itemIdentifierTypeId === ""
+                                        form.item_identifier_type_id === ""
                                             ? ""
-                                            : itemIdentifierTypeId
+                                            : form.item_identifier_type_id
                                     }
                                     onValueChange={(value) => {
                                         clearError("item_identifier_type_id");
                                         clearError("new_item_identifier_type");
-                                        setItemIdentifierTypeId(value);
+                                        setFormField(
+                                            "item_identifier_type_id",
+                                            value,
+                                        );
                                     }}
                                 >
                                     <SelectTrigger className="w-full">
@@ -611,15 +642,18 @@ export default function Edit({
                                                 </SelectItem>
                                             ),
                                         )}
-                                        {itemIdentifierTypeId &&
-                                            itemIdentifierTypeId !== "other" &&
+                                        {form.item_identifier_type_id &&
+                                            form.item_identifier_type_id !==
+                                                "other" &&
                                             !itemIdentifierTypesList.some(
                                                 (identifierType) =>
                                                     identifierType.value ===
-                                                    itemIdentifierTypeId,
+                                                    form.item_identifier_type_id,
                                             ) && (
                                                 <SelectItem
-                                                    value={itemIdentifierTypeId}
+                                                    value={
+                                                        form.item_identifier_type_id
+                                                    }
                                                 >
                                                     Meglévő típus
                                                 </SelectItem>
@@ -629,14 +663,15 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {itemIdentifierTypeId === "other" && (
+                                {form.item_identifier_type_id === "other" && (
                                     <Input
-                                        value={newItemIdentifierType}
+                                        value={form.new_item_identifier_type}
                                         onChange={(e) => {
                                             clearError(
                                                 "new_item_identifier_type",
                                             );
-                                            setNewItemIdentifierType(
+                                            setFormField(
+                                                "new_item_identifier_type",
                                                 e.target.value,
                                             );
                                         }}
@@ -661,10 +696,13 @@ export default function Edit({
                                 </FieldLabel>
                                 <Input
                                     id="item_identifier_value"
-                                    value={itemIdentifierValue}
+                                    value={form.item_identifier_value}
                                     onChange={(e) => {
                                         clearError("item_identifier_value");
-                                        setItemIdentifierValue(e.target.value);
+                                        setFormField(
+                                            "item_identifier_value",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField(
                                         "item_identifier_value",
@@ -683,10 +721,13 @@ export default function Edit({
                                 </FieldLabel>
                                 <Textarea
                                     id="reported_issue"
-                                    value={reportedIssue}
+                                    value={form.reported_issue}
                                     onChange={(e) => {
                                         clearError("reported_issue");
-                                        setReportedIssue(e.target.value);
+                                        setFormField(
+                                            "reported_issue",
+                                            e.target.value,
+                                        );
                                     }}
                                 />
                                 <FieldErrorV2 error={errors?.reported_issue} />
@@ -702,10 +743,13 @@ export default function Edit({
                                 </FieldLabel>
                                 <Textarea
                                     id="condition_at_receipt"
-                                    value={conditionAtReceipt}
+                                    value={form.condition_at_receipt}
                                     onChange={(e) => {
                                         clearError("condition_at_receipt");
-                                        setConditionAtReceipt(e.target.value);
+                                        setFormField(
+                                            "condition_at_receipt",
+                                            e.target.value,
+                                        );
                                     }}
                                 />
                                 <FieldErrorV2
@@ -724,17 +768,20 @@ export default function Edit({
                                         aria-label="Tartozék hozzáadása"
                                         disabled={isSaving}
                                         onClick={() =>
-                                            setIncludedAccessories((prev) => [
-                                                ...prev,
-                                                "",
-                                            ])
+                                            setForm((previous) => ({
+                                                ...previous,
+                                                included_accessories: [
+                                                    ...previous.included_accessories,
+                                                    "",
+                                                ],
+                                            }))
                                         }
                                     >
                                         <Plus />
                                     </Button>
                                 </div>
                                 <div className="space-y-2">
-                                    {includedAccessories.map(
+                                    {form.included_accessories.map(
                                         (accessory, index) => (
                                             <div
                                                 key={index}
@@ -809,10 +856,13 @@ export default function Edit({
                                 </FieldLabel>
                                 <Textarea
                                     id="authorized_work"
-                                    value={authorizedWork}
+                                    value={form.authorized_work}
                                     onChange={(e) => {
                                         clearError("authorized_work");
-                                        setAuthorizedWork(e.target.value);
+                                        setFormField(
+                                            "authorized_work",
+                                            e.target.value,
+                                        );
                                     }}
                                 />
                                 <FieldErrorV2 error={errors?.authorized_work} />
@@ -826,10 +876,13 @@ export default function Edit({
                                 </FieldLabel>
                                 <Input
                                     id="repair_limit"
-                                    value={repairLimit}
+                                    value={form.repair_limit}
                                     onChange={(e) => {
                                         clearError("repair_limit");
-                                        setRepairLimit(e.target.value);
+                                        setFormField(
+                                            "repair_limit",
+                                            e.target.value,
+                                        );
                                     }}
                                 />
                                 <FieldErrorV2 error={errors?.repair_limit} />
@@ -842,10 +895,10 @@ export default function Edit({
                                     Pénznem
                                 </FieldLabel>
                                 <Select
-                                    value={currencyCode}
+                                    value={form.currency_code}
                                     onValueChange={(value) => {
                                         clearError("currency_code");
-                                        setCurrencyCode(value);
+                                        setFormField("currency_code", value);
                                     }}
                                 >
                                     <SelectTrigger className="w-full">
@@ -873,10 +926,13 @@ export default function Edit({
                                 </FieldLabel>
                                 <Input
                                     id="terms_version"
-                                    value={termsVersion}
+                                    value={form.terms_version}
                                     onChange={(e) => {
                                         clearError("terms_version");
-                                        setTermsVersion(e.target.value);
+                                        setFormField(
+                                            "terms_version",
+                                            e.target.value,
+                                        );
                                     }}
                                 />
                                 <FieldErrorV2 error={errors?.terms_version} />
@@ -899,7 +955,10 @@ export default function Edit({
                                     value={receiptTimeValue}
                                     onChange={(e) => {
                                         clearError("received_at");
-                                        setReceivedAt(e.target.value);
+                                        setFormField(
+                                            "received_at",
+                                            e.target.value,
+                                        );
                                         setReceivedAtChanged(true);
                                         setReceivedAtOffset("");
                                         setReceivedAtError(null);

@@ -25,18 +25,6 @@ const input: TaxUserInput = {
     id: "tax-1",
     rate: "27",
     description: "VAT",
-    countryCode: "HU",
-    taxCategory: "AK",
-    isRateApplicable: true,
-    legalText: "text",
-    reportingCode: "code",
-    isDefault: false,
-    status: "active",
-};
-const body = {
-    id: "tax-1",
-    rate: "27",
-    description: "VAT",
     country_code: "HU",
     tax_category: "AK",
     is_rate_applicable: true,
@@ -45,6 +33,7 @@ const body = {
     is_default: false,
     status: "active",
 };
+const body = input;
 const fields = {
     id: null,
     rate: "Invalid",

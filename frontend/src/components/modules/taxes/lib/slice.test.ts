@@ -54,12 +54,12 @@ const input: TaxUserInput = {
     id: null,
     rate: "27",
     description: "VAT",
-    countryCode: "HU",
-    taxCategory: "AK",
-    isRateApplicable: true,
-    legalText: "",
-    reportingCode: "",
-    isDefault: false,
+    country_code: "HU",
+    tax_category: "AK",
+    is_rate_applicable: true,
+    legal_text: "",
+    reporting_code: "",
+    is_default: false,
     status: "active",
 };
 const result = { kind: "http_error", status: 500 } as const;

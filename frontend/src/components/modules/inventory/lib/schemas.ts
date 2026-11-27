@@ -27,13 +27,17 @@ const nullableString = z.string().nullable();
 
 export const inventoryUserInputSchema = z.looseObject({
     id: nullableString,
-    productId: z.string(),
-    warehouseId: z.string(),
-    minimumStock: z.string(),
-    maximumStock: z.string(),
-    currencyCode: z.string(),
+    product_id: z.string(),
+    warehouse_id: z.string(),
+    minimum_stock: z.string(),
+    maximum_stock: z.string(),
+    currency_code: z.string(),
     status: z.string(),
 });
+
+export const inventoryFormSchema = z
+    .object(inventoryUserInputSchema.shape)
+    .omit({ id: true, minimum_stock: true, maximum_stock: true });
 
 export const inventoryErrorSchema = z.looseObject({
     id: nullableString,

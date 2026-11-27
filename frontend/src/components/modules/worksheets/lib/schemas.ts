@@ -28,10 +28,14 @@ const nullableString = z.string().nullable();
 export const worksheetUserInputSchema = z.looseObject({
     id: nullableString,
     description: z.string(),
-    customerId: z.string(),
-    projectId: z.string(),
+    customer_id: z.string(),
+    project_id: z.string(),
     status: z.string(),
 });
+
+export const worksheetFormSchema = z
+    .object(worksheetUserInputSchema.shape)
+    .omit({ id: true });
 
 export const worksheetSchema = z.looseObject({
     id: z.string(),

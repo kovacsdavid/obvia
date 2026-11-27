@@ -52,17 +52,7 @@ export async function create(
         signal,
         guard: isCreateInventoryMovementResponse,
         formErrorGuard: isInventoryMovementError,
-        body: {
-            id: input.id,
-            inventory_id: input.inventoryId,
-            movement_type: input.movementType,
-            quantity: input.quantity,
-            reference_type: input.referenceType,
-            reference_id: input.referenceId,
-            unit_price: input.unitPrice,
-            total_price: input.totalPrice,
-            tax_id: input.taxId,
-        },
+        body: input,
     });
 }
 

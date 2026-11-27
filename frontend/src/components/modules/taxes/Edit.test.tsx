@@ -228,9 +228,9 @@ describe.each([
         label: "service",
         Component: ServicesEdit,
         buttonIndex: 0,
-        field: "defaultTaxId",
+        field: "default_tax_id",
     },
-    { label: "task", Component: TasksEdit, buttonIndex: 2, field: "taxId" },
+    { label: "task", Component: TasksEdit, buttonIndex: 2, field: "tax_id" },
 ])("$label tax dialog", ({ label, Component, buttonIndex, field }) => {
     it("creates and selects a tax without leaving the parent", async () => {
         mocks.id = `${label}-id`;

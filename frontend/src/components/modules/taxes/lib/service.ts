@@ -43,32 +43,6 @@ import {
     isUpdateTaxResponse,
 } from "./guards";
 
-function taxBody({
-    id,
-    rate,
-    description,
-    countryCode,
-    taxCategory,
-    isRateApplicable,
-    legalText,
-    reportingCode,
-    isDefault,
-    status,
-}: TaxUserInput) {
-    return {
-        id,
-        rate,
-        description,
-        country_code: countryCode,
-        tax_category: taxCategory,
-        is_rate_applicable: isRateApplicable,
-        legal_text: legalText,
-        reporting_code: reportingCode,
-        is_default: isDefault,
-        status,
-    };
-}
-
 export async function create(
     input: TaxUserInput,
     token: string | null,
@@ -80,7 +54,7 @@ export async function create(
         signal,
         guard: isCreateTaxResponse,
         formErrorGuard: isTaxError,
-        body: taxBody(input),
+        body: input,
     });
 }
 
@@ -95,7 +69,7 @@ export async function update(
         signal,
         guard: isUpdateTaxResponse,
         formErrorGuard: isTaxError,
-        body: taxBody(input),
+        body: input,
     });
 }
 

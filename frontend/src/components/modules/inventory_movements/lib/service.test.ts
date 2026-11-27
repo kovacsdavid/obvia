@@ -23,14 +23,14 @@ import type { InventoryMovementUserInput } from "./interface";
 
 const input: InventoryMovementUserInput = {
     id: null,
-    inventoryId: "inventory-1",
-    movementType: "out",
+    inventory_id: "inventory-1",
+    movement_type: "out",
     quantity: "2",
-    referenceType: "worksheets",
-    referenceId: "reference-1",
-    unitPrice: "10",
-    totalPrice: "20",
-    taxId: "tax-1",
+    reference_type: "worksheets",
+    reference_id: "reference-1",
+    unit_price: "10",
+    total_price: "20",
+    tax_id: "tax-1",
 };
 const fields = {
     id: null,

@@ -40,7 +40,7 @@ import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
-    { id, name, contactName, contactPhone, status }: WarehouseUserInput,
+    input: WarehouseUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<CreateWarehouseResponse, WarehouseError>> {
@@ -50,13 +50,7 @@ export async function create(
         signal,
         guard: isCreateWarehouseResponse,
         formErrorGuard: isWarehouseError,
-        body: {
-            id,
-            name,
-            contact_name: contactName,
-            contact_phone: contactPhone,
-            status,
-        },
+        body: input,
     });
 }
 
@@ -91,7 +85,7 @@ export async function get_resolved(
 }
 
 export async function update(
-    { id, name, contactName, contactPhone, status }: WarehouseUserInput,
+    input: WarehouseUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<UpdateWarehouseResponse, WarehouseError>> {
@@ -101,13 +95,7 @@ export async function update(
         signal,
         guard: isUpdateWarehouseResponse,
         formErrorGuard: isWarehouseError,
-        body: {
-            id,
-            name,
-            contact_name: contactName,
-            contact_phone: contactPhone,
-            status,
-        },
+        body: input,
     });
 }
 

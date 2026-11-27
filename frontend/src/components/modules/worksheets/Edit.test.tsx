@@ -117,7 +117,7 @@ describe("worksheet customer dialog", () => {
                     kind: "update",
                     payload: expect.objectContaining({
                         input: expect.objectContaining({
-                            customerId: "new-customer",
+                            customer_id: "new-customer",
                         }),
                     }),
                 }),

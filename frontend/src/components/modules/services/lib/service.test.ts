@@ -26,18 +26,6 @@ const input: ServiceUserInput = {
     id: "service-1",
     name: "Installation",
     description: "On site",
-    defaultPrice: "42.50",
-    defaultTaxId: "tax-1",
-    currencyCode: "EUR",
-    status: "active",
-    unitOfMeasureId: "unit-1",
-    newUnitOfMeasure: "hour",
-};
-
-const mappedInput = {
-    id: "service-1",
-    name: "Installation",
-    description: "On site",
     default_price: "42.50",
     default_tax_id: "tax-1",
     currency_code: "EUR",
@@ -45,6 +33,8 @@ const mappedInput = {
     unit_of_measure_id: "unit-1",
     new_unit_of_measure: "hour",
 };
+
+const mappedInput = input;
 
 const fields = {
     id: null,

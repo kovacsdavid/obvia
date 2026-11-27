@@ -29,23 +29,27 @@ const nullableString = z.string().nullable();
 
 export const handoverAndAcceptanceUserInputSchema = z.looseObject({
     id: nullableString,
-    customerId: z.string(),
-    itemMakeId: z.string(),
-    newItemMake: z.string(),
-    itemModelId: z.string(),
-    newItemModel: z.string(),
-    itemIdentifierTypeId: z.string(),
-    newItemIdentifierType: z.string(),
-    itemIdentifierValue: z.string(),
-    reportedIssue: z.string(),
-    conditionAtReceipt: z.string(),
-    includedAccessories: z.array(z.string()),
-    authorizedWork: z.string(),
-    repairLimit: z.string(),
-    currencyCode: z.string(),
-    termsVersion: z.string(),
-    receivedAt: z.string(),
+    customer_id: z.string(),
+    item_make_id: z.string(),
+    new_item_make: z.string(),
+    item_model_id: z.string(),
+    new_item_model: z.string(),
+    item_identifier_type_id: z.string(),
+    new_item_identifier_type: z.string(),
+    item_identifier_value: z.string(),
+    reported_issue: z.string(),
+    condition_at_receipt: z.string(),
+    included_accessories: z.array(z.string()),
+    authorized_work: z.string(),
+    repair_limit: z.string(),
+    currency_code: z.string(),
+    terms_version: z.string(),
+    received_at: z.string(),
 });
+
+export const handoverFormSchema = z
+    .object(handoverAndAcceptanceUserInputSchema.shape)
+    .omit({ id: true });
 
 export const handoverAndAcceptanceSchema = z.looseObject({
     id: z.string(),

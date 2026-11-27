@@ -32,13 +32,17 @@ const nullableString = z.string().nullable();
 export const customerUserInputSchema = z.looseObject({
     id: nullableString,
     name: z.string(),
-    contactName: z.string(),
+    contact_name: z.string(),
     email: z.string(),
-    phoneNumber: z.string(),
+    phone_number: z.string(),
     status: z.string().optional(),
-    customerType: z.string().optional(),
-    billingAddress: addressSchema.nullish(),
-    mailingAddress: addressSchema.nullish(),
+    customer_type: z.string().optional(),
+    billing_address: addressSchema.nullish(),
+    mailing_address: addressSchema.nullish(),
+});
+
+export const customerFormSchema = z.object(customerUserInputSchema.shape).omit({
+    id: true,
 });
 
 export const customerSchema = z.looseObject({

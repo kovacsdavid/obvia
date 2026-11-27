@@ -46,12 +46,12 @@ const input = {
     id: null,
     name: "Service",
     description: null,
-    defaultPrice: null,
-    defaultTaxId: null,
-    currencyCode: null,
+    default_price: null,
+    default_tax_id: null,
+    currency_code: null,
     status: "active",
-    unitOfMeasureId: "unit-1",
-    newUnitOfMeasure: "",
+    unit_of_measure_id: "unit-1",
+    new_unit_of_measure: "",
 };
 const fields = {
     id: null,

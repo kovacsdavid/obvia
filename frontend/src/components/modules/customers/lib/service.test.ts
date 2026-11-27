@@ -85,13 +85,13 @@ const fields = {
 const input: CustomerUserInput = {
     id: null,
     name: "Customer",
-    contactName: "Contact",
+    contact_name: "Contact",
     email: "customer@example.com",
-    phoneNumber: "123",
-    status: undefined,
-    customerType: "natural",
-    billingAddress: address,
-    mailingAddress: null,
+    phone_number: "123",
+    status: "active",
+    customer_type: "natural",
+    billing_address: address,
+    mailing_address: null,
 };
 const meta = { page: 1, limit: 25, total: 1 };
 
@@ -208,7 +208,7 @@ describe("customer API", () => {
                 contact_name: "Contact",
                 email: "customer@example.com",
                 phone_number: "123",
-                status: null,
+                status: "active",
                 customer_type: "natural",
                 billing_address: address,
                 mailing_address: null,

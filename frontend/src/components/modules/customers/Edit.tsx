@@ -18,6 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo } from "react";
+import type { z } from "zod";
 import { Button, Checkbox, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -47,10 +48,8 @@ import {
     FieldSet,
 } from "@/components/ui/field";
 import Address from "@/components/modules/address/Address";
-import {
-    type Address as AddressInterface,
-    type AddressErrors,
-} from "@/components/modules/address/lib/interface";
+import type { AddressErrors } from "@/components/modules/address/lib/interface";
+import type { customerFormSchema } from "./lib/schemas";
 import {
     normalizeAddress,
     defaultAddress,
@@ -65,37 +64,45 @@ interface EditProps {
     onCancel?: () => void;
 }
 
+type CustomerFormState = z.infer<typeof customerFormSchema>;
+
 export default function Edit({
     showCard = true,
     createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
-    const [customerType, setCustomerType] = React.useState<string | undefined>(
-        "natural",
-    );
-    const [name, setName] = React.useState("");
-    const [contactName, setContactName] = React.useState("");
-    const [email, setEmail] = React.useState("");
-    const [phoneNumber, setPhoneNumber] = React.useState("");
-    const [status, setStatus] = React.useState<string | undefined>("active");
-    const [billingAddress, setBillingAddress] = React.useState<
-        AddressInterface | null | undefined
-    >(defaultAddress());
-    const [mailingAddress, setMailingAddress] = React.useState<
-        AddressInterface | null | undefined
-    >(undefined);
+    const params = useParams();
+    const id = createOnly ? null : (params["id"] ?? null);
+    const [form, setForm] = React.useState<CustomerFormState>({
+        customer_type: "natural",
+        name: "",
+        contact_name: "",
+        email: "",
+        phone_number: "",
+        status: "active",
+        billing_address: defaultAddress(),
+        mailing_address: undefined,
+    });
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const params = useParams();
     const [errors, setErrors] = React.useState<CustomerErrors | null>(null);
-    const id = createOnly ? null : (params["id"] ?? null);
+
+    function setFormField<Key extends keyof CustomerFormState>(
+        field: Key,
+        value: CustomerFormState[Key],
+    ) {
+        setForm((prev) => ({ ...prev, [field]: value }));
+    }
 
     const handleNeedMailingAddressChange = () => {
-        if (mailingAddress === null || typeof mailingAddress === "undefined") {
-            setMailingAddress(defaultAddress());
+        if (
+            form.mailing_address === null ||
+            typeof form.mailing_address === "undefined"
+        ) {
+            setFormField("mailing_address", defaultAddress());
         } else {
-            setMailingAddress(undefined);
+            setFormField("mailing_address", undefined);
         }
     };
 
@@ -103,15 +110,8 @@ export default function Edit({
         const result = await dispatch(
             create({
                 input: {
+                    ...form,
                     id,
-                    name,
-                    contactName,
-                    email,
-                    phoneNumber,
-                    status,
-                    customerType,
-                    billingAddress,
-                    mailingAddress,
                 },
             }),
         ).unwrap();
@@ -151,15 +151,8 @@ export default function Edit({
         const result = await dispatch(
             update({
                 input: {
+                    ...form,
                     id,
-                    name,
-                    contactName,
-                    email,
-                    phoneNumber,
-                    status,
-                    customerType,
-                    billingAddress,
-                    mailingAddress,
                 },
             }),
         ).unwrap();
@@ -184,24 +177,30 @@ export default function Edit({
                     handleApiResult(result, {
                         onSuccess: ({ data }) => {
                             if (typeof data !== "undefined") {
-                                setCustomerType(data.customer_type);
-                                setName(data.name);
-                                setContactName(data.contact_name ?? "");
-                                setEmail(data.email ?? "");
-                                setPhoneNumber(data.phone_number ?? "");
-                                setStatus(data.status);
-                                setBillingAddress(
-                                    // NOTE: this is needed to show address fields on update for
-                                    // customers created before address was added to the system.
-                                    data.billing_address === null
-                                        ? defaultAddress()
-                                        : normalizeAddress(
-                                              data.billing_address,
-                                          ),
-                                );
-                                setMailingAddress(
-                                    normalizeAddress(data.mailing_address),
-                                );
+                                const {
+                                    customer_type,
+                                    name,
+                                    contact_name,
+                                    email,
+                                    phone_number,
+                                    status,
+                                    billing_address,
+                                    mailing_address,
+                                } = data;
+
+                                setForm({
+                                    customer_type,
+                                    name,
+                                    contact_name: contact_name ?? "",
+                                    email: email ?? "",
+                                    phone_number: phone_number ?? "",
+                                    status,
+                                    billing_address:
+                                        normalizeAddress(billing_address) ??
+                                        defaultAddress(),
+                                    mailing_address:
+                                        normalizeAddress(mailing_address),
+                                });
                             }
                         },
                     });
@@ -275,10 +274,10 @@ export default function Edit({
                                     Típus
                                 </FieldLabel>
                                 <Select
-                                    value={customerType}
+                                    value={form.customer_type}
                                     onValueChange={(val) => {
                                         clearError("customer_type");
-                                        setCustomerType(val);
+                                        setFormField("customer_type", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -302,7 +301,7 @@ export default function Edit({
                             </Field>
                             <Field data-invalid={isInvalidField("name")}>
                                 <FieldLabel htmlFor="name">
-                                    {customerType === "legal"
+                                    {form.customer_type === "legal"
                                         ? "Jogi személy neve"
                                         : "Név"}
                                 </FieldLabel>
@@ -310,20 +309,20 @@ export default function Edit({
                                     id="name"
                                     type="text"
                                     placeholder={
-                                        customerType === "legal"
+                                        form.customer_type === "legal"
                                             ? "Példa Kft."
                                             : "Példa Béla"
                                     }
-                                    value={name}
+                                    value={form.name}
                                     onChange={(e) => {
                                         clearError("name");
-                                        setName(e.target.value);
+                                        setFormField("name", e.target.value);
                                     }}
                                     aria-invalid={isInvalidField("name")}
                                 />
                                 <FieldErrorV2 error={errors?.name} />
                             </Field>
-                            {customerType === "legal" ? (
+                            {form.customer_type === "legal" ? (
                                 <>
                                     <Field
                                         data-invalid={isInvalidField(
@@ -337,10 +336,13 @@ export default function Edit({
                                             id="contact_name"
                                             type="text"
                                             placeholder="Példa Béla"
-                                            value={contactName}
+                                            value={form.contact_name}
                                             onChange={(e) => {
                                                 clearError("contact_name");
-                                                setContactName(e.target.value);
+                                                setFormField(
+                                                    "contact_name",
+                                                    e.target.value,
+                                                );
                                             }}
                                             aria-invalid={isInvalidField(
                                                 "contact_name",
@@ -355,7 +357,7 @@ export default function Edit({
                             ) : null}
                             <Field data-invalid={isInvalidField("email")}>
                                 <FieldLabel htmlFor="email">
-                                    {customerType === "legal"
+                                    {form.customer_type === "legal"
                                         ? "Kapcsolattartó e-mail címe"
                                         : "E-mail cím"}
                                 </FieldLabel>
@@ -363,10 +365,10 @@ export default function Edit({
                                     id="email"
                                     type="text"
                                     placeholder="pelda@kovacsdavid.dev"
-                                    value={email}
+                                    value={form.email}
                                     onChange={(e) => {
                                         clearError("email");
-                                        setEmail(e.target.value);
+                                        setFormField("email", e.target.value);
                                     }}
                                     aria-invalid={isInvalidField("email")}
                                 />
@@ -376,7 +378,7 @@ export default function Edit({
                                 data-invalid={isInvalidField("phone_number")}
                             >
                                 <FieldLabel htmlFor="phone_number">
-                                    {customerType === "legal"
+                                    {form.customer_type === "legal"
                                         ? "Kapcsolattartó telefonszáma"
                                         : "Telefonszám"}
                                 </FieldLabel>
@@ -384,10 +386,13 @@ export default function Edit({
                                     id="phone_number"
                                     type="text"
                                     placeholder="+36301234567"
-                                    value={phoneNumber}
+                                    value={form.phone_number}
                                     onChange={(e) => {
                                         clearError("phone_number");
-                                        setPhoneNumber(e.target.value);
+                                        setFormField(
+                                            "phone_number",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField(
                                         "phone_number",
@@ -400,10 +405,10 @@ export default function Edit({
                                     Státusz
                                 </FieldLabel>
                                 <Select
-                                    value={status}
+                                    value={form.status}
                                     onValueChange={(val) => {
                                         clearError("status");
-                                        setStatus(val);
+                                        setFormField("status", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -434,8 +439,10 @@ export default function Edit({
                     <div className="mt-8">
                         <Address
                             label="Számlázási cím"
-                            value={billingAddress}
-                            onChange={setBillingAddress}
+                            value={form.billing_address}
+                            onChange={(value) =>
+                                setFormField("billing_address", value)
+                            }
                             errors={errors?.billing_address}
                             setErrors={setBillingAddressErrors}
                         />
@@ -447,8 +454,9 @@ export default function Edit({
                                 id="need_mailing_address"
                                 checked={
                                     !(
-                                        mailingAddress === null ||
-                                        typeof mailingAddress === "undefined"
+                                        form.mailing_address === null ||
+                                        typeof form.mailing_address ===
+                                            "undefined"
                                     )
                                 }
                                 onCheckedChange={() =>
@@ -463,8 +471,10 @@ export default function Edit({
 
                     <Address
                         label="Levelezési cím"
-                        value={mailingAddress}
-                        onChange={setMailingAddress}
+                        value={form.mailing_address}
+                        onChange={(value) =>
+                            setFormField("mailing_address", value)
+                        }
                         errors={errors?.mailing_address}
                         setErrors={setMailingAddressErrors}
                     />

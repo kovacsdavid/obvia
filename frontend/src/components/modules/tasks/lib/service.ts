@@ -44,19 +44,7 @@ import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
-    {
-        id,
-        worksheetId,
-        serviceId,
-        currencyCode,
-        quantity,
-        price,
-        taxId,
-        status,
-        priority,
-        dueDate,
-        description,
-    }: TaskUserInput,
+    input: TaskUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<CreateTaskResponse, TaskErrors>> {
@@ -66,19 +54,7 @@ export async function create(
         signal,
         guard: isCreateTaskResponse,
         formErrorGuard: isTaskErrors,
-        body: {
-            id,
-            worksheet_id: worksheetId,
-            service_id: serviceId,
-            currency_code: currencyCode,
-            quantity,
-            price,
-            tax_id: taxId,
-            status,
-            priority,
-            due_date: dueDate,
-            description,
-        },
+        body: input,
     });
 }
 
@@ -125,19 +101,7 @@ export async function get_resolved(
 }
 
 export async function update(
-    {
-        id,
-        worksheetId,
-        serviceId,
-        currencyCode,
-        quantity,
-        price,
-        taxId,
-        status,
-        priority,
-        dueDate,
-        description,
-    }: TaskUserInput,
+    input: TaskUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<UpdateTaskResponse, TaskErrors>> {
@@ -147,19 +111,7 @@ export async function update(
         signal,
         guard: isUpdateTaskResponse,
         formErrorGuard: isTaskErrors,
-        body: {
-            id,
-            worksheet_id: worksheetId,
-            service_id: serviceId,
-            currency_code: currencyCode,
-            quantity,
-            price,
-            tax_id: taxId,
-            status,
-            priority,
-            due_date: dueDate,
-            description,
-        },
+        body: input,
     });
 }
 

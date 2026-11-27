@@ -44,17 +44,7 @@ import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
-    {
-        id,
-        name,
-        description,
-        defaultPrice,
-        defaultTaxId,
-        currencyCode,
-        status,
-        unitOfMeasureId,
-        newUnitOfMeasure,
-    }: ServiceUserInput,
+    input: ServiceUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<CreateServiceResponse, ServiceError>> {
@@ -64,32 +54,12 @@ export async function create(
         signal,
         guard: isCreateServiceResponse,
         formErrorGuard: isServiceError,
-        body: {
-            id,
-            name,
-            description,
-            default_price: defaultPrice,
-            default_tax_id: defaultTaxId,
-            currency_code: currencyCode,
-            status,
-            unit_of_measure_id: unitOfMeasureId,
-            new_unit_of_measure: newUnitOfMeasure,
-        },
+        body: input,
     });
 }
 
 export async function update(
-    {
-        id,
-        name,
-        description,
-        defaultPrice,
-        defaultTaxId,
-        currencyCode,
-        status,
-        unitOfMeasureId,
-        newUnitOfMeasure,
-    }: ServiceUserInput,
+    input: ServiceUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<UpdateServiceResponse, ServiceError>> {
@@ -99,17 +69,7 @@ export async function update(
         signal,
         guard: isUpdateServiceResponse,
         formErrorGuard: isServiceError,
-        body: {
-            id,
-            name,
-            description,
-            default_price: defaultPrice,
-            default_tax_id: defaultTaxId,
-            currency_code: currencyCode,
-            status,
-            unit_of_measure_id: unitOfMeasureId,
-            new_unit_of_measure: newUnitOfMeasure,
-        },
+        body: input,
     });
 }
 

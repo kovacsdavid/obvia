@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { warehouseFormSchema } from "./lib/schemas";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -53,16 +55,20 @@ interface EditProps {
     onCancel?: () => void;
 }
 
+type WarehouseFormState = z.infer<typeof warehouseFormSchema>;
+
 export default function Edit({
     showCard = true,
     createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
-    const [name, setName] = React.useState("");
-    const [contactName, setContactName] = React.useState("");
-    const [contactPhone, setContactPhone] = React.useState("");
-    const [status, setStatus] = React.useState("active");
+    const [form, setForm] = React.useState<WarehouseFormState>({
+        name: "",
+        contact_name: "",
+        contact_phone: "",
+        status: "active",
+    });
     const [errors, setErrors] = React.useState<WarehouseError | null>(null);
     const isInvalidField = (field: keyof WarehouseError) => !!errors?.[field];
     const resetError = (field: keyof WarehouseError) => {
@@ -75,10 +81,17 @@ export default function Edit({
     const params = useParams();
     const id = createOnly ? null : (params["id"] ?? null);
 
+    function setFormField<Key extends keyof WarehouseFormState>(
+        field: Key,
+        value: WarehouseFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
+
     const handleCreate = useCallback(async () => {
         const result = await dispatch(
             create({
-                input: { id, name, contactName, contactPhone, status },
+                input: { ...form, id },
             }),
         ).unwrap();
         handleApiResult(result, {
@@ -95,17 +108,7 @@ export default function Edit({
             },
             onFieldErrors: setErrors,
         });
-    }, [
-        contactName,
-        contactPhone,
-        dispatch,
-        id,
-        name,
-        navigate,
-        onSuccess,
-        setErrors,
-        status,
-    ]);
+    }, [dispatch, form, id, navigate, onSuccess, setErrors]);
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -122,7 +125,7 @@ export default function Edit({
     const handleUpdate = useCallback(async () => {
         const result = await dispatch(
             update({
-                input: { id, name, contactName, contactPhone, status },
+                input: { ...form, id },
             }),
         ).unwrap();
         handleApiResult(result, {
@@ -135,16 +138,7 @@ export default function Edit({
             },
             onFieldErrors: setErrors,
         });
-    }, [
-        contactName,
-        contactPhone,
-        dispatch,
-        id,
-        name,
-        navigate,
-        setErrors,
-        status,
-    ]);
+    }, [dispatch, form, id, navigate, setErrors]);
 
     useEffect(() => {
         if (typeof id === "string") {
@@ -154,10 +148,12 @@ export default function Edit({
                     handleApiResult(result, {
                         onSuccess: ({ data }) => {
                             if (data) {
-                                setName(data.name);
-                                setContactName(data.contact_name ?? "");
-                                setContactPhone(data.contact_phone ?? "");
-                                setStatus(data.status ?? "");
+                                setForm({
+                                    name: data.name,
+                                    contact_name: data.contact_name ?? "",
+                                    contact_phone: data.contact_phone ?? "",
+                                    status: data.status ?? "",
+                                });
                             }
                         },
                     });
@@ -194,10 +190,10 @@ export default function Edit({
                                     id="name"
                                     placeholder="Sopron 4"
                                     type="text"
-                                    value={name}
+                                    value={form.name}
                                     onChange={(e) => {
                                         resetError("name");
-                                        setName(e.target.value);
+                                        setFormField("name", e.target.value);
                                     }}
                                     aria-invalid={isInvalidField("name")}
                                 />
@@ -213,10 +209,13 @@ export default function Edit({
                                     id="contact_name"
                                     type="text"
                                     placeholder="Példa Béla"
-                                    value={contactName}
+                                    value={form.contact_name}
                                     onChange={(e) => {
                                         resetError("contact_name");
-                                        setContactName(e.target.value);
+                                        setFormField(
+                                            "contact_name",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField(
                                         "contact_name",
@@ -234,10 +233,13 @@ export default function Edit({
                                     id="contact_phone"
                                     type="text"
                                     placeholder="+36301234567"
-                                    value={contactPhone}
+                                    value={form.contact_phone}
                                     onChange={(e) => {
                                         resetError("contact_phone");
-                                        setContactPhone(e.target.value);
+                                        setFormField(
+                                            "contact_phone",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField(
                                         "contact_phone",
@@ -250,10 +252,10 @@ export default function Edit({
                                     Státusz
                                 </FieldLabel>
                                 <Select
-                                    value={status}
+                                    value={form.status}
                                     onValueChange={(val) => {
                                         resetError("status");
-                                        setStatus(val);
+                                        setFormField("status", val);
                                     }}
                                 >
                                     <SelectTrigger

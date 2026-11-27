@@ -53,8 +53,8 @@ const input = {
     id: null,
     name: "Product",
     description: "",
-    unitOfMeasureId: "unit",
-    newUnitOfMeasure: "",
+    unit_of_measure_id: "unit",
+    new_unit_of_measure: "",
     status: "active",
 };
 const result = { kind: "http_error", status: 500 } as const;

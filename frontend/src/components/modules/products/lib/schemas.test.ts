@@ -38,8 +38,8 @@ const input = {
     id: null,
     name: "Product",
     description: "",
-    unitOfMeasureId: "unit-1",
-    newUnitOfMeasure: "",
+    unit_of_measure_id: "unit-1",
+    new_unit_of_measure: "",
     status: "active",
 };
 const fields = {

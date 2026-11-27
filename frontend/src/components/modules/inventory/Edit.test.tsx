@@ -245,14 +245,14 @@ describe.each([
     {
         label: "product",
         dialog: "Termék létrehozása",
-        field: "productId",
+        field: "product_id",
         id: "new-product",
         index: 0,
     },
     {
         label: "warehouse",
         dialog: "Raktár létrehozása",
-        field: "warehouseId",
+        field: "warehouse_id",
         id: "new-warehouse",
         index: 1,
     },

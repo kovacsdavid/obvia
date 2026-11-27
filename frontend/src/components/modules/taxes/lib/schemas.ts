@@ -29,14 +29,24 @@ export const taxUserInputSchema = z.looseObject({
     id: nullableString,
     rate: nullableString,
     description: z.string(),
-    countryCode: z.string(),
-    taxCategory: z.string(),
-    isRateApplicable: z.boolean().nullable(),
-    legalText: nullableString,
-    reportingCode: nullableString,
-    isDefault: z.boolean(),
+    country_code: z.string(),
+    tax_category: z.string(),
+    is_rate_applicable: z.boolean().nullable(),
+    legal_text: nullableString,
+    reporting_code: nullableString,
+    is_default: z.boolean(),
     status: z.string(),
 });
+
+export const taxFormSchema = z
+    .object(taxUserInputSchema.shape)
+    .omit({ id: true })
+    .extend({
+        rate: z.string(),
+        is_rate_applicable: z.string(),
+        legal_text: z.string(),
+        reporting_code: z.string(),
+    });
 
 export const taxErrorSchema = z.looseObject({
     id: nullableString,

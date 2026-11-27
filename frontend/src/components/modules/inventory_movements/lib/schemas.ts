@@ -27,15 +27,26 @@ const nullableString = z.string().nullable();
 
 export const inventoryMovementUserInputSchema = z.looseObject({
     id: nullableString,
-    inventoryId: z.string(),
-    movementType: z.string(),
+    inventory_id: z.string(),
+    movement_type: z.string(),
     quantity: z.string(),
-    referenceType: nullableString,
-    referenceId: nullableString,
-    unitPrice: nullableString,
-    totalPrice: nullableString,
-    taxId: z.string(),
+    reference_type: nullableString,
+    reference_id: nullableString,
+    unit_price: nullableString,
+    total_price: nullableString,
+    tax_id: z.string(),
 });
+
+export const inventoryMovementFormSchema = z
+    .object(inventoryMovementUserInputSchema.shape)
+    .omit({
+        id: true,
+        quantity: true,
+        reference_type: true,
+        reference_id: true,
+        unit_price: true,
+        total_price: true,
+    });
 
 export const inventoryMovementErrorSchema = z.looseObject({
     id: nullableString,

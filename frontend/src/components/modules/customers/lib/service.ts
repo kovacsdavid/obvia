@@ -40,17 +40,7 @@ import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
-    {
-        id,
-        name,
-        contactName,
-        email,
-        phoneNumber,
-        status,
-        customerType,
-        billingAddress,
-        mailingAddress,
-    }: CustomerUserInput,
+    input: CustomerUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<CreateCustomerResponse, CustomerErrors>> {
@@ -60,33 +50,12 @@ export async function create(
         signal,
         guard: isCreateCustomerResponse,
         formErrorGuard: isCustomerErrors,
-        body: {
-            id,
-            name,
-            contact_name: contactName,
-            email,
-            phone_number: phoneNumber,
-            status: typeof status === "undefined" ? null : status,
-            customer_type:
-                typeof customerType === "undefined" ? null : customerType,
-            billing_address: billingAddress ?? null,
-            mailing_address: mailingAddress ?? null,
-        },
+        body: input,
     });
 }
 
 export async function update(
-    {
-        id,
-        name,
-        contactName,
-        email,
-        phoneNumber,
-        status,
-        customerType,
-        billingAddress,
-        mailingAddress,
-    }: CustomerUserInput,
+    input: CustomerUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<UpdateCustomerResponse, CustomerErrors>> {
@@ -96,18 +65,7 @@ export async function update(
         signal,
         guard: isUpdateCustomerResponse,
         formErrorGuard: isCustomerErrors,
-        body: {
-            id,
-            name,
-            contact_name: contactName,
-            email,
-            phone_number: phoneNumber,
-            status: typeof status === "undefined" ? null : status,
-            customer_type:
-                typeof customerType === "undefined" ? null : customerType,
-            billing_address: billingAddress ?? null,
-            mailing_address: mailingAddress ?? null,
-        },
+        body: input,
     });
 }
 

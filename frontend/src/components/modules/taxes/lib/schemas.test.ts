@@ -80,17 +80,18 @@ describe("tax schemas", () => {
             id: null,
             rate: null,
             description: "VAT",
-            countryCode: "HU",
-            taxCategory: "AK",
-            isRateApplicable: null,
-            legalText: null,
-            reportingCode: null,
-            isDefault: false,
+            country_code: "HU",
+            tax_category: "AK",
+            is_rate_applicable: null,
+            legal_text: null,
+            reporting_code: null,
+            is_default: false,
             status: "active",
         };
         expect(taxUserInputSchema.safeParse(input).success).toBe(true);
         expect(
-            taxUserInputSchema.safeParse({ ...input, isDefault: null }).success,
+            taxUserInputSchema.safeParse({ ...input, is_default: null })
+                .success,
         ).toBe(false);
     });
 });

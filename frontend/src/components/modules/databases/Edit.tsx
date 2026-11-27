@@ -47,7 +47,7 @@ export default function Edit({
     showCard = true,
     onSuccess = undefined,
 }: EditProps) {
-    const [name, setName] = React.useState("");
+    const [form, setForm] = React.useState({ name: "" });
     const [errors, setErrors] = React.useState<DatabaseError | null>(null);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
@@ -58,7 +58,7 @@ export default function Edit({
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
-        const response = await dispatch(create({ input: { name } }));
+        const response = await dispatch(create({ input: form }));
         if (!create.fulfilled.match(response)) return;
         const result = response.payload;
         const successfulDatabase = { value: null as Database | null };
@@ -106,14 +106,17 @@ export default function Edit({
                                     id="name"
                                     type="text"
                                     placeholder="Példa Kft."
-                                    value={name}
+                                    value={form.name}
                                     onChange={(e) => {
                                         setErrors((previous) =>
                                             previous
                                                 ? { ...previous, name: null }
                                                 : previous,
                                         );
-                                        setName(e.target.value);
+                                        setForm((previous) => ({
+                                            ...previous,
+                                            name: e.target.value,
+                                        }));
                                     }}
                                     aria-invalid={
                                         typeof errors?.name === "string"

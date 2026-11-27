@@ -44,7 +44,7 @@ import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
-    { id, description, customerId, projectId, status }: WorksheetUserInput,
+    input: WorksheetUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<CreateWorksheetResponse, WorksheetError>> {
@@ -54,13 +54,7 @@ export async function create(
         signal,
         guard: isCreateWorksheetResponse,
         formErrorGuard: isWorksheetError,
-        body: {
-            id,
-            description,
-            customer_id: customerId,
-            project_id: projectId,
-            status,
-        },
+        body: input,
     });
 }
 
@@ -108,7 +102,7 @@ export async function get_resolved(
 }
 
 export async function update(
-    { id, description, customerId, projectId, status }: WorksheetUserInput,
+    input: WorksheetUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<UpdateWorksheetResponse, WorksheetError>> {
@@ -118,13 +112,7 @@ export async function update(
         signal,
         guard: isUpdateWorksheetResponse,
         formErrorGuard: isWorksheetError,
-        body: {
-            id,
-            description,
-            customer_id: customerId,
-            project_id: projectId,
-            status,
-        },
+        body: input,
     });
 }
 

@@ -47,6 +47,7 @@ where
     }
 }
 
+#[derive(Default)]
 pub struct SuccessResponseBuilder<M, D>
 where
     M: Serialize,

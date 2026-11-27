@@ -33,6 +33,10 @@ export const worksheetUserInputSchema = z.looseObject({
     status: z.string(),
 });
 
+export const worksheetFormSchema = z
+    .object(worksheetUserInputSchema.shape)
+    .omit({ id: true });
+
 export const worksheetSchema = z.looseObject({
     id: z.string(),
     display_id: z.string(),

@@ -34,6 +34,10 @@ export const productUserInputSchema = z.looseObject({
     status: z.string(),
 });
 
+export const productFormSchema = z.object(productUserInputSchema.shape).omit({
+    id: true,
+});
+
 export const productErrorSchema = z.looseObject({
     id: nullableString,
     name: nullableString,

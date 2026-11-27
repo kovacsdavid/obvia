@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { serviceFormSchema } from "./lib/schemas";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -60,15 +62,7 @@ interface EditProps {
     onCancel?: () => void;
 }
 
-interface ServiceFormState {
-    name: string;
-    description: string;
-    default_tax_id: string;
-    currency_code: string;
-    status: string;
-    unit_of_measure_id: string;
-    new_unit_of_measure: string;
-}
+type ServiceFormState = z.infer<typeof serviceFormSchema>;
 
 export default function Edit({
     showCard = true,

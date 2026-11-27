@@ -18,6 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo } from "react";
+import type { z } from "zod";
 import { Button, Checkbox, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -47,10 +48,8 @@ import {
     FieldSet,
 } from "@/components/ui/field";
 import Address from "@/components/modules/address/Address";
-import {
-    type Address as AddressInterface,
-    type AddressErrors,
-} from "@/components/modules/address/lib/interface";
+import type { AddressErrors } from "@/components/modules/address/lib/interface";
+import type { customerFormSchema } from "./lib/schemas";
 import {
     normalizeAddress,
     defaultAddress,
@@ -65,16 +64,7 @@ interface EditProps {
     onCancel?: () => void;
 }
 
-interface CustomerFormState {
-    customer_type?: string;
-    name: string;
-    contact_name: string;
-    email: string;
-    phone_number: string;
-    status?: string;
-    billing_address: AddressInterface | null | undefined;
-    mailing_address: AddressInterface | null | undefined;
-}
+type CustomerFormState = z.infer<typeof customerFormSchema>;
 
 export default function Edit({
     showCard = true,

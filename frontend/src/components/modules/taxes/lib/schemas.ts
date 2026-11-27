@@ -38,6 +38,16 @@ export const taxUserInputSchema = z.looseObject({
     status: z.string(),
 });
 
+export const taxFormSchema = z
+    .object(taxUserInputSchema.shape)
+    .omit({ id: true })
+    .extend({
+        rate: z.string(),
+        is_rate_applicable: z.string(),
+        legal_text: z.string(),
+        reporting_code: z.string(),
+    });
+
 export const taxErrorSchema = z.looseObject({
     id: nullableString,
     rate: nullableString,

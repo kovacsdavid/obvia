@@ -37,6 +37,17 @@ export const inventoryMovementUserInputSchema = z.looseObject({
     tax_id: z.string(),
 });
 
+export const inventoryMovementFormSchema = z
+    .object(inventoryMovementUserInputSchema.shape)
+    .omit({
+        id: true,
+        quantity: true,
+        reference_type: true,
+        reference_id: true,
+        unit_price: true,
+        total_price: true,
+    });
+
 export const inventoryMovementErrorSchema = z.looseObject({
     id: nullableString,
     inventory_id: nullableString,

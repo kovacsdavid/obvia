@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { productFormSchema } from "./lib/schemas";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -55,13 +57,7 @@ interface EditProps {
     onCancel?: () => void;
 }
 
-interface ProductFormState {
-    name: string;
-    description: string;
-    unit_of_measure_id: string;
-    new_unit_of_measure: string;
-    status: string;
-}
+type ProductFormState = z.infer<typeof productFormSchema>;
 
 export default function Edit({
     showCard = true,

@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { handoverFormSchema } from "./lib/schemas";
 import { useNavigate, useParams } from "react-router";
 import { Plus, Trash } from "lucide-react";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
@@ -67,24 +69,7 @@ interface EditProps {
     onCancel?: () => void;
 }
 
-interface HandoverFormState {
-    customer_id: string;
-    item_make_id: string;
-    new_item_make: string;
-    item_model_id: string;
-    new_item_model: string;
-    item_identifier_type_id: string;
-    new_item_identifier_type: string;
-    item_identifier_value: string;
-    reported_issue: string;
-    condition_at_receipt: string;
-    included_accessories: string[];
-    authorized_work: string;
-    repair_limit: string;
-    currency_code: string;
-    terms_version: string;
-    received_at: string;
-}
+type HandoverFormState = z.infer<typeof handoverFormSchema>;
 
 export default function Edit({
     showCard = true,

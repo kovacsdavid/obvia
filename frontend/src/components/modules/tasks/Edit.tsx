@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { taskFormSchema } from "./lib/schemas";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -63,16 +65,7 @@ interface EditProps {
     onSuccess?: (task: Task) => void;
 }
 
-interface TaskFormState {
-    worksheet_id: string;
-    service_id: string;
-    currency_code: string;
-    tax_id: string;
-    status: string;
-    priority: string | null;
-    due_date: string | null;
-    description: string;
-}
+type TaskFormState = z.infer<typeof taskFormSchema>;
 
 export default function Edit({
     showCard = true,

@@ -41,6 +41,10 @@ export const customerUserInputSchema = z.looseObject({
     mailing_address: addressSchema.nullish(),
 });
 
+export const customerFormSchema = z.object(customerUserInputSchema.shape).omit({
+    id: true,
+});
+
 export const customerSchema = z.looseObject({
     id: z.string(),
     name: z.string(),

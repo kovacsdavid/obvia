@@ -37,6 +37,15 @@ export const serviceUserInputSchema = z.looseObject({
     new_unit_of_measure: z.string(),
 });
 
+export const serviceFormSchema = z
+    .object(serviceUserInputSchema.shape)
+    .omit({ id: true, default_price: true })
+    .extend({
+        description: z.string(),
+        default_tax_id: z.string(),
+        currency_code: z.string(),
+    });
+
 export const serviceErrorSchema = z.looseObject({
     id: nullableString,
     name: nullableString,

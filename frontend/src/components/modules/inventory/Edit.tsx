@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { inventoryFormSchema } from "./lib/schemas";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -62,12 +64,7 @@ interface EditProps {
     onCancel?: () => void;
 }
 
-interface InventoryFormState {
-    product_id: string;
-    warehouse_id: string;
-    currency_code: string;
-    status: string;
-}
+type InventoryFormState = z.infer<typeof inventoryFormSchema>;
 
 export default function Edit({
     showCard = true,

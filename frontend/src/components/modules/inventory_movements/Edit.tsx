@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { inventoryMovementFormSchema } from "./lib/schemas";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
@@ -60,11 +62,7 @@ interface EditProps {
     referenceType?: string | null;
 }
 
-interface InventoryMovementFormState {
-    inventory_id: string;
-    movement_type: string;
-    tax_id: string;
-}
+type InventoryMovementFormState = z.infer<typeof inventoryMovementFormSchema>;
 
 export default function Edit({
     showCard = true,

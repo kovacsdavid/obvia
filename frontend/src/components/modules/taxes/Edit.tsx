@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect, useMemo } from "react";
+import type { z } from "zod";
+import type { taxFormSchema } from "./lib/schemas";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -66,17 +68,7 @@ interface EditProps {
     onCancel?: () => void;
 }
 
-interface TaxFormState {
-    rate: string;
-    description: string;
-    country_code: string;
-    tax_category: string;
-    is_rate_applicable: string;
-    legal_text: string;
-    reporting_code: string;
-    is_default: boolean;
-    status: string;
-}
+type TaxFormState = z.infer<typeof taxFormSchema>;
 
 export default function Edit({
     showCard = true,

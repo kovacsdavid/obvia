@@ -33,6 +33,10 @@ export const warehouseUserInputSchema = z.looseObject({
     status: z.string(),
 });
 
+export const warehouseFormSchema = z
+    .object(warehouseUserInputSchema.shape)
+    .omit({ id: true });
+
 export const warehouseErrorSchema = z.looseObject({
     id: nullableString,
     name: nullableString,

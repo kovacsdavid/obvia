@@ -35,6 +35,10 @@ export const inventoryUserInputSchema = z.looseObject({
     status: z.string(),
 });
 
+export const inventoryFormSchema = z
+    .object(inventoryUserInputSchema.shape)
+    .omit({ id: true, minimum_stock: true, maximum_stock: true });
+
 export const inventoryErrorSchema = z.looseObject({
     id: nullableString,
     product_id: nullableString,

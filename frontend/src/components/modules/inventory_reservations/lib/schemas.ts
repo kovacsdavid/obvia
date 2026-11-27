@@ -35,6 +35,10 @@ export const inventoryReservationUserInputSchema = z.looseObject({
     status: z.string(),
 });
 
+export const inventoryReservationFormSchema = z
+    .object(inventoryReservationUserInputSchema.shape)
+    .omit({ id: true, quantity: true });
+
 export const inventoryReservationErrorSchema = z.looseObject({
     id: nullableString,
     inventory_id: nullableString,

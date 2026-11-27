@@ -39,6 +39,11 @@ export const taskUserInputSchema = z.looseObject({
     description: nullableString,
 });
 
+export const taskFormSchema = z
+    .object(taskUserInputSchema.shape)
+    .omit({ id: true, quantity: true, price: true })
+    .extend({ description: z.string() });
+
 export const taskSchema = z.looseObject({
     id: z.string(),
     worksheet_id: z.string(),

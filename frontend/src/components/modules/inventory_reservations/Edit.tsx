@@ -18,6 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import type { z } from "zod";
+import type { inventoryReservationFormSchema } from "./lib/schemas";
 import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
@@ -51,13 +53,9 @@ import {
     FieldSet,
 } from "@/components/ui/field";
 
-interface InventoryReservationFormState {
-    inventory_id: string;
-    reference_type: string | null;
-    reference_id: string | null;
-    reserved_until: string | null;
-    status: string;
-}
+type InventoryReservationFormState = z.infer<
+    typeof inventoryReservationFormSchema
+>;
 
 export default function Edit() {
     const params = useParams();

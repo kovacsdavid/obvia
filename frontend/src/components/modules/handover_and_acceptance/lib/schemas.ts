@@ -47,6 +47,10 @@ export const handoverAndAcceptanceUserInputSchema = z.looseObject({
     received_at: z.string(),
 });
 
+export const handoverFormSchema = z
+    .object(handoverAndAcceptanceUserInputSchema.shape)
+    .omit({ id: true });
+
 export const handoverAndAcceptanceSchema = z.looseObject({
     id: z.string(),
     display_id: z.string(),

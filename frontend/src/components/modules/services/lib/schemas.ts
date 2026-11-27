@@ -29,12 +29,12 @@ export const serviceUserInputSchema = z.looseObject({
     id: nullableString,
     name: z.string(),
     description: nullableString,
-    defaultPrice: nullableString,
-    defaultTaxId: nullableString,
-    currencyCode: nullableString,
+    default_price: nullableString,
+    default_tax_id: nullableString,
+    currency_code: nullableString,
     status: z.string(),
-    unitOfMeasureId: z.string(),
-    newUnitOfMeasure: z.string(),
+    unit_of_measure_id: z.string(),
+    new_unit_of_measure: z.string(),
 });
 
 export const serviceErrorSchema = z.looseObject({

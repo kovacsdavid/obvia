@@ -87,8 +87,8 @@ describe("warehouse editor", () => {
                 input: {
                     id: null,
                     name: "New",
-                    contactName: "",
-                    contactPhone: "",
+                    contact_name: "",
+                    contact_phone: "",
                     status: "active",
                 },
             },
@@ -116,8 +116,8 @@ describe("warehouse editor", () => {
                 input: {
                     id: "warehouse-id",
                     name: "Existing",
-                    contactName: "Alice",
-                    contactPhone: "123",
+                    contact_name: "Alice",
+                    contact_phone: "123",
                     status: "active",
                 },
             },

@@ -63,8 +63,8 @@ const fields = {
 const input: WorksheetUserInput = {
     id: null,
     description: "Work",
-    customerId: "customer",
-    projectId: "",
+    customer_id: "customer",
+    project_id: "",
     status: "open",
 };
 const meta = { page: 1, limit: 25, total: 1 };

@@ -28,8 +28,8 @@ const nullableString = z.string().nullable();
 export const warehouseUserInputSchema = z.looseObject({
     id: nullableString,
     name: z.string(),
-    contactName: z.string(),
-    contactPhone: z.string(),
+    contact_name: z.string(),
+    contact_phone: z.string(),
     status: z.string(),
 });
 

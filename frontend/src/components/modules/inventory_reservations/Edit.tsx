@@ -51,17 +51,27 @@ import {
     FieldSet,
 } from "@/components/ui/field";
 
+interface InventoryReservationFormState {
+    inventory_id: string;
+    reference_type: string | null;
+    reference_id: string | null;
+    reserved_until: string | null;
+    status: string;
+}
+
 export default function Edit() {
     const params = useParams();
     const routeInventoryId = React.useMemo(
         () => params["inventoryId"] ?? "",
         [params],
     );
-    const [inventoryId, setInventoryId] = React.useState(routeInventoryId);
-    const [referenceType, setReferenceType] = React.useState<string | null>("");
-    const [referenceId, setReferenceId] = React.useState<string | null>("");
-    const [reservedUntil, setReservedUntil] = React.useState<string | null>("");
-    const [status, setStatus] = React.useState("active");
+    const [form, setForm] = React.useState<InventoryReservationFormState>({
+        inventory_id: routeInventoryId,
+        reference_type: "",
+        reference_id: "",
+        reserved_until: "",
+        status: "active",
+    });
     const [inventoryIdList, setInventoryIdList] =
         React.useState<SelectOptionList>([]);
     const [referenceIdList, setReferenceIdList] =
@@ -79,9 +89,16 @@ export default function Edit() {
         allowEmpty: true,
     });
 
+    function setFormField<Key extends keyof InventoryReservationFormState>(
+        field: Key,
+        value: InventoryReservationFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
+
     const handleReferenceTypeChange = useCallback(
         async (newReferenceType: string) => {
-            setReferenceType(newReferenceType);
+            setFormField("reference_type", newReferenceType);
             setReferenceIdList([]);
             const result = await dispatch(
                 select_list({ list: newReferenceType }),
@@ -108,7 +125,7 @@ export default function Edit() {
         loadLists()
             .then(() => {
                 setTimeout(() => {
-                    setInventoryId(inventory.id);
+                    setFormField("inventory_id", inventory.id);
                 }, 0);
                 setOpenNewInventoryDialog(false);
             })
@@ -125,7 +142,12 @@ export default function Edit() {
                             handleApiResult(result, {
                                 onSuccess: ({ data }) => {
                                     if (data) {
-                                        setInventoryId(data.inventory_id);
+                                        setForm((previous) => ({
+                                            ...previous,
+                                            inventory_id: data.inventory_id,
+                                            reserved_until: data.reserved_until,
+                                            status: data.status,
+                                        }));
                                         quantity.setValue(
                                             data.quantity
                                                 ? data.quantity.toString()
@@ -135,13 +157,12 @@ export default function Edit() {
                                             data.reference_type ?? "",
                                         )
                                             .then(() => {
-                                                setReferenceId(
+                                                setFormField(
+                                                    "reference_id",
                                                     data.reference_id ?? "",
                                                 );
                                             })
                                             .catch(() => undefined);
-                                        setReservedUntil(data.reserved_until);
-                                        setStatus(data.status);
                                     }
                                 },
                             });
@@ -170,14 +191,10 @@ export default function Edit() {
                 create({
                     input: {
                         id: id || null,
-                        inventoryId,
+                        ...form,
                         quantity: !isNaN(quantity.getNumericValue())
                             ? quantity.getNumericValue().toString()
                             : "",
-                        referenceType,
-                        referenceId,
-                        reservedUntil,
-                        status,
                     },
                 }),
             )
@@ -199,12 +216,8 @@ export default function Edit() {
         [
             dispatch,
             id,
-            inventoryId,
+            form,
             quantity,
-            referenceType,
-            referenceId,
-            reservedUntil,
-            status,
             navigate,
         ],
     );
@@ -266,10 +279,10 @@ export default function Edit() {
                                                 disabled={
                                                     inventoryIdList.length === 0
                                                 }
-                                                value={inventoryId ?? ""}
+                                                value={form.inventory_id}
                                                 onValueChange={(val) => {
                                                     resetError("inventory_id");
-                                                    setInventoryId(val);
+                                                    setFormField("inventory_id", val);
                                                 }}
                                             >
                                                 <SelectTrigger
@@ -342,7 +355,7 @@ export default function Edit() {
                                         Hivatkozás típusa
                                     </FieldLabel>
                                     <Select
-                                        value={referenceType ?? ""}
+                                        value={form.reference_type ?? ""}
                                         onValueChange={(val) => {
                                             resetError("reference_type");
                                             handleReferenceTypeChange(
@@ -379,10 +392,10 @@ export default function Edit() {
                                     </FieldLabel>
                                     <Select
                                         disabled={referenceIdList.length === 0}
-                                        value={referenceId ?? ""}
+                                        value={form.reference_id ?? ""}
                                         onValueChange={(val) => {
                                             resetError("reference_id");
-                                            setReferenceId(val);
+                                            setFormField("reference_id", val);
                                         }}
                                     >
                                         <SelectTrigger
@@ -428,10 +441,13 @@ export default function Edit() {
                                     <Input
                                         id="reserved_until"
                                         type="date"
-                                        value={reservedUntil ?? ""}
+                                        value={form.reserved_until ?? ""}
                                         onChange={(e) => {
                                             resetError("reserved_until");
-                                            setReservedUntil(e.target.value);
+                                            setFormField(
+                                                "reserved_until",
+                                                e.target.value,
+                                            );
                                         }}
                                         aria-invalid={isInvalidField(
                                             "reserved_until",
@@ -447,10 +463,10 @@ export default function Edit() {
                                         Státusz
                                     </FieldLabel>
                                     <Select
-                                        value={status}
+                                        value={form.status}
                                         onValueChange={(val) => {
                                             resetError("status");
-                                            setStatus(val);
+                                            setFormField("status", val);
                                         }}
                                     >
                                         <SelectTrigger

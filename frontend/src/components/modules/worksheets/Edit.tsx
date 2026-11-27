@@ -60,15 +60,25 @@ interface EditProps {
     onCancel?: () => void;
 }
 
+interface WorksheetFormState {
+    description: string;
+    customer_id: string;
+    project_id: string;
+    status: string;
+}
+
 export default function Edit({
     showCard = true,
     createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
-    const [description, setDescription] = React.useState("");
-    const [customerId, setCustomerId] = React.useState("");
-    const [status, setStatus] = React.useState("open");
+    const [form, setForm] = React.useState<WorksheetFormState>({
+        description: "",
+        customer_id: "",
+        project_id: "",
+        status: "open",
+    });
     const [customersList, setCustomersList] = React.useState<SelectOptionList>(
         [],
     );
@@ -81,15 +91,19 @@ export default function Edit({
     const params = useParams();
     const id = createOnly ? null : (params["id"] ?? null);
 
+    function setFormField<Key extends keyof WorksheetFormState>(
+        field: Key,
+        value: WorksheetFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
+
     const handleCreate = async () => {
         const result = await dispatch(
             create({
                 input: {
+                    ...form,
                     id,
-                    description,
-                    customerId,
-                    projectId: "",
-                    status,
                 },
             }),
         ).unwrap();
@@ -129,11 +143,8 @@ export default function Edit({
         const result = await dispatch(
             update({
                 input: {
+                    ...form,
                     id,
-                    description,
-                    customerId,
-                    projectId: "",
-                    status,
                 },
             }),
         ).unwrap();
@@ -176,9 +187,12 @@ export default function Edit({
                 handleApiResult(result, {
                     onSuccess: ({ data }) => {
                         if (typeof data !== "undefined") {
-                            setDescription(data.description ?? "");
-                            setCustomerId(data.customer_id);
-                            setStatus(data.status ?? "");
+                            setForm((previous) => ({
+                                ...previous,
+                                description: data.description ?? "",
+                                customer_id: data.customer_id,
+                                status: data.status ?? "",
+                            }));
                         }
                     },
                 });
@@ -198,7 +212,7 @@ export default function Edit({
     const handleEditCustomersSuccess = (customer: Customer) => {
         loadLists().then(() => {
             setTimeout(() => {
-                setCustomerId(customer.id);
+                setFormField("customer_id", customer.id);
             }, 0);
             setOpenNewCustomerDialog(false);
         });
@@ -247,10 +261,13 @@ export default function Edit({
                                 <Input
                                     id="description"
                                     type="text"
-                                    value={description}
+                                    value={form.description}
                                     onChange={(e) => {
                                         clearError("description");
-                                        setDescription(e.target.value);
+                                        setFormField(
+                                            "description",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
@@ -276,10 +293,10 @@ export default function Edit({
                                     </div>
                                 </div>
                                 <Select
-                                    value={customerId}
+                                    value={form.customer_id}
                                     onValueChange={(val) => {
                                         clearError("customer_id");
-                                        setCustomerId(val);
+                                        setFormField("customer_id", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -310,10 +327,10 @@ export default function Edit({
                                     Státusz
                                 </FieldLabel>
                                 <Select
-                                    value={status}
+                                    value={form.status}
                                     onValueChange={(val) => {
                                         clearError("status");
-                                        setStatus(val);
+                                        setFormField("status", val);
                                     }}
                                 >
                                     <SelectTrigger

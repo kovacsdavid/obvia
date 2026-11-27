@@ -55,35 +55,48 @@ interface EditProps {
     onCancel?: () => void;
 }
 
+interface ProductFormState {
+    name: string;
+    description: string;
+    unit_of_measure_id: string;
+    new_unit_of_measure: string;
+    status: string;
+}
+
 export default function Edit({
     showCard = true,
     createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
-    const [name, setName] = React.useState("");
-    const [description, setDescription] = React.useState("");
-    const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("");
-    const [newUnitOfMeasure, setNewUnitOfMeasure] = React.useState("");
+    const [form, setForm] = React.useState<ProductFormState>({
+        name: "",
+        description: "",
+        unit_of_measure_id: "",
+        new_unit_of_measure: "",
+        status: "active",
+    });
     const [unitsOfMeasureList, setUnitsOfMeasureList] =
         React.useState<SelectOptionList>([]);
-    const [status, setStatus] = React.useState("active");
     const [errors, setErrors] = React.useState<ProductError | null>(null);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const params = useParams();
     const id = createOnly ? null : (params["id"] ?? null);
 
+    function setFormField<Key extends keyof ProductFormState>(
+        field: Key,
+        value: ProductFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
+
     const handleCreate = async () => {
         const result = await dispatch(
             create({
                 input: {
+                    ...form,
                     id,
-                    name,
-                    description,
-                    unitOfMeasureId,
-                    newUnitOfMeasure,
-                    status,
                 },
             }),
         ).unwrap();
@@ -116,12 +129,8 @@ export default function Edit({
         const result = await dispatch(
             update({
                 input: {
+                    ...form,
                     id,
-                    name,
-                    description,
-                    unitOfMeasureId,
-                    newUnitOfMeasure,
-                    status,
                 },
             }),
         ).unwrap();
@@ -155,10 +164,14 @@ export default function Edit({
                 handleApiResult(result, {
                     onSuccess: ({ data }) => {
                         if (data) {
-                            setName(data.name);
-                            setDescription(data.description ?? "");
-                            setUnitOfMeasureId(data.unit_of_measure_id);
-                            setStatus(data.status);
+                            setForm((previous) => ({
+                                ...previous,
+                                name: data.name,
+                                description: data.description ?? "",
+                                unit_of_measure_id:
+                                    data.unit_of_measure_id,
+                                status: data.status,
+                            }));
                         }
                     },
                 });
@@ -206,10 +219,10 @@ export default function Edit({
                                 <Input
                                     id="name"
                                     type="text"
-                                    value={name}
+                                    value={form.name}
                                     onChange={(e) => {
                                         resetError("name");
-                                        setName(e.target.value);
+                                        setFormField("name", e.target.value);
                                     }}
                                     aria-invalid={isInvalidField("name")}
                                 />
@@ -222,10 +235,13 @@ export default function Edit({
                                 <Input
                                     id="description"
                                     type="text"
-                                    value={description}
+                                    value={form.description}
                                     onChange={(e) => {
                                         resetError("description");
-                                        setDescription(e.target.value);
+                                        setFormField(
+                                            "description",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
@@ -240,10 +256,13 @@ export default function Edit({
                                     Mértékegység
                                 </FieldLabel>
                                 <Select
-                                    value={unitOfMeasureId}
+                                    value={form.unit_of_measure_id}
                                     onValueChange={(val) => {
                                         resetError("unit_of_measure_id");
-                                        setUnitOfMeasureId(val);
+                                        setFormField(
+                                            "unit_of_measure_id",
+                                            val,
+                                        );
                                     }}
                                 >
                                     <SelectTrigger
@@ -282,7 +301,7 @@ export default function Edit({
                                 />
                             </Field>
 
-                            {unitOfMeasureId === "other" ? (
+                            {form.unit_of_measure_id === "other" ? (
                                 <>
                                     <Field
                                         data-invalid={isInvalidField(
@@ -295,12 +314,13 @@ export default function Edit({
                                         <Input
                                             id="new_unit_of_measure"
                                             type="text"
-                                            value={newUnitOfMeasure}
+                                            value={form.new_unit_of_measure}
                                             onChange={(e) => {
                                                 resetError(
                                                     "new_unit_of_measure",
                                                 );
-                                                setNewUnitOfMeasure(
+                                                setFormField(
+                                                    "new_unit_of_measure",
                                                     e.target.value,
                                                 );
                                             }}
@@ -319,10 +339,10 @@ export default function Edit({
                                     Státusz
                                 </FieldLabel>
                                 <Select
-                                    value={status}
+                                    value={form.status}
                                     onValueChange={(val) => {
                                         resetError("status");
-                                        setStatus(val);
+                                        setFormField("status", val);
                                     }}
                                 >
                                     <SelectTrigger

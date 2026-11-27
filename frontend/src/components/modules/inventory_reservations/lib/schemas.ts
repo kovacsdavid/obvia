@@ -27,11 +27,11 @@ const nullableString = z.string().nullable();
 
 export const inventoryReservationUserInputSchema = z.looseObject({
     id: nullableString,
-    inventoryId: z.string(),
+    inventory_id: z.string(),
     quantity: z.string(),
-    referenceType: nullableString,
-    referenceId: nullableString,
-    reservedUntil: nullableString,
+    reference_type: nullableString,
+    reference_id: nullableString,
+    reserved_until: nullableString,
     status: z.string(),
 });
 

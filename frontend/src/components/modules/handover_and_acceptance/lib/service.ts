@@ -42,25 +42,7 @@ import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
-    {
-        id,
-        customerId,
-        itemMakeId,
-        newItemMake,
-        itemModelId,
-        newItemModel,
-        itemIdentifierTypeId,
-        newItemIdentifierType,
-        itemIdentifierValue,
-        reportedIssue,
-        conditionAtReceipt,
-        includedAccessories,
-        authorizedWork,
-        repairLimit,
-        currencyCode,
-        termsVersion,
-        receivedAt,
-    }: HandoverAndAcceptanceUserInput,
+    input: HandoverAndAcceptanceUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<
@@ -72,25 +54,7 @@ export async function create(
         signal,
         guard: isCreateHandoverAndAcceptanceResponse,
         formErrorGuard: isHandoverAndAcceptanceError,
-        body: {
-            id,
-            customer_id: customerId,
-            item_make_id: itemMakeId,
-            new_item_make: newItemMake,
-            item_model_id: itemModelId,
-            new_item_model: newItemModel,
-            item_identifier_type_id: itemIdentifierTypeId,
-            new_item_identifier_type: newItemIdentifierType,
-            item_identifier_value: itemIdentifierValue,
-            reported_issue: reportedIssue,
-            condition_at_receipt: conditionAtReceipt,
-            included_accessories: includedAccessories,
-            authorized_work: authorizedWork,
-            repair_limit: repairLimit,
-            currency_code: currencyCode,
-            terms_version: termsVersion,
-            received_at: receivedAt,
-        },
+        body: input,
     });
 }
 
@@ -157,25 +121,7 @@ export async function get(
 }
 
 export async function update(
-    {
-        id,
-        customerId,
-        itemMakeId,
-        newItemMake,
-        itemModelId,
-        newItemModel,
-        itemIdentifierTypeId,
-        newItemIdentifierType,
-        itemIdentifierValue,
-        reportedIssue,
-        conditionAtReceipt,
-        includedAccessories,
-        authorizedWork,
-        repairLimit,
-        currencyCode,
-        termsVersion,
-        receivedAt,
-    }: HandoverAndAcceptanceUserInput,
+    input: HandoverAndAcceptanceUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<
@@ -187,25 +133,7 @@ export async function update(
         signal,
         guard: isUpdateHandoverAndAcceptanceResponse,
         formErrorGuard: isHandoverAndAcceptanceError,
-        body: {
-            id,
-            customer_id: customerId,
-            item_make_id: itemMakeId,
-            new_item_make: newItemMake,
-            item_model_id: itemModelId,
-            new_item_model: newItemModel,
-            item_identifier_type_id: itemIdentifierTypeId,
-            new_item_identifier_type: newItemIdentifierType,
-            item_identifier_value: itemIdentifierValue,
-            reported_issue: reportedIssue,
-            condition_at_receipt: conditionAtReceipt,
-            included_accessories: includedAccessories,
-            authorized_work: authorizedWork,
-            repair_limit: repairLimit,
-            currency_code: currencyCode,
-            terms_version: termsVersion,
-            received_at: receivedAt,
-        },
+        body: input,
     });
 }
 

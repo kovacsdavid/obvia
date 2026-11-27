@@ -84,8 +84,8 @@ describe("warehouse schemas", () => {
             warehouseUserInputSchema.safeParse({
                 id: null,
                 name: "Main",
-                contactName: "",
-                contactPhone: "",
+                contact_name: "",
+                contact_phone: "",
                 status: "active",
             }).success,
         ).toBe(true);
@@ -93,8 +93,8 @@ describe("warehouse schemas", () => {
             warehouseUserInputSchema.safeParse({
                 id: null,
                 name: "Main",
-                contactName: null,
-                contactPhone: "",
+                contact_name: null,
+                contact_phone: "",
                 status: "active",
             }).success,
         ).toBe(false);

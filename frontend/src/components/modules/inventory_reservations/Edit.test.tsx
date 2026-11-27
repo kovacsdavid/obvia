@@ -142,10 +142,10 @@ describe("reservation editor", () => {
         expect(mocks.create).toHaveBeenCalledWith({
             input: expect.objectContaining({
                 id: mocks.params.id,
-                inventoryId: "old",
+                inventory_id: "old",
                 quantity: "3",
-                referenceType: "worksheets",
-                referenceId: "ref",
+                reference_type: "worksheets",
+                reference_id: "ref",
             }),
         });
     });

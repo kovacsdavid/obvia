@@ -24,8 +24,8 @@ import type { WarehouseUserInput } from "./interface";
 const input: WarehouseUserInput = {
     id: "warehouse-1",
     name: "Main",
-    contactName: "Contact",
-    contactPhone: "123",
+    contact_name: "Contact",
+    contact_phone: "123",
     status: "active",
 };
 const fields = {
@@ -129,8 +129,8 @@ describe("warehouse API", () => {
         expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({
             id: input.id,
             name: input.name,
-            contact_name: input.contactName,
-            contact_phone: input.contactPhone,
+            contact_name: input.contact_name,
+            contact_phone: input.contact_phone,
             status: input.status,
         });
         expect(fetchMock.mock.calls[0][1]?.headers).not.toHaveProperty(

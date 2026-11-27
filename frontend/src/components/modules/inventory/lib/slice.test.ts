@@ -51,11 +51,11 @@ vi.mock("@/components/modules/auth/lib/slice.ts", async () => {
 
 const input = {
     id: null,
-    productId: "p",
-    warehouseId: "w",
-    minimumStock: "",
-    maximumStock: "",
-    currencyCode: "HUF",
+    product_id: "p",
+    warehouse_id: "w",
+    minimum_stock: "",
+    maximum_stock: "",
+    currency_code: "HUF",
     status: "active",
 };
 const error = { kind: "http_error", status: 500 } as const;

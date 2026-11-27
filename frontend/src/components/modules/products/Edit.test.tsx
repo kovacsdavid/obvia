@@ -132,7 +132,7 @@ describe("product editor", () => {
             payload: {
                 input: expect.objectContaining({
                     id: "product-id",
-                    unitOfMeasureId: "unit-id",
+                    unit_of_measure_id: "unit-id",
                 }),
             },
         });

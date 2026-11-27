@@ -63,20 +63,33 @@ interface EditProps {
     onSuccess?: (task: Task) => void;
 }
 
+interface TaskFormState {
+    worksheet_id: string;
+    service_id: string;
+    currency_code: string;
+    tax_id: string;
+    status: string;
+    priority: string | null;
+    due_date: string | null;
+    description: string;
+}
+
 export default function Edit({
     showCard = true,
     onSuccess = undefined,
 }: EditProps) {
     const params = useParams();
     const referenceId = React.useMemo(() => params["referenceId"], [params]);
-    const [worksheetId, setWorksheetId] = React.useState(referenceId ?? "");
-    const [serviceId, setServiceId] = React.useState("");
-    const [currencyCode, setCurrencyCode] = React.useState("HUF");
-    const [taxId, setTaxId] = React.useState("");
-    const [status, setStatus] = React.useState("in_progress");
-    const [priority, setPriority] = React.useState<string | null>("normal");
-    const [dueDate, setDueDate] = React.useState<string | null>("");
-    const [description, setDescription] = React.useState("");
+    const [form, setForm] = React.useState<TaskFormState>({
+        worksheet_id: referenceId ?? "",
+        service_id: "",
+        currency_code: "HUF",
+        tax_id: "",
+        status: "in_progress",
+        priority: "normal",
+        due_date: "",
+        description: "",
+    });
     const [worksheetList, setWorksheetList] = React.useState<SelectOptionList>(
         [],
     );
@@ -104,10 +117,18 @@ export default function Edit({
         decimalPlaces: 2,
         allowEmpty: true,
     });
+
+    function setFormField<Key extends keyof TaskFormState>(
+        field: Key,
+        value: TaskFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
+
     const handleEditWorksheetsSuccess = (worksheet: Worksheet) => {
         loadLists().then(() => {
             setTimeout(() => {
-                setWorksheetId(worksheet.id);
+                setFormField("worksheet_id", worksheet.id);
             }, 0);
             setOpenNewWorksheetDialog(false);
         });
@@ -116,7 +137,7 @@ export default function Edit({
     const handleEditServicesSuccess = (service: Service) => {
         loadLists().then(() => {
             setTimeout(() => {
-                setServiceId(service.id);
+                setFormField("service_id", service.id);
             }, 0);
             setOpenNewServiceDialog(false);
         });
@@ -125,28 +146,21 @@ export default function Edit({
     const handleEditTaxesSuccess = (tax: Tax) => {
         loadLists().then(() => {
             setTimeout(() => {
-                setTaxId(tax.id);
+                setFormField("tax_id", tax.id);
             }, 0);
             setOpenNewTaxDialog(false);
         });
     };
 
     const prepareTaskInput = (): TaskUserInput => ({
+        ...form,
         id,
-        worksheetId,
-        serviceId,
-        currencyCode,
         quantity: !isNaN(quantity.getNumericValue())
             ? quantity.getNumericValue().toString()
             : "",
         price: !isNaN(price.getNumericValue())
             ? price.getNumericValue().toString()
             : "",
-        taxId,
-        status,
-        priority,
-        dueDate,
-        description,
     });
 
     const handleCreate = async () => {
@@ -255,23 +269,24 @@ export default function Edit({
                 handleApiResult(result, {
                     onSuccess: ({ data }) => {
                         if (typeof data !== "undefined") {
-                            setWorksheetId(data.worksheet_id);
-                            setServiceId(data.service_id);
-                            setCurrencyCode(data.currency_code);
-                            setDescription(data.description ?? "");
+                            setForm((previous) => ({
+                                ...previous,
+                                worksheet_id: data.worksheet_id,
+                                service_id: data.service_id,
+                                currency_code: data.currency_code,
+                                description: data.description ?? "",
+                                tax_id: data.tax_id,
+                                status: data.status,
+                                priority: data.priority,
+                                due_date: data.due_date
+                                    ? formatDateToYMD(data.due_date)
+                                    : "",
+                            }));
                             quantity.setValue(
                                 data.quantity ? data.quantity.toString() : "",
                             );
                             price.setValue(
                                 data.price ? data.price.toString() : "",
-                            );
-                            setTaxId(data.tax_id);
-                            setStatus(data.status);
-                            setPriority(data.priority);
-                            setDueDate(
-                                data.due_date
-                                    ? formatDateToYMD(data.due_date)
-                                    : "",
                             );
                         }
                     },
@@ -380,10 +395,10 @@ export default function Edit({
                                         </div>
                                     </div>
                                     <Select
-                                        value={worksheetId}
+                                        value={form.worksheet_id}
                                         onValueChange={(val) => {
                                             clearError("worksheet_id");
-                                            setWorksheetId(val);
+                                            setFormField("worksheet_id", val);
                                         }}
                                     >
                                         <SelectTrigger
@@ -430,10 +445,10 @@ export default function Edit({
                                     </div>
                                 </div>
                                 <Select
-                                    value={serviceId}
+                                    value={form.service_id}
                                     onValueChange={(val) => {
                                         clearError("service_id");
-                                        setServiceId(val);
+                                        setFormField("service_id", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -465,10 +480,13 @@ export default function Edit({
                                 <Input
                                     id="description"
                                     type="text"
-                                    value={description}
+                                    value={form.description}
                                     onChange={(e) => {
                                         clearError("description");
-                                        setDescription(e.target.value);
+                                        setFormField(
+                                            "description",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
@@ -481,10 +499,10 @@ export default function Edit({
                                     Pénznem
                                 </FieldLabel>
                                 <Select
-                                    value={currencyCode}
+                                    value={form.currency_code}
                                     onValueChange={(val) => {
                                         clearError("currency_code");
-                                        setCurrencyCode(val);
+                                        setFormField("currency_code", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -570,10 +588,10 @@ export default function Edit({
                                     </div>
                                 </div>
                                 <Select
-                                    value={taxId}
+                                    value={form.tax_id}
                                     onValueChange={(val) => {
                                         clearError("tax_id");
-                                        setTaxId(val);
+                                        setFormField("tax_id", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -600,10 +618,10 @@ export default function Edit({
                                     Státusz
                                 </FieldLabel>
                                 <Select
-                                    value={status}
+                                    value={form.status}
                                     onValueChange={(val) => {
                                         clearError("status");
-                                        setStatus(val);
+                                        setFormField("status", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -640,10 +658,10 @@ export default function Edit({
                                     Prioritás
                                 </FieldLabel>
                                 <Select
-                                    value={priority ?? ""}
+                                    value={form.priority ?? ""}
                                     onValueChange={(val) => {
                                         clearError("priority");
-                                        setPriority(val);
+                                        setFormField("priority", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -675,10 +693,13 @@ export default function Edit({
                                 <Input
                                     id="due_date"
                                     type="date"
-                                    value={dueDate ?? ""}
+                                    value={form.due_date ?? ""}
                                     onChange={(e) => {
                                         clearError("due_date");
-                                        setDueDate(e.target.value);
+                                        setFormField(
+                                            "due_date",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField("due_date")}
                                 />

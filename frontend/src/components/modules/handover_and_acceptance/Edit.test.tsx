@@ -120,7 +120,7 @@ describe("receipt date and time form", () => {
                     kind: "create",
                     payload: expect.objectContaining({
                         input: expect.objectContaining({
-                            receivedAt: "2026-07-02T10:30:45.123Z",
+                            received_at: "2026-07-02T10:30:45.123Z",
                         }),
                     }),
                 }),
@@ -153,7 +153,7 @@ describe("receipt date and time form", () => {
                         kind: "create",
                         payload: expect.objectContaining({
                             input: expect.objectContaining({
-                                receivedAt: "2026-07-02T10:30:45.123Z",
+                                received_at: "2026-07-02T10:30:45.123Z",
                             }),
                         }),
                     }),
@@ -176,7 +176,7 @@ describe("receipt date and time form", () => {
                     kind: "create",
                     payload: expect.objectContaining({
                         input: expect.objectContaining({
-                            receivedAt: "2026-07-02T16:30:00.000Z",
+                            received_at: "2026-07-02T16:30:00.000Z",
                         }),
                     }),
                 }),
@@ -217,7 +217,7 @@ describe("receipt date and time form", () => {
                     kind: "create",
                     payload: expect.objectContaining({
                         input: expect.objectContaining({
-                            receivedAt: "2026-10-25T00:30:45.123Z",
+                            received_at: "2026-10-25T00:30:45.123Z",
                         }),
                     }),
                 }),
@@ -237,7 +237,7 @@ describe("receipt date and time form", () => {
                     kind: "create",
                     payload: expect.objectContaining({
                         input: expect.objectContaining({
-                            receivedAt: "2026-07-02T10:30:00.000Z",
+                            received_at: "2026-07-02T10:30:00.000Z",
                         }),
                     }),
                 }),
@@ -257,7 +257,7 @@ describe("receipt date and time form", () => {
                     kind: "update",
                     payload: expect.objectContaining({
                         input: expect.objectContaining({
-                            receivedAt: "2026-10-25T01:30:12.123456Z",
+                            received_at: "2026-10-25T01:30:12.123456Z",
                         }),
                     }),
                 }),
@@ -317,7 +317,7 @@ describe("receipt date and time form", () => {
                     kind: "create",
                     payload: expect.objectContaining({
                         input: expect.objectContaining({
-                            receivedAt: "2026-10-25T01:30:00.000Z",
+                            received_at: "2026-10-25T01:30:00.000Z",
                         }),
                     }),
                 }),
@@ -361,7 +361,7 @@ describe("receipt date and time form", () => {
                     kind: "update",
                     payload: expect.objectContaining({
                         input: expect.objectContaining({
-                            customerId: "new-customer",
+                            customer_id: "new-customer",
                         }),
                     }),
                 }),

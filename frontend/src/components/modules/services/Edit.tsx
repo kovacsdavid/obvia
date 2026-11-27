@@ -60,19 +60,31 @@ interface EditProps {
     onCancel?: () => void;
 }
 
+interface ServiceFormState {
+    name: string;
+    description: string;
+    default_tax_id: string;
+    currency_code: string;
+    status: string;
+    unit_of_measure_id: string;
+    new_unit_of_measure: string;
+}
+
 export default function Edit({
     showCard = true,
     createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
-    const [name, setName] = React.useState("");
-    const [description, setDescription] = React.useState("");
-    const [defaultTaxId, setDefaultTaxId] = React.useState("");
-    const [currencyCode, setCurrencyCode] = React.useState("HUF");
-    const [status, setStatus] = React.useState("active");
-    const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("");
-    const [newUnitOfMeasure, setNewUnitOfMeasure] = React.useState("");
+    const [form, setForm] = React.useState<ServiceFormState>({
+        name: "",
+        description: "",
+        default_tax_id: "",
+        currency_code: "HUF",
+        status: "active",
+        unit_of_measure_id: "",
+        new_unit_of_measure: "",
+    });
     const [unitsOfMeasureList, setUnitsOfMeasureList] =
         React.useState<SelectOptionList>([]);
     const [currencyList, setCurrencyList] = React.useState<SelectOptionList>(
@@ -90,10 +102,18 @@ export default function Edit({
         decimalPlaces: 2,
         allowEmpty: true,
     });
+
+    function setFormField<Key extends keyof ServiceFormState>(
+        field: Key,
+        value: ServiceFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
+
     const handleEditTaxesSuccess = async (tax: Tax) => {
         return loadLists().then(() => {
             setTimeout(() => {
-                setDefaultTaxId(tax.id);
+                setFormField("default_tax_id", tax.id);
             }, 0);
             setOpenNewTaxDialog(false);
         });
@@ -103,17 +123,11 @@ export default function Edit({
         const result = await dispatch(
             create({
                 input: {
+                    ...form,
                     id,
-                    name,
-                    description,
-                    defaultPrice: !isNaN(defaultPrice.getNumericValue())
+                    default_price: !isNaN(defaultPrice.getNumericValue())
                         ? defaultPrice.getNumericValue().toString()
                         : "",
-                    defaultTaxId,
-                    currencyCode,
-                    status,
-                    unitOfMeasureId,
-                    newUnitOfMeasure,
                 },
             }),
         ).unwrap();
@@ -153,17 +167,11 @@ export default function Edit({
         const result = await dispatch(
             update({
                 input: {
+                    ...form,
                     id,
-                    name,
-                    description,
-                    defaultPrice: !isNaN(defaultPrice.getNumericValue())
+                    default_price: !isNaN(defaultPrice.getNumericValue())
                         ? defaultPrice.getNumericValue().toString()
                         : "",
-                    defaultTaxId,
-                    currencyCode,
-                    status,
-                    unitOfMeasureId,
-                    newUnitOfMeasure,
                 },
             }),
         ).unwrap();
@@ -214,13 +222,16 @@ export default function Edit({
                 handleApiResult(result, {
                     onSuccess: ({ data }) => {
                         if (typeof data !== "undefined") {
-                            setName(data.name);
-                            setDescription(data.description ?? "");
+                            setForm((previous) => ({
+                                ...previous,
+                                name: data.name,
+                                description: data.description ?? "",
+                                default_tax_id: data.default_tax_id ?? "",
+                                currency_code: data.currency_code ?? "",
+                                status: data.status,
+                                unit_of_measure_id: data.unit_of_measure_id,
+                            }));
                             defaultPrice.setValue(data.default_price ?? "");
-                            setDefaultTaxId(data.default_tax_id ?? "");
-                            setCurrencyCode(data.currency_code ?? "");
-                            setStatus(data.status);
-                            setUnitOfMeasureId(data.unit_of_measure_id);
                         }
                     },
                 });
@@ -282,10 +293,10 @@ export default function Edit({
                                 <Input
                                     id="name"
                                     type="text"
-                                    value={name}
+                                    value={form.name}
                                     onChange={(e) => {
                                         resetError("name");
-                                        setName(e.target.value);
+                                        setFormField("name", e.target.value);
                                     }}
                                     aria-invalid={isInvalidField("name")}
                                 />
@@ -299,10 +310,13 @@ export default function Edit({
                                 <Input
                                     id="description"
                                     type="text"
-                                    value={description}
+                                    value={form.description}
                                     onChange={(e) => {
                                         resetError("description");
-                                        setDescription(e.target.value);
+                                        setFormField(
+                                            "description",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
@@ -355,10 +369,10 @@ export default function Edit({
                                     </div>
                                 </div>
                                 <Select
-                                    value={defaultTaxId}
+                                    value={form.default_tax_id}
                                     onValueChange={(val) => {
                                         resetError("default_tax_id");
-                                        setDefaultTaxId(val);
+                                        setFormField("default_tax_id", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -392,10 +406,10 @@ export default function Edit({
                                     Alapértelmezett pénznem
                                 </FieldLabel>
                                 <Select
-                                    value={currencyCode}
+                                    value={form.currency_code}
                                     onValueChange={(val) => {
                                         resetError("currency_code");
-                                        setCurrencyCode(val);
+                                        setFormField("currency_code", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -431,10 +445,10 @@ export default function Edit({
                                     Mértékegység
                                 </FieldLabel>
                                 <Select
-                                    value={unitOfMeasureId}
+                                    value={form.unit_of_measure_id}
                                     onValueChange={(val) => {
                                         resetError("unit_of_measure_id");
-                                        setUnitOfMeasureId(val);
+                                        setFormField("unit_of_measure_id", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -473,7 +487,7 @@ export default function Edit({
                                 />
                             </Field>
 
-                            {unitOfMeasureId === "other" ? (
+                            {form.unit_of_measure_id === "other" ? (
                                 <>
                                     <Field
                                         data-invalid={isInvalidField(
@@ -486,12 +500,13 @@ export default function Edit({
                                         <Input
                                             id="new_unit_of_measure"
                                             type="text"
-                                            value={newUnitOfMeasure}
+                                            value={form.new_unit_of_measure}
                                             onChange={(e) => {
                                                 resetError(
                                                     "new_unit_of_measure",
                                                 );
-                                                setNewUnitOfMeasure(
+                                                setFormField(
+                                                    "new_unit_of_measure",
                                                     e.target.value,
                                                 );
                                             }}
@@ -511,10 +526,10 @@ export default function Edit({
                                     Státusz
                                 </FieldLabel>
                                 <Select
-                                    value={status}
+                                    value={form.status}
                                     onValueChange={(val) => {
                                         resetError("status");
-                                        setStatus(val);
+                                        setFormField("status", val);
                                     }}
                                 >
                                     <SelectTrigger

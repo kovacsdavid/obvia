@@ -51,14 +51,14 @@ vi.mock("@/components/modules/auth/lib/slice.ts", async () => {
 
 const input: InventoryMovementUserInput = {
     id: null,
-    inventoryId: "inventory-1",
-    movementType: "in",
+    inventory_id: "inventory-1",
+    movement_type: "in",
     quantity: "2",
-    referenceType: "",
-    referenceId: "",
-    unitPrice: "",
-    totalPrice: "",
-    taxId: "tax-1",
+    reference_type: "",
+    reference_id: "",
+    unit_price: "",
+    total_price: "",
+    tax_id: "tax-1",
 };
 const result = { kind: "http_error", status: 500 } as const;
 function makeStore() {

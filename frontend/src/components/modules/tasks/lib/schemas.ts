@@ -27,15 +27,15 @@ const nullableString = z.string().nullable();
 
 export const taskUserInputSchema = z.looseObject({
     id: nullableString,
-    worksheetId: z.string(),
-    serviceId: z.string(),
-    currencyCode: z.string(),
+    worksheet_id: z.string(),
+    service_id: z.string(),
+    currency_code: z.string(),
     quantity: z.string(),
     price: z.string(),
-    taxId: z.string(),
+    tax_id: z.string(),
     status: z.string(),
     priority: nullableString,
-    dueDate: nullableString,
+    due_date: nullableString,
     description: nullableString,
 });
 

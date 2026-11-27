@@ -29,8 +29,8 @@ export const productUserInputSchema = z.looseObject({
     id: nullableString,
     name: z.string(),
     description: z.string(),
-    unitOfMeasureId: z.string(),
-    newUnitOfMeasure: z.string(),
+    unit_of_measure_id: z.string(),
+    new_unit_of_measure: z.string(),
     status: z.string(),
 });
 

@@ -62,16 +62,25 @@ interface EditProps {
     onCancel?: () => void;
 }
 
+interface InventoryFormState {
+    product_id: string;
+    warehouse_id: string;
+    currency_code: string;
+    status: string;
+}
+
 export default function Edit({
     showCard = true,
     createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
-    const [productId, setProductId] = React.useState("");
-    const [warehouseId, setWarehouseId] = React.useState("");
-    const [currencyCode, setCurrencyCode] = React.useState("HUF");
-    const [status, setStatus] = React.useState("active");
+    const [form, setForm] = React.useState<InventoryFormState>({
+        product_id: "",
+        warehouse_id: "",
+        currency_code: "HUF",
+        status: "active",
+    });
     const [currencyList, setCurrencyList] = React.useState<SelectOptionList>(
         [],
     );
@@ -101,6 +110,13 @@ export default function Edit({
         allowEmpty: true,
     });
 
+    function setFormField<Key extends keyof InventoryFormState>(
+        field: Key,
+        value: InventoryFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
+
     const resetError = (field: keyof InventoryError) => {
         setErrors((previous) =>
             previous ? { ...previous, [field]: null } : previous,
@@ -112,7 +128,7 @@ export default function Edit({
     const handleEditProductsSuccess = async (product: Product) => {
         return loadLists().then(() => {
             setTimeout(() => {
-                setProductId(product.id);
+                setFormField("product_id", product.id);
             }, 0);
             setOpenNewProductDialog(false);
         });
@@ -121,7 +137,7 @@ export default function Edit({
     const handleEditWarehousesSuccess = async (warehouse: Warehouse) => {
         return loadLists().then(() => {
             setTimeout(() => {
-                setWarehouseId(warehouse.id);
+                setFormField("warehouse_id", warehouse.id);
             }, 0);
             setOpenNewWarehouseDialog(false);
         });
@@ -131,17 +147,14 @@ export default function Edit({
         const response = await dispatch(
             create({
                 input: {
+                    ...form,
                     id,
-                    productId,
-                    warehouseId,
-                    minimumStock: !isNaN(minimumStockInput.getNumericValue())
+                    minimum_stock: !isNaN(minimumStockInput.getNumericValue())
                         ? minimumStockInput.getNumericValue().toString()
                         : "",
-                    maximumStock: !isNaN(maximumStockInput.getNumericValue())
+                    maximum_stock: !isNaN(maximumStockInput.getNumericValue())
                         ? maximumStockInput.getNumericValue().toString()
                         : "",
-                    currencyCode,
-                    status,
                 },
             }),
         );
@@ -175,17 +188,14 @@ export default function Edit({
         const response = await dispatch(
             update({
                 input: {
+                    ...form,
                     id,
-                    productId,
-                    warehouseId,
-                    minimumStock: !isNaN(minimumStockInput.getNumericValue())
+                    minimum_stock: !isNaN(minimumStockInput.getNumericValue())
                         ? minimumStockInput.getNumericValue().toString()
                         : "",
-                    maximumStock: !isNaN(maximumStockInput.getNumericValue())
+                    maximum_stock: !isNaN(maximumStockInput.getNumericValue())
                         ? maximumStockInput.getNumericValue().toString()
                         : "",
-                    currencyCode,
-                    status,
                 },
             }),
         );
@@ -230,8 +240,13 @@ export default function Edit({
                         handleApiResult(response.payload, {
                             onSuccess: ({ data }) => {
                                 if (!data) return;
-                                setProductId(data.product_id);
-                                setWarehouseId(data.warehouse_id);
+                                setForm((previous) => ({
+                                    ...previous,
+                                    product_id: data.product_id,
+                                    warehouse_id: data.warehouse_id,
+                                    currency_code: data.currency_code,
+                                    status: data.status,
+                                }));
                                 minimumStockInput.setValue(
                                     data.minimum_stock
                                         ? data.minimum_stock.toString()
@@ -242,8 +257,6 @@ export default function Edit({
                                         ? data.maximum_stock.toString()
                                         : "",
                                 );
-                                setCurrencyCode(data.currency_code);
-                                setStatus(data.status);
                             },
                         });
                     }
@@ -325,10 +338,10 @@ export default function Edit({
                                     </div>
                                 </div>
                                 <Select
-                                    value={productId}
+                                    value={form.product_id}
                                     onValueChange={(val) => {
                                         resetError("product_id");
-                                        setProductId(val);
+                                        setFormField("product_id", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -376,10 +389,10 @@ export default function Edit({
                                     </div>
                                 </div>
                                 <Select
-                                    value={warehouseId}
+                                    value={form.warehouse_id}
                                     onValueChange={(val) => {
                                         resetError("warehouse_id");
-                                        setWarehouseId(val);
+                                        setFormField("warehouse_id", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -460,10 +473,10 @@ export default function Edit({
                                     Pénznem
                                 </FieldLabel>
                                 <Select
-                                    value={currencyCode}
+                                    value={form.currency_code}
                                     onValueChange={(val) => {
                                         resetError("currency_code");
-                                        setCurrencyCode(val);
+                                        setFormField("currency_code", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -495,10 +508,10 @@ export default function Edit({
                                     Státusz
                                 </FieldLabel>
                                 <Select
-                                    value={status}
+                                    value={form.status}
                                     onValueChange={(val) => {
                                         resetError("status");
-                                        setStatus(val);
+                                        setFormField("status", val);
                                     }}
                                 >
                                     <SelectTrigger

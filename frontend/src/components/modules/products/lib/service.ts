@@ -44,14 +44,7 @@ import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
-    {
-        id,
-        name,
-        description,
-        unitOfMeasureId,
-        newUnitOfMeasure,
-        status,
-    }: ProductUserInput,
+    input: ProductUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<CreateProductResponse, ProductError>> {
@@ -61,26 +54,12 @@ export async function create(
         signal,
         guard: isCreateProductResponse,
         formErrorGuard: isProductError,
-        body: {
-            id,
-            name,
-            description,
-            unit_of_measure_id: unitOfMeasureId,
-            new_unit_of_measure: newUnitOfMeasure,
-            status,
-        },
+        body: input,
     });
 }
 
 export async function update(
-    {
-        id,
-        name,
-        description,
-        unitOfMeasureId,
-        newUnitOfMeasure,
-        status,
-    }: ProductUserInput,
+    input: ProductUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<UpdateProductResponse, ProductError>> {
@@ -90,14 +69,7 @@ export async function update(
         signal,
         guard: isUpdateProductResponse,
         formErrorGuard: isProductError,
-        body: {
-            id,
-            name,
-            description,
-            unit_of_measure_id: unitOfMeasureId,
-            new_unit_of_measure: newUnitOfMeasure,
-            status,
-        },
+        body: input,
     });
 }
 

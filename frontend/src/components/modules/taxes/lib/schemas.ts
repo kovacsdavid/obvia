@@ -29,12 +29,12 @@ export const taxUserInputSchema = z.looseObject({
     id: nullableString,
     rate: nullableString,
     description: z.string(),
-    countryCode: z.string(),
-    taxCategory: z.string(),
-    isRateApplicable: z.boolean().nullable(),
-    legalText: nullableString,
-    reportingCode: nullableString,
-    isDefault: z.boolean(),
+    country_code: z.string(),
+    tax_category: z.string(),
+    is_rate_applicable: z.boolean().nullable(),
+    legal_text: nullableString,
+    reporting_code: nullableString,
+    is_default: z.boolean(),
     status: z.string(),
 });
 

@@ -70,15 +70,15 @@ const fields = {
 };
 const input: TaskUserInput = {
     id: null,
-    worksheetId: "worksheet",
-    serviceId: "service",
-    currencyCode: "EUR",
+    worksheet_id: "worksheet",
+    service_id: "service",
+    currency_code: "EUR",
     quantity: "1",
     price: "10",
-    taxId: "tax",
+    tax_id: "tax",
     status: "open",
     priority: null,
-    dueDate: null,
+    due_date: null,
     description: null,
 };
 const meta = { page: 1, limit: 25, total: 1 };

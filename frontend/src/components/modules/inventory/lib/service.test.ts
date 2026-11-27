@@ -46,11 +46,11 @@ it("preserves create input and backend field errors", async () => {
     const result = await api.create(
         {
             id: null,
-            productId: "p",
-            warehouseId: "w",
-            minimumStock: "1",
-            maximumStock: "9",
-            currencyCode: "EUR",
+            product_id: "p",
+            warehouse_id: "w",
+            minimum_stock: "1",
+            maximum_stock: "9",
+            currency_code: "EUR",
             status: "active",
         },
         "token",
@@ -73,11 +73,11 @@ it("preserves create input and backend field errors", async () => {
 
 const input = {
     id: null,
-    productId: "p",
-    warehouseId: "w",
-    minimumStock: "1",
-    maximumStock: "9",
-    currencyCode: "EUR",
+    product_id: "p",
+    warehouse_id: "w",
+    minimum_stock: "1",
+    maximum_stock: "9",
+    currency_code: "EUR",
     status: "active",
 };
 const fields = {

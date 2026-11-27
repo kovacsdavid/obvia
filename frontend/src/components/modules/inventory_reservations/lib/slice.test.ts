@@ -51,11 +51,11 @@ vi.mock("@/components/modules/auth/lib/slice.ts", async () => {
 
 const input: InventoryReservationUserInput = {
     id: null,
-    inventoryId: "inv",
+    inventory_id: "inv",
     quantity: "3",
-    referenceType: "",
-    referenceId: "",
-    reservedUntil: "",
+    reference_type: "",
+    reference_id: "",
+    reserved_until: "",
     status: "active",
 };
 const result = { kind: "http_error", status: 500 } as const;

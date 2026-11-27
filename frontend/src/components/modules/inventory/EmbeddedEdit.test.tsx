@@ -270,7 +270,7 @@ describe.each([
                 kind: `${label}/create`,
                 payload: {
                     input: expect.objectContaining({
-                        inventoryId: "new-inventory",
+                        inventory_id: "new-inventory",
                     }),
                 },
             }),

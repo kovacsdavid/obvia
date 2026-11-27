@@ -54,15 +54,7 @@ export async function create(
         signal,
         guard: isCreateInventoryReservationResponse,
         formErrorGuard: isInventoryReservationError,
-        body: {
-            id: input.id,
-            inventory_id: input.inventoryId,
-            quantity: input.quantity,
-            reference_type: input.referenceType,
-            reference_id: input.referenceId,
-            reserved_until: input.reservedUntil,
-            status: input.status,
-        },
+        body: input,
     });
 }
 

@@ -44,15 +44,7 @@ import { apiRequest } from "@/lib/api/request";
 import type { ApiResult } from "@/lib/api/types";
 
 export async function create(
-    {
-        id,
-        productId,
-        warehouseId,
-        minimumStock,
-        maximumStock,
-        currencyCode,
-        status,
-    }: InventoryUserInput,
+    input: InventoryUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<CreateInventoryResponse, InventoryError>> {
@@ -62,15 +54,7 @@ export async function create(
         signal,
         guard: isCreateInventoryResponse,
         formErrorGuard: isInventoryError,
-        body: {
-            id,
-            product_id: productId,
-            warehouse_id: warehouseId,
-            minimum_stock: minimumStock,
-            maximum_stock: maximumStock,
-            currency_code: currencyCode,
-            status,
-        },
+        body: input,
     });
 }
 
@@ -118,15 +102,7 @@ export async function get_resolved(
 }
 
 export async function update(
-    {
-        id,
-        productId,
-        warehouseId,
-        minimumStock,
-        maximumStock,
-        currencyCode,
-        status,
-    }: InventoryUserInput,
+    input: InventoryUserInput,
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<UpdateInventoryResponse, InventoryError>> {
@@ -136,15 +112,7 @@ export async function update(
         signal,
         guard: isUpdateInventoryResponse,
         formErrorGuard: isInventoryError,
-        body: {
-            id,
-            product_id: productId,
-            warehouse_id: warehouseId,
-            minimum_stock: minimumStock,
-            maximum_stock: maximumStock,
-            currency_code: currencyCode,
-            status,
-        },
+        body: input,
     });
 }
 

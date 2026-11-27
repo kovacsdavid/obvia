@@ -143,9 +143,9 @@ describe("movement editor", () => {
             kind: "create",
             payload: {
                 input: expect.objectContaining({
-                    inventoryId: "new-inventory",
+                    inventory_id: "new-inventory",
                     quantity: "42",
-                    referenceType: "worksheets",
+                    reference_type: "worksheets",
                 }),
             },
         });

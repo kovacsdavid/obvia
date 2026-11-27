@@ -23,11 +23,11 @@ import type { InventoryReservationUserInput } from "./interface";
 
 const input: InventoryReservationUserInput = {
     id: null,
-    inventoryId: "inventory-1",
+    inventory_id: "inventory-1",
     quantity: "3.5",
-    referenceType: "worksheets",
-    referenceId: "worksheet-1",
-    reservedUntil: "2027-01-01",
+    reference_type: "worksheets",
+    reference_id: "worksheet-1",
+    reserved_until: "2027-01-01",
     status: "active",
 };
 const fields = {

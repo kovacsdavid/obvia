@@ -56,12 +56,12 @@ const input: ServiceUserInput = {
     id: "service-1",
     name: "Installation",
     description: null,
-    defaultPrice: null,
-    defaultTaxId: null,
-    currencyCode: null,
+    default_price: null,
+    default_tax_id: null,
+    currency_code: null,
     status: "active",
-    unitOfMeasureId: "unit-1",
-    newUnitOfMeasure: "",
+    unit_of_measure_id: "unit-1",
+    new_unit_of_measure: "",
 };
 
 const result = { kind: "http_error", status: 500 } as const;

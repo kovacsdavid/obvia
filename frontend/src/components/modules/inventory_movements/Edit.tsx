@@ -60,6 +60,12 @@ interface EditProps {
     referenceType?: string | null;
 }
 
+interface InventoryMovementFormState {
+    inventory_id: string;
+    movement_type: string;
+    tax_id: string;
+}
+
 export default function Edit({
     showCard = true,
     onSuccess = undefined,
@@ -71,11 +77,11 @@ export default function Edit({
         [params],
     );
     const referenceId = React.useMemo(() => params["referenceId"], [params]);
-    const [inventoryId, setInventoryId] = React.useState(routeInventoryId);
-    const [movementType, setMovementType] = React.useState(
-        typeof referenceId === "string" ? "out" : "",
-    );
-    const [taxId, setTaxId] = React.useState("");
+    const [form, setForm] = React.useState<InventoryMovementFormState>({
+        inventory_id: routeInventoryId,
+        movement_type: typeof referenceId === "string" ? "out" : "",
+        tax_id: "",
+    });
     const [taxList, setTaxList] = React.useState<SelectOptionList>([]);
     React.useState<SelectOptionList>([]);
     const [inventoryIdList, setInventoryIdList] =
@@ -115,6 +121,13 @@ export default function Edit({
     const [openNewInventoryDialog, setOpenNewInventoryDialog] =
         React.useState(false);
 
+    function setFormField<Key extends keyof InventoryMovementFormState>(
+        field: Key,
+        value: InventoryMovementFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
+
     const loadLists = useCallback(() => {
         return Promise.all([
             !routeInventoryId &&
@@ -141,7 +154,7 @@ export default function Edit({
     const handleEditInventorySuccess = async (inventory: Inventory) => {
         return loadLists().then(() => {
             setTimeout(() => {
-                setInventoryId(inventory.id);
+                setFormField("inventory_id", inventory.id);
             }, 0);
             setOpenNewInventoryDialog(false);
         });
@@ -156,15 +169,18 @@ export default function Edit({
                         handleApiResult(result, {
                             onSuccess: ({ data }) => {
                                 if (data) {
-                                    setInventoryId(data.inventory_id);
-                                    setMovementType(data.movement_type);
+                                    setForm((previous) => ({
+                                        ...previous,
+                                        inventory_id: data.inventory_id,
+                                        movement_type: data.movement_type,
+                                        tax_id: data.tax_id,
+                                    }));
                                     quantity.setValue(
                                         data.quantity
                                             ? data.quantity.toString()
                                             : "",
                                     );
                                     unitPrice.setValue(data.unit_price ?? "");
-                                    setTaxId(data.tax_id);
                                 }
                             },
                         });
@@ -184,25 +200,23 @@ export default function Edit({
                 create({
                     input: {
                         id: null,
-                        inventoryId,
-                        movementType,
+                        ...form,
                         quantity: !isNaN(quantity.getNumericValue())
                             ? quantity.getNumericValue().toString()
                             : "",
-                        referenceType:
+                        reference_type:
                             typeof referenceType === "string"
                                 ? referenceType
                                 : "",
-                        referenceId:
+                        reference_id:
                             typeof referenceId === "string" ? referenceId : "",
-                        unitPrice: !isNaN(unitPrice.getNumericValue())
+                        unit_price: !isNaN(unitPrice.getNumericValue())
                             ? unitPrice.getNumericValue().toString()
                             : "",
-                        totalPrice:
+                        total_price:
                             typeof totalPrice === "string"
                                 ? parseNumber(totalPrice).toString()
                                 : "",
-                        taxId,
                     },
                 }),
             )
@@ -223,14 +237,12 @@ export default function Edit({
         },
         [
             dispatch,
-            inventoryId,
-            movementType,
+            form,
             quantity,
             referenceType,
             referenceId,
             unitPrice,
             totalPrice,
-            taxId,
             onSuccess,
             navigate,
         ],
@@ -294,10 +306,10 @@ export default function Edit({
                                             disabled={
                                                 inventoryIdList.length === 0
                                             }
-                                            value={inventoryId ?? ""}
+                                            value={form.inventory_id}
                                             onValueChange={(val) => {
                                                 resetError("inventory_id");
-                                                setInventoryId(val);
+                                                setFormField("inventory_id", val);
                                             }}
                                         >
                                             <SelectTrigger
@@ -393,10 +405,10 @@ export default function Edit({
                             <Field data-invalid={isInvalidField("tax_id")}>
                                 <FieldLabel htmlFor="tax_id">Adó</FieldLabel>
                                 <Select
-                                    value={taxId}
+                                    value={form.tax_id}
                                     onValueChange={(val) => {
                                         resetError("tax_id");
-                                        setTaxId(val);
+                                        setFormField("tax_id", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -425,10 +437,10 @@ export default function Edit({
                                     Művelet
                                 </FieldLabel>
                                 <Select
-                                    value={movementType}
+                                    value={form.movement_type}
                                     onValueChange={(val) => {
                                         resetError("movement_type");
-                                        setMovementType(val);
+                                        setFormField("movement_type", val);
                                     }}
                                     disabled={typeof referenceId === "string"}
                                 >

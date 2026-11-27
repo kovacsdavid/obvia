@@ -66,27 +66,48 @@ interface EditProps {
     onCancel?: () => void;
 }
 
+interface TaxFormState {
+    rate: string;
+    description: string;
+    country_code: string;
+    tax_category: string;
+    is_rate_applicable: string;
+    legal_text: string;
+    reporting_code: string;
+    is_default: boolean;
+    status: string;
+}
+
 export default function Edit({
     showCard = true,
     createOnly = false,
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
-    const [rate, setRate] = React.useState("");
-    const [description, setDescription] = React.useState("");
-    const [countryCode, setCountryCode] = React.useState("HU");
-    const [taxCategory, setTaxCategory] = React.useState("");
-    const [isRateApplicable, setIsRateApplicable] = React.useState("");
-    const [legalText, setLegalText] = React.useState("");
-    const [reportingCode, setReportingCode] = React.useState("");
-    const [isDefault, setIsDefault] = React.useState<boolean>(false);
-    const [status, setStatus] = React.useState("active");
+    const [form, setForm] = React.useState<TaxFormState>({
+        rate: "",
+        description: "",
+        country_code: "HU",
+        tax_category: "",
+        is_rate_applicable: "",
+        legal_text: "",
+        reporting_code: "",
+        is_default: false,
+        status: "active",
+    });
     const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const [errors, setErrors] = React.useState<TaxError | null>(null);
     const params = useParams();
     const id = createOnly ? null : (params["id"] ?? null);
+
+    function setFormField<Key extends keyof TaxFormState>(
+        field: Key,
+        value: TaxFormState[Key],
+    ) {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    }
 
     const evalIsRateApplicable = (value: string): boolean | null => {
         switch (value) {
@@ -103,16 +124,11 @@ export default function Edit({
         const result = await dispatch(
             create({
                 input: {
+                    ...form,
                     id,
-                    rate,
-                    description,
-                    countryCode,
-                    taxCategory,
-                    isRateApplicable: evalIsRateApplicable(isRateApplicable),
-                    legalText,
-                    reportingCode,
-                    isDefault,
-                    status,
+                    is_rate_applicable: evalIsRateApplicable(
+                        form.is_rate_applicable,
+                    ),
                 },
             }),
         ).unwrap();
@@ -149,16 +165,11 @@ export default function Edit({
         const result = await dispatch(
             update({
                 input: {
+                    ...form,
                     id,
-                    rate,
-                    description,
-                    countryCode,
-                    taxCategory,
-                    isRateApplicable: evalIsRateApplicable(isRateApplicable),
-                    legalText,
-                    reportingCode,
-                    isDefault,
-                    status,
+                    is_rate_applicable: evalIsRateApplicable(
+                        form.is_rate_applicable,
+                    ),
                 },
             }),
         ).unwrap();
@@ -191,17 +202,20 @@ export default function Edit({
                     handleApiResult(result, {
                         onSuccess: ({ data }) => {
                             if (typeof data !== "undefined") {
-                                setRate(data.rate ?? "");
-                                setDescription(data.description);
-                                setCountryCode(data.country_code);
-                                setTaxCategory(data.tax_category);
-                                setIsRateApplicable(
-                                    data.is_rate_applicable ? "true" : "false",
-                                );
-                                setLegalText(data.legal_text ?? "");
-                                setReportingCode(data.reporting_code ?? "");
-                                setIsDefault(data.is_default);
-                                setStatus(data.status);
+                                setForm({
+                                    rate: data.rate ?? "",
+                                    description: data.description,
+                                    country_code: data.country_code,
+                                    tax_category: data.tax_category,
+                                    is_rate_applicable:
+                                        data.is_rate_applicable
+                                            ? "true"
+                                            : "false",
+                                    legal_text: data.legal_text ?? "",
+                                    reporting_code: data.reporting_code ?? "",
+                                    is_default: data.is_default,
+                                    status: data.status,
+                                });
                             }
                         },
                     });
@@ -266,10 +280,10 @@ export default function Edit({
                                     Adókulcs alkalmazandó
                                 </FieldLabel>
                                 <Select
-                                    value={isRateApplicable}
+                                    value={form.is_rate_applicable}
                                     onValueChange={(val) => {
                                         resetError("is_rate_applicable");
-                                        setIsRateApplicable(val);
+                                        setFormField("is_rate_applicable", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -293,7 +307,7 @@ export default function Edit({
                                     error={errors?.is_rate_applicable}
                                 />
                             </Field>
-                            {isRateApplicable === "true" ? (
+                            {form.is_rate_applicable === "true" ? (
                                 <>
                                     <Field
                                         data-invalid={isInvalidField("rate")}
@@ -304,10 +318,10 @@ export default function Edit({
                                         <Input
                                             id="rate"
                                             type="text"
-                                            value={rate}
+                                            value={form.rate}
                                             onChange={(e) => {
                                                 resetError("rate");
-                                                setRate(e.target.value);
+                                                setFormField("rate", e.target.value);
                                             }}
                                             aria-invalid={isInvalidField(
                                                 "rate",
@@ -325,10 +339,13 @@ export default function Edit({
                                     id="description"
                                     type="text"
                                     placeholder="ÁFA"
-                                    value={description}
+                                    value={form.description}
                                     onChange={(e) => {
                                         resetError("description");
-                                        setDescription(e.target.value);
+                                        setFormField(
+                                            "description",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
@@ -341,10 +358,10 @@ export default function Edit({
                                     Ország
                                 </FieldLabel>
                                 <Combobox
-                                    value={countryCode}
+                                    value={form.country_code}
                                     onValueChange={(val) => {
                                         resetError("country_code");
-                                        setCountryCode(val ?? "");
+                                        setFormField("country_code", val ?? "");
                                     }}
                                     items={countryCodes}
                                     itemToStringLabel={getCountryTitle}
@@ -381,10 +398,10 @@ export default function Edit({
                                     Adó kategória
                                 </FieldLabel>
                                 <Select
-                                    value={taxCategory}
+                                    value={form.tax_category}
                                     onValueChange={(val) => {
                                         resetError("tax_category");
-                                        setTaxCategory(val);
+                                        setFormField("tax_category", val);
                                     }}
                                 >
                                     <SelectTrigger
@@ -488,10 +505,13 @@ export default function Edit({
                                     id="legal_text"
                                     type="text"
                                     placeholder="Pl.: Alanyi adómenetes"
-                                    value={legalText}
+                                    value={form.legal_text}
                                     onChange={(e) => {
                                         resetError("legal_text");
-                                        setLegalText(e.target.value);
+                                        setFormField(
+                                            "legal_text",
+                                            e.target.value,
+                                        );
                                     }}
                                     aria-invalid={isInvalidField("legal_text")}
                                 />
@@ -502,10 +522,10 @@ export default function Edit({
                                     Státusz
                                 </FieldLabel>
                                 <Select
-                                    value={status}
+                                    value={form.status}
                                     onValueChange={(val) => {
                                         resetError("status");
-                                        setStatus(val);
+                                        setFormField("status", val);
                                     }}
                                 >
                                     <SelectTrigger

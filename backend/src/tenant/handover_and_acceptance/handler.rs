@@ -42,6 +42,17 @@ use crate::{
     },
 };
 
+#[utoipa::path(
+    get, path = "/api/handover_and_acceptance/get_full", tag = "Handover and Acceptance",
+    summary = "Get a handover and acceptance record",
+    params(("uuid" = uuid::Uuid, Query, description = "Record ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Full record", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Record not found")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::get_full",
     skip(app_state)
@@ -65,6 +76,16 @@ pub async fn get_full<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/handover_and_acceptance/list", tag = "Handover and Acceptance",
+    summary = "List handover and acceptance records",
+    params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Page of records", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::list",
     skip(app_state)
@@ -96,6 +117,16 @@ pub async fn list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/handover_and_acceptance/select_list", tag = "Handover and Acceptance",
+    summary = "Get handover and acceptance select-list items",
+    params(("list" = Option<String>, Query, description = "Select-list type"), ("param" = Option<String>, Query, description = "Optional select-list parameter")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::select_list",
     skip(app_state)
@@ -126,6 +157,17 @@ pub async fn select_list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/handover_and_acceptance/create", tag = "Handover and Acceptance",
+    summary = "Create a handover and acceptance record",
+    request_body = UserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 201, description = "Record created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::create",
     skip(app_state)
@@ -149,6 +191,18 @@ pub async fn create<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    put, path = "/api/handover_and_acceptance/update", tag = "Handover and Acceptance",
+    summary = "Update a handover and acceptance record",
+    request_body = UserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Record updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Record not found"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::update",
     skip(app_state)
@@ -172,6 +226,17 @@ pub async fn update<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    delete, path = "/api/handover_and_acceptance/delete", tag = "Handover and Acceptance",
+    summary = "Delete a handover and acceptance record",
+    params(("uuid" = uuid::Uuid, Query, description = "Record ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Record deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Record not found")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::delete",
     skip(app_state)
@@ -197,6 +262,17 @@ pub async fn delete<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/handover_and_acceptance/print", tag = "Handover and Acceptance",
+    summary = "Print a record as PDF",
+    params(("uuid" = uuid::Uuid, Query, description = "Record ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "PDF document", body = crate::common::api_docs::PdfDocument, content_type = "application/pdf", headers(("Content-Disposition" = String))),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Record not found")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::handover_and_acceptance::handler::print",
     skip(app_state)

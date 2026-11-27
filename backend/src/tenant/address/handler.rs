@@ -37,6 +37,16 @@ use crate::{
     manager::auth::middleware::AuthenticatedUser,
 };
 
+#[utoipa::path(
+    get, path = "/api/address/select_list", tag = "Addresses",
+    summary = "Get address select-list items",
+    params(("list" = Option<String>, Query, description = "Select-list type")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::tenant::address::handler::select_list", skip(app_state))]
 pub async fn select_list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,

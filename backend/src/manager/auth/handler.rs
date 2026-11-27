@@ -37,6 +37,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    post, path = "/api/auth/login", tag = "Authentication",
+    summary = "Log in and issue access and refresh tokens",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login succeeded", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Invalid credentials"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::manager::auth::handler::login", skip(app_state, jar))]
 pub async fn login<A: AppStateInterface>(
     State(app_state): State<Arc<A>>,
@@ -76,6 +86,14 @@ pub async fn login<A: AppStateInterface>(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/auth/t/refresh", tag = "Authentication",
+    summary = "Refresh tokens using the refresh-token cookie",
+    responses(
+        (status = 200, description = "Tokens refreshed", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Refresh token missing, expired, or invalid")
+    )
+)]
 #[instrument(name = "obvia::manager::auth::handler::refresh", skip(app_state, jar))]
 pub async fn refresh<A: AppStateInterface>(
     State(app_state): State<Arc<A>>,
@@ -114,6 +132,14 @@ pub async fn refresh<A: AppStateInterface>(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/auth/t/logout", tag = "Authentication",
+    summary = "Log out and clear the refresh-token cookie",
+    responses(
+        (status = 200, description = "Refresh-token cookie cleared"),
+        (status = 401, description = "Refresh token missing or invalid")
+    )
+)]
 #[instrument(name = "obvia::manager::auth::handler::logout", skip(app_state, jar))]
 pub async fn logout<A: AppStateInterface>(
     State(app_state): State<Arc<A>>,
@@ -132,6 +158,16 @@ pub async fn logout<A: AppStateInterface>(
         .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/auth/register", tag = "Authentication",
+    summary = "Register a user",
+    request_body = RegisterRequestHelper,
+    responses(
+        (status = 201, description = "User registered", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 409, description = "User already exists"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::manager::auth::handler::register", skip(app_state))]
 pub async fn register<A: AppStateInterface>(
     State(app_state): State<Arc<A>>,
@@ -153,6 +189,15 @@ pub async fn register<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/auth/verify_email", tag = "Authentication",
+    summary = "Verify an email address",
+    params(("id" = String, Query, description = "Email verification token")),
+    responses(
+        (status = 200, description = "Email verified", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 422, description = "Invalid or expired token")
+    )
+)]
 #[instrument(
     name = "obvia::manager::auth::handler::verify_email",
     skip(app_state, payload)
@@ -181,6 +226,15 @@ pub async fn verify_email<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/auth/resend_email_verification", tag = "Authentication",
+    summary = "Resend email verification",
+    request_body = ResendEmailValidationRequestHelper,
+    responses(
+        (status = 200, description = "Verification email queued", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(
     name = "obvia::manager::auth::handler::resend_email_verification",
     skip(app_state)
@@ -213,6 +267,15 @@ pub async fn resend_email_verification<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/auth/forgotten_password", tag = "Authentication",
+    summary = "Request a password reset",
+    request_body = ForgottenPasswordRequestHelper,
+    responses(
+        (status = 200, description = "Password reset instructions queued", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(
     name = "obvia::manager::auth::handler::forgotten_password",
     skip(app_state)
@@ -241,6 +304,15 @@ pub async fn forgotten_password<A: AppStateInterface>(
         ).await?.into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/auth/new_password", tag = "Authentication",
+    summary = "Set a new password using a reset token",
+    request_body = NewPasswordRequestHelper,
+    responses(
+        (status = 200, description = "Password changed", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 422, description = "Invalid input or token")
+    )
+)]
 #[instrument(name = "obvia::manager::auth::handler::new_password", skip(app_state))]
 pub async fn new_password<A: AppStateInterface>(
     State(app_state): State<Arc<A>>,

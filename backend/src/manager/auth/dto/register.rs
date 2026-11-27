@@ -27,7 +27,7 @@ use serde_json::json;
 use std::fmt::{Debug, Display, Formatter};
 use tracing::Level;
 
-#[derive(Deserialize, Clone, PartialEq, Serialize)]
+#[derive(Deserialize, Clone, PartialEq, Serialize, utoipa::ToSchema)]
 pub struct RegisterRequestHelper {
     pub email: String,
     pub first_name: String,
@@ -169,7 +169,7 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Serialize, utoipa::ToSchema)]
 pub struct ResendEmailValidationRequestHelper {
     pub email: String,
 }
@@ -240,7 +240,7 @@ impl TryFrom<ResendEmailValidationRequestHelper> for ResendEmailValidationReques
     }
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Serialize, utoipa::ToSchema)]
 pub struct ForgottenPasswordRequestHelper {
     pub email: String,
 }
@@ -307,7 +307,7 @@ impl TryFrom<ForgottenPasswordRequestHelper> for ForgottenPasswordRequest {
     }
 }
 
-#[derive(Deserialize, Clone, PartialEq, Serialize)]
+#[derive(Deserialize, Clone, PartialEq, Serialize, utoipa::ToSchema)]
 pub struct NewPasswordRequestHelper {
     pub token: String,
     pub password: String,

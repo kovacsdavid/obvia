@@ -34,6 +34,16 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    get, path = "/api/activity_feed/list", tag = "Activity Feed",
+    summary = "List activity for a resource",
+    params(("q" = Option<String>, Query, description = "Optional filtering and paging expression"), ("resource_id" = Option<String>, Query, description = "Resource ID"), ("resource_type" = Option<String>, Query, description = "Resource type")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Page of activity feed entries", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::tenant::activity_feed::handler::list", skip(app_state))]
 pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,

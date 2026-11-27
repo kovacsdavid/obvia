@@ -29,7 +29,7 @@ use std::fmt::{Display, Formatter};
 use tracing::Level;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, utoipa::ToSchema)]
 pub struct CreateTenantHelper {
     pub name: String,
 }
@@ -162,7 +162,7 @@ impl From<Tenant> for PublicTenantManaged {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, utoipa::ToSchema)]
 pub struct TenantIdRequest {
     pub uuid: Uuid,
 }

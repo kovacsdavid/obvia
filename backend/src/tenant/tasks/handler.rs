@@ -35,6 +35,17 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    get, path = "/api/tasks/get_resolved", tag = "Tasks",
+    summary = "Get a task with resolved details",
+    params(("uuid" = uuid::Uuid, Query, description = "Task ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Resolved task", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Task not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::tasks::handler::get_resolved", skip(app_state))]
 pub async fn get_resolved<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -56,6 +67,17 @@ pub async fn get_resolved<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/tasks/get", tag = "Tasks",
+    summary = "Get a task",
+    params(("uuid" = uuid::Uuid, Query, description = "Task ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Task", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Task not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::tasks::handler::get", skip(app_state))]
 pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -76,6 +98,18 @@ pub async fn get<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    put, path = "/api/tasks/update", tag = "Tasks",
+    summary = "Update a task",
+    request_body = TaskUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Task updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Task not found"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::tenant::tasks::handler::update", skip(app_state))]
 pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -96,6 +130,17 @@ pub async fn update<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    delete, path = "/api/tasks/delete", tag = "Tasks",
+    summary = "Delete a task",
+    params(("uuid" = uuid::Uuid, Query, description = "Task ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Task deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Task not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::tasks::handler::delete", skip(app_state))]
 pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -118,6 +163,18 @@ pub async fn delete<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/tasks/create", tag = "Tasks",
+    summary = "Create a task",
+    request_body = TaskUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 201, description = "Task created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 409, description = "Task already exists"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::tenant::tasks::handler::create", skip(app_state))]
 pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -138,6 +195,16 @@ pub async fn create<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/tasks/select_list", tag = "Tasks",
+    summary = "Get task select-list items",
+    params(("list" = Option<String>, Query, description = "Select-list type")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::tenant::tasks::handler::select_list", skip(app_state))]
 pub async fn select_list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -167,6 +234,16 @@ pub async fn select_list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/tasks/list", tag = "Tasks",
+    summary = "List tasks",
+    params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Page of tasks", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::tenant::tasks::handler::list", skip(app_state))]
 pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -194,6 +271,17 @@ pub async fn list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/tasks/print", tag = "Tasks",
+    summary = "Print a task as PDF",
+    params(("uuid" = uuid::Uuid, Query, description = "Task ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "PDF document", body = crate::common::api_docs::PdfDocument, content_type = "application/pdf", headers(("Content-Disposition" = String))),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Task not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::tasks::handler::print", skip(app_state))]
 pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,

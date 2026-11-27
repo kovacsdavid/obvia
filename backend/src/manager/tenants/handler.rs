@@ -37,6 +37,17 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    post, path = "/api/tenants/create", tag = "Tenants",
+    summary = "Create a managed tenant",
+    request_body = CreateTenantHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 201, description = "Tenant created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::manager::tenants::handler::create", skip(app_state))]
 pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -58,6 +69,14 @@ pub async fn create<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/tenants/get", tag = "Tenants",
+    summary = "Get the active tenant",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 501, description = "Not implemented")
+    )
+)]
 #[instrument(name = "obvia::manager::tenants::handler::get", skip(_app_state))]
 pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
@@ -67,6 +86,14 @@ pub async fn get<A: AppStateInterface>(
     todo!();
 }
 
+#[utoipa::path(
+    get, path = "/api/tenants/get_resolved", tag = "Tenants",
+    summary = "Get the active tenant with resolved details",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 501, description = "Not implemented")
+    )
+)]
 #[instrument(
     name = "obvia::manager::tenants::handler::get_resolved",
     skip(_app_state)
@@ -79,6 +106,16 @@ pub async fn get_resolved<A: AppStateInterface>(
     todo!();
 }
 
+#[utoipa::path(
+    get, path = "/api/tenants/list", tag = "Tenants",
+    summary = "List tenants",
+    params(("q" = Option<String>, Query, description = "Tenant filtering, ordering, and paging expression")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Page of tenants", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::manager::tenants::handler::list", skip(app_state))]
 pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -107,6 +144,17 @@ pub async fn list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/tenants/activate", tag = "Tenants",
+    summary = "Activate a tenant",
+    request_body = TenantIdRequest,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Tenant activated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 422, description = "Invalid tenant ID")
+    )
+)]
 #[instrument(name = "obvia::manager::tenants::handler::activate", skip(app_state))]
 pub async fn activate<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -127,6 +175,17 @@ pub async fn activate<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/tenants/delete", tag = "Tenants",
+    summary = "Delete a tenant",
+    request_body = TenantIdRequest,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Tenant deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 422, description = "Invalid tenant ID")
+    )
+)]
 #[instrument(name = "obvia::manager::tenants::handler::delete", skip(app_state))]
 pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,

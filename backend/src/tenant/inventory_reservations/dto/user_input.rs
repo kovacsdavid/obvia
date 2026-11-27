@@ -31,7 +31,7 @@ use std::fmt::{Display, Formatter};
 use tracing::Level;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct InventoryReservationUserInputHelper {
     pub id: Option<String>,
     pub inventory_id: String,

@@ -29,6 +29,15 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    get, path = "/api/users/get_claims", tag = "Users",
+    summary = "Get claims for the authenticated user",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Authenticated user's claims", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::manager::users::handler::get_claims", skip(app_state))]
 pub async fn get_claims<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -46,6 +55,15 @@ pub async fn get_claims<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/users/otp/enable", tag = "Users",
+    summary = "Start two-factor authentication setup",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "OTP setup secret and provisioning data", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::manager::users::handler::otp_enable", skip(app_state))]
 pub async fn otp_enable<A: AppStateInterface>(
     State(app_state): State<Arc<A>>,
@@ -66,6 +84,17 @@ pub async fn otp_enable<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/users/otp/verify", tag = "Users",
+    summary = "Verify and enable two-factor authentication",
+    request_body = OtpUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Two-factor authentication enabled", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 422, description = "Invalid OTP")
+    )
+)]
 #[instrument(name = "obvia::manager::users::handler::otp_verify", skip(app_state))]
 pub async fn otp_verify<A: AppStateInterface>(
     State(app_state): State<Arc<A>>,
@@ -93,6 +122,17 @@ pub async fn otp_verify<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/users/otp/disable", tag = "Users",
+    summary = "Disable two-factor authentication",
+    request_body = OtpUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Two-factor authentication disabled", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 401, description = "Authentication required"),
+        (status = 422, description = "Invalid OTP")
+    )
+)]
 #[instrument(name = "obvia::manager::users::handler::otp_disable", skip(app_state))]
 pub async fn otp_disable<A: AppStateInterface>(
     State(app_state): State<Arc<A>>,

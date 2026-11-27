@@ -122,6 +122,9 @@ where
     pub fields: Option<F>,
 }
 
+#[derive(Serialize, utoipa::ToSchema)]
+pub struct JsonObjectSchema {}
+
 impl<E> IntoResponse for ErrorResponse<E>
 where
     E: Serialize,

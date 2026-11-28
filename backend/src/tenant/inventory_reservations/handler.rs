@@ -223,7 +223,7 @@ pub async fn delete<A: AppStateInterface>(
 #[utoipa::path(
     get, path = "/api/inventory_reservations/list", tag = "Inventory Reservations",
     summary = "List inventory reservations",
-    params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression"), ("inventory_id" = Option<String>, Query, description = "Filter by inventory ID")),
+    params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression"), ("inventory_id" = uuid::Uuid, Query, description = "Inventory ID whose reservations to list")),
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "Page of inventory reservations", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::inventory_reservations::model::InventoryReservationResolved>>),

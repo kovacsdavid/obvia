@@ -227,7 +227,7 @@ pub async fn verify_email<A: AppStateInterface>(
 }
 
 #[utoipa::path(
-    get, path = "/api/auth/resend_email_verification", tag = "Authentication",
+    post, path = "/api/auth/resend_email_verification", tag = "Authentication",
     summary = "Resend email verification",
     request_body = ResendEmailValidationRequestHelper,
     responses(
@@ -1128,7 +1128,7 @@ mod tests {
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
-            .method("GET")
+            .method("POST")
             .uri("/api/auth/resend_email_verification")
             .body(Body::from(payload))
             .unwrap();
@@ -1174,7 +1174,7 @@ mod tests {
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
-            .method("GET")
+            .method("POST")
             .uri("/api/auth/resend_email_verification")
             .body(Body::from(payload))
             .unwrap();

@@ -35,7 +35,7 @@ pub fn routes<A: AppStateInterface>(auth_module: Arc<A>) -> Router {
             .route("/verify_email", get(handler::verify_email::<A>))
             .route(
                 "/resend_email_verification",
-                get(handler::resend_email_verification::<A>),
+                post(handler::resend_email_verification::<A>),
             )
             .route(
                 "/forgotten_password",

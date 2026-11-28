@@ -120,7 +120,7 @@ pub async fn list<A: AppStateInterface>(
 #[utoipa::path(
     get, path = "/api/handover_and_acceptance/select_list", tag = "Handover and Acceptance",
     summary = "Get handover and acceptance select-list items",
-    params(("list" = Option<String>, Query, description = "Select-list type"), ("param" = Option<String>, Query, description = "Optional select-list parameter")),
+    params(("list" = String, Query, description = "Select-list type: customers, item_makes, item_models, item_identifier_type, or currencies"), ("param" = Option<String>, Query, description = "Item make UUID; required when list is item_models, ignored for other lists")),
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),

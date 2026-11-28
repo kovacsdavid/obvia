@@ -140,7 +140,7 @@ pub(crate) struct PdfDocument(#[allow(dead_code)] Vec<u8>);
         crate::tenant::worksheets::handler::delete,
         crate::tenant::worksheets::handler::print
     ),
-    modifiers(&BearerSecurity),
+    modifiers(&BearerSecurity, &UniqueOperationIds),
     tags(
         (name = "Authentication", description = "Public registration, login, and token operations"),
         (name = "Users", description = "Authenticated user and two-factor authentication operations"),
@@ -165,6 +165,39 @@ pub(crate) struct PdfDocument(#[allow(dead_code)] Vec<u8>);
 pub(crate) struct ApiDoc;
 
 struct BearerSecurity;
+
+struct UniqueOperationIds;
+
+impl Modify for UniqueOperationIds {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        for (path, path_item) in &mut openapi.paths.paths {
+            let encoded_path = path.bytes().fold(String::new(), |mut encoded, byte| {
+                if byte.is_ascii_alphanumeric() {
+                    encoded.push(char::from(byte));
+                } else {
+                    use std::fmt::Write;
+                    write!(encoded, "_{byte:02x}").expect("writing to a string cannot fail");
+                }
+                encoded
+            });
+            for (method, operation) in [
+                ("get", &mut path_item.get),
+                ("put", &mut path_item.put),
+                ("post", &mut path_item.post),
+                ("delete", &mut path_item.delete),
+                ("options", &mut path_item.options),
+                ("head", &mut path_item.head),
+                ("patch", &mut path_item.patch),
+                ("trace", &mut path_item.trace),
+                ("query", &mut path_item.query),
+            ] {
+                if let Some(operation) = operation {
+                    operation.operation_id = Some(format!("{method}{encoded_path}"));
+                }
+            }
+        }
+    }
+}
 
 impl Modify for BearerSecurity {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
@@ -223,6 +256,43 @@ mod tests {
             }
             _ => {}
         }
+    }
+
+    #[test]
+    fn operation_ids_are_unique() {
+        let document = serde_json::to_value(ApiDoc::openapi()).unwrap();
+        let mut operation_ids = std::collections::HashMap::new();
+        for (path, path_item) in document["paths"].as_object().unwrap() {
+            for (method, operation) in path_item.as_object().unwrap() {
+                let operation_id = operation["operationId"].as_str().unwrap();
+                let previous = operation_ids.insert(operation_id, (method, path));
+                assert!(
+                    previous.is_none(),
+                    "duplicate operationId {operation_id}: {previous:?} and {method} {path}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn customer_and_activity_lists_have_distinct_operations() {
+        let document = serde_json::to_value(ApiDoc::openapi()).unwrap();
+        let customer_list = &document["paths"]["/api/customers/list"]["get"];
+        let activity_list = &document["paths"]["/api/activity_feed/list"]["get"];
+
+        assert_ne!(customer_list["operationId"], activity_list["operationId"]);
+        assert!(
+            customer_list["parameters"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|parameter| parameter["name"] != "resource_id")
+        );
+        assert!(
+            activity_list["parameters"].as_array().unwrap().iter().any(
+                |parameter| parameter["name"] == "resource_id" && parameter["required"] == true
+            )
+        );
     }
 
     #[test]

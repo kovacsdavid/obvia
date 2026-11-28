@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, PartialEq, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, PartialEq, Builder, utoipa::ToSchema)]
 pub struct User {
     pub id: Uuid,
     pub email: String,

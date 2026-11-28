@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, utoipa::ToSchema)]
 pub struct Product {
     pub id: Uuid,
     pub name: String,
@@ -36,7 +36,7 @@ pub struct Product {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 pub struct ProductResolved {
     pub id: Uuid,
     pub name: String,

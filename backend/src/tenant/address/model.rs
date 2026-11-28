@@ -122,7 +122,7 @@ impl Display for Address {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 #[builder(build_fn(error = "CommonBuilderError"))]
 pub struct AddressResolved {
     pub id: Uuid,

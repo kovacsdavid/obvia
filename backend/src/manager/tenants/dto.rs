@@ -29,7 +29,7 @@ use std::fmt::{Display, Formatter};
 use tracing::Level;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, utoipa::ToSchema)]
 pub struct CreateTenantHelper {
     pub name: String,
 }
@@ -99,7 +99,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, utoipa::ToSchema)]
 #[serde(untagged)]
 pub enum PublicTenant {
     Managed(PublicTenantManaged),
@@ -125,7 +125,7 @@ impl From<Tenant> for PublicTenant {
     }
 }
 
-#[derive(Serialize, Debug, Clone, Default)]
+#[derive(Serialize, Debug, Clone, Default, utoipa::ToSchema)]
 pub struct PublicTenantManaged {
     pub id: Uuid,
     pub name: String,
@@ -162,12 +162,12 @@ impl From<Tenant> for PublicTenantManaged {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, utoipa::ToSchema)]
 pub struct TenantIdRequest {
     pub uuid: Uuid,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, utoipa::ToSchema)]
 pub struct NewTokenResponse {
     pub token: String,
     pub claims: Claims,

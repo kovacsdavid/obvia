@@ -18,7 +18,9 @@
  */
 
 use crate::common::AppStateInterface;
-use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
+use crate::common::dto::{
+    EmptyType, SimpleMessageResponse, SuccessResponse, SuccessResponseBuilder, UuidParam,
+};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
@@ -35,6 +37,19 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    get, path = "/api/customers/get_resolved", tag = "Customers",
+    summary = "Get a customer with the creator's name",
+    params(("uuid" = uuid::Uuid, Query, description = "Customer ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Customer found", body = SuccessResponse<EmptyType, crate::tenant::customers::model::CustomerResolved>),
+        (status = 400, description = "Missing authentication or invalid query"),
+        (status = 401, description = "Invalid or expired token, or no active tenant", content((String = "text/plain"), (crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>> = "application/json"))),
+        (status = 404, description = "Customer not found", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 500, description = "Internal error")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::customers::handler::get_resolved",
     skip(app_state)
@@ -59,6 +74,19 @@ pub async fn get_resolved<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/customers/get_full", tag = "Customers",
+    summary = "Get a customer with resolved addresses",
+    params(("uuid" = uuid::Uuid, Query, description = "Customer ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Customer found", body = SuccessResponse<EmptyType, crate::tenant::customers::model::CustomerFull>),
+        (status = 400, description = "Missing authentication or invalid query"),
+        (status = 401, description = "Invalid or expired token, or no active tenant", content((String = "text/plain"), (crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>> = "application/json"))),
+        (status = 404, description = "Customer not found", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 500, description = "Internal error")
+    )
+)]
 #[instrument(name = "obvia::tenant::customers::handler::get_full", skip(app_state))]
 pub async fn get_full<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -79,6 +107,19 @@ pub async fn get_full<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/customers/get", tag = "Customers",
+    summary = "Get a customer",
+    params(("uuid" = uuid::Uuid, Query, description = "Customer ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Customer found", body = SuccessResponse<EmptyType, crate::tenant::customers::model::Customer>),
+        (status = 400, description = "Missing authentication or invalid query"),
+        (status = 401, description = "Invalid or expired token, or no active tenant", content((String = "text/plain"), (crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>> = "application/json"))),
+        (status = 404, description = "Customer not found", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 500, description = "Internal error")
+    )
+)]
 #[instrument(name = "obvia::tenant::customers::handler::get", skip(app_state))]
 pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -99,6 +140,21 @@ pub async fn get<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/customers/create", tag = "Customers",
+    summary = "Create a customer",
+    description = "Customer ID may be omitted. Status must be active, inactive, lead or prospect; customer_type must be natural or legal. A legal customer requires a contact name.",
+    request_body = CustomerUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 201, description = "Customer created", body = SuccessResponse<EmptyType, crate::tenant::customers::model::Customer>),
+        (status = 400, description = "Missing authentication or malformed request"),
+        (status = 401, description = "Invalid or expired token, or no active tenant", content((String = "text/plain"), (crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>> = "application/json"))),
+        (status = 409, description = "Customer already exists", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 422, description = "Invalid customer fields", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 500, description = "Internal error")
+    )
+)]
 #[instrument(name = "obvia::tenant::customers::handler::create", skip(app_state))]
 pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -119,6 +175,21 @@ pub async fn create<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    put, path = "/api/customers/update", tag = "Customers",
+    summary = "Update a customer",
+    description = "The customer ID is required. Status must be active, inactive, lead or prospect; customer_type must be natural or legal. A legal customer requires a contact name.",
+    request_body = CustomerUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Customer updated", body = SuccessResponse<EmptyType, crate::tenant::customers::model::Customer>),
+        (status = 400, description = "Missing authentication or malformed request"),
+        (status = 401, description = "Invalid or expired token, or no active tenant", content((String = "text/plain"), (crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>> = "application/json"))),
+        (status = 404, description = "Customer not found", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 422, description = "Missing ID or invalid customer fields", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 500, description = "Internal error")
+    )
+)]
 #[instrument(name = "obvia::tenant::customers::handler::update", skip(app_state))]
 pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -139,6 +210,19 @@ pub async fn update<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    delete, path = "/api/customers/delete", tag = "Customers",
+    summary = "Delete a customer",
+    params(("uuid" = uuid::Uuid, Query, description = "Customer ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Customer deleted", body = SuccessResponse<EmptyType, SimpleMessageResponse>),
+        (status = 400, description = "Missing authentication or invalid query"),
+        (status = 401, description = "Invalid or expired token, or no active tenant", content((String = "text/plain"), (crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>> = "application/json"))),
+        (status = 404, description = "Customer not found", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 500, description = "Internal error")
+    )
+)]
 #[instrument(name = "obvia::tenant::customers::handler::delete", skip(app_state))]
 pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -161,6 +245,19 @@ pub async fn delete<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/customers/list", tag = "Customers",
+    summary = "List customers",
+    params(("q" = Option<String>, Query, description = "Optional space-separated query clauses, for example: ordering:name-asc paging:1-25 filtering:name-|Example Customer|. Ordering directions are asc and desc. Ordering and filtering fields are name, customer_type, status, created_at and updated_at.")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Page of customers", body = SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::customers::model::CustomerFull>>),
+        (status = 400, description = "Missing authentication or invalid query encoding"),
+        (status = 401, description = "Invalid or expired token, or no active tenant", content((String = "text/plain"), (crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>> = "application/json"))),
+        (status = 404, description = "Data not found", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 500, description = "Invalid query or internal error")
+    )
+)]
 #[instrument(name = "obvia::tenant::customers::handler::list", skip(app_state))]
 pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -189,6 +286,19 @@ pub async fn list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/customers/print", tag = "Customers",
+    summary = "Print a customer as PDF",
+    params(("uuid" = uuid::Uuid, Query, description = "Customer ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "PDF document", body = crate::common::api_docs::PdfDocument, content_type = "application/pdf", headers(("Content-Disposition" = String, description = "Inline PDF filename"))),
+        (status = 400, description = "Missing authentication or invalid query"),
+        (status = 401, description = "Invalid or expired token, or no active tenant", content((String = "text/plain"), (crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>> = "application/json"))),
+        (status = 404, description = "Customer not found", body = crate::common::dto::ErrorResponse<crate::common::dto::ErrorMessageResponse<crate::tenant::customers::dto::user_input::CustomerUserInputError>>),
+        (status = 500, description = "Internal error")
+    )
+)]
 #[instrument(name = "obvia::tenant::customers::handler::print", skip(app_state))]
 pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,

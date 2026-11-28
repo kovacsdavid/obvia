@@ -31,7 +31,7 @@ use crate::{
     },
 };
 
-#[derive(Clone, Debug, Deserialize, Serialize, Builder)]
+#[derive(Clone, Debug, Deserialize, Serialize, Builder, utoipa::ToSchema)]
 pub struct AddressUserInputHelper {
     pub id: Option<String>,
     #[serde(rename = "type")]
@@ -50,7 +50,7 @@ pub struct AddressUserInputHelper {
     pub door: String,
 }
 
-#[derive(Clone, Debug, Serialize, Default, Builder, PartialEq)]
+#[derive(Clone, Debug, Serialize, Default, Builder, PartialEq, utoipa::ToSchema)]
 pub struct AddressUserInputError {
     pub id: Option<String>,
     #[serde(rename = "type")]

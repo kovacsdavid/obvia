@@ -36,6 +36,17 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    get, path = "/api/products/get_resolved", tag = "Products",
+    summary = "Get a product with resolved details",
+    params(("uuid" = uuid::Uuid, Query, description = "Product ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Resolved product", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::products::model::ProductResolved>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Product not found")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::products::handler::get_resolved",
     skip(app_state)
@@ -60,6 +71,17 @@ pub async fn get_resolved<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/products/get", tag = "Products",
+    summary = "Get a product",
+    params(("uuid" = uuid::Uuid, Query, description = "Product ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Product", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::products::model::Product>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Product not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::products::handler::get", skip(app_state))]
 pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -80,6 +102,18 @@ pub async fn get<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    put, path = "/api/products/update", tag = "Products",
+    summary = "Update a product",
+    request_body = ProductUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Product updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::products::model::Product>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Product not found"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::tenant::products::handler::update", skip(app_state))]
 pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -100,6 +134,17 @@ pub async fn update<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    delete, path = "/api/products/delete", tag = "Products",
+    summary = "Delete a product",
+    params(("uuid" = uuid::Uuid, Query, description = "Product ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Product deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Product not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::products::handler::delete", skip(app_state))]
 pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -122,6 +167,18 @@ pub async fn delete<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/products/create", tag = "Products",
+    summary = "Create a product",
+    request_body = ProductUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 201, description = "Product created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::products::model::Product>),
+        (status = 401, description = "Authentication required"),
+        (status = 409, description = "Product already exists"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::tenant::products::handler::create", skip(app_state))]
 pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -142,6 +199,16 @@ pub async fn create<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/products/list", tag = "Products",
+    summary = "List products",
+    params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Page of products", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::products::model::ProductResolved>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::tenant::products::handler::list", skip(app_state))]
 pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -169,6 +236,16 @@ pub async fn list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/products/select_list", tag = "Products",
+    summary = "Get product select-list items",
+    params(("list" = Option<String>, Query, description = "Select-list type")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::products::handler::select_list",
     skip(app_state)
@@ -202,6 +279,17 @@ pub async fn select_list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/products/print", tag = "Products",
+    summary = "Print a product as PDF",
+    params(("uuid" = uuid::Uuid, Query, description = "Product ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "PDF document", body = crate::common::api_docs::PdfDocument, content_type = "application/pdf", headers(("Content-Disposition" = String))),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Product not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::products::handler::print", skip(app_state))]
 pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,

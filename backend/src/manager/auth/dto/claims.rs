@@ -82,7 +82,7 @@ pub type ClaimsResult<T> = Result<T, ClaimsError>;
 /// This struct is typically used to validate, decode, or create JWTs in the application.
 /// By accessing its fields, you can ensure the token's integrity, validate its audience,
 /// and enforce time-based constraints.
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, utoipa::ToSchema)]
 pub struct Claims {
     sub: Uuid,
     exp: usize,

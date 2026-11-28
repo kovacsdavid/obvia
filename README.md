@@ -133,6 +133,19 @@ obvia/
    The backend will start on `http://0.0.0.0:3000` (or the configured host/port).
    Database migrations will be automatically executed on startup.
 
+### API Documentation
+
+The backend API is documented at `/api/swagger-ui/`; the OpenAPI JSON is available at
+`/api/api-docs/openapi.json`. These routes are public, including in production. For the default
+backend address, open `http://localhost:3000/api/swagger-ui/`; the same paths work through the
+development and Compose proxies. The specification covers the endpoints registered in the manager
+authentication, users, and tenants routers and the tenant activity feed, address, comments,
+customers, handover and acceptance, inventory, inventory movements, inventory reservations, owner
+profile, products, services, tasks, taxes, warehouses, and worksheets routers.
+
+Customer operations require a JWT with an active tenant. Obtain a token through the existing
+authentication flow and enter it using Swagger UI's **Authorize** button.
+
 ### Frontend Setup
 
 1. **Navigate to the frontend directory**:

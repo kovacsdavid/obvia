@@ -31,6 +31,17 @@ use axum::response::IntoResponse;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    post, path = "/api/comments/post", tag = "Comments",
+    summary = "Post a comment",
+    request_body = CommentUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 201, description = "Comment created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::comments::model::Comment>),
+        (status = 401, description = "Authentication required"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::tenant::comments::handler::post", skip(app_state))]
 pub async fn post<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -51,6 +62,17 @@ pub async fn post<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    delete, path = "/api/comments/delete", tag = "Comments",
+    summary = "Delete a comment",
+    params(("uuid" = uuid::Uuid, Query, description = "Comment ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Comment deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Comment not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::comments::handler::delete", skip(app_state))]
 pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,

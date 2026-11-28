@@ -33,7 +33,7 @@ use std::fmt::Debug;
 use tracing::Level;
 use uuid::Uuid;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, utoipa::ToSchema)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
@@ -50,7 +50,7 @@ impl Debug for LoginRequest {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, utoipa::ToSchema)]
 pub struct UserPublic {
     pub id: Uuid,
     pub email: String,
@@ -75,7 +75,7 @@ impl From<User> for UserPublic {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, utoipa::ToSchema)]
 pub struct LoginResponse {
     claims: Claims,
     user: UserPublic,
@@ -92,7 +92,7 @@ impl LoginResponse {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, utoipa::ToSchema)]
 pub struct OtpUserInputHelper {
     pub otp: String,
 }

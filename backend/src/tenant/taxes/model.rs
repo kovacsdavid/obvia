@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, utoipa::ToSchema)]
 pub struct Tax {
     pub id: Uuid,
     pub rate: Option<BigDecimal>,
@@ -41,7 +41,7 @@ pub struct Tax {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, utoipa::ToSchema)]
 pub struct TaxResolved {
     pub id: Uuid,
     pub rate: Option<BigDecimal>,

@@ -34,7 +34,6 @@ pub fn generate_string_csprng(length: usize) -> Result<String, &'static str> {
         .collect())
 }
 
-#[cfg_attr(not(test), expect(unused))]
 pub fn thousand_separated_number_i64(n: i64) -> String {
     let s = n.unsigned_abs().to_string();
     let mut out = String::with_capacity(s.len() + s.len() / 3);
@@ -93,7 +92,6 @@ pub fn thousand_separated_number_bigdecimal(x: &BigDecimal, decimals: usize) -> 
     }
 }
 
-#[cfg_attr(not(test), expect(unused))]
 pub fn thousand_separated_number_f64(x: f64, decimals: usize) -> String {
     if x.is_nan() {
         return "NaN".to_string();

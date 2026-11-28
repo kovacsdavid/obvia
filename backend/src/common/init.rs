@@ -79,7 +79,7 @@ pub async fn init_default_app(
     app_state: AppState<PgPoolManager, AsyncSmtpTransport<Tokio1Executor>>,
 ) -> Result<Router> {
     let app_state = Arc::new(app_state);
-    Ok(Router::new().nest(
+    Ok(Router::new().merge(crate::common::api_docs::routes()).nest(
         "/api",
         Router::new()
             .merge(crate::manager::auth::routes::routes(app_state.clone()))

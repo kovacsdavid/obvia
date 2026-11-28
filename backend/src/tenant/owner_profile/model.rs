@@ -25,7 +25,7 @@ use uuid::Uuid;
 
 use crate::tenant::address::model::AddressResolved;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 pub struct OwnerProfile {
     pub id: Uuid,
     pub name: String,
@@ -41,7 +41,7 @@ pub struct OwnerProfile {
     pub mailing_address: Option<Uuid>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 pub struct OwnerProfileResolved {
     pub id: Uuid,
     pub name: String,
@@ -57,7 +57,7 @@ pub struct OwnerProfileResolved {
     pub mailing_address: Option<Uuid>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Builder)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Builder, utoipa::ToSchema)]
 pub struct OwnerProfileFull {
     pub id: Uuid,
     pub name: String,

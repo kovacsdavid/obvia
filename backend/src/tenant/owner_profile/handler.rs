@@ -33,6 +33,16 @@ use axum::response::IntoResponse;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    get, path = "/api/owner_profile/get_full", tag = "Owner Profile",
+    summary = "Get the full owner profile",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Owner profile with resolved addresses", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::owner_profile::model::OwnerProfileFull>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Owner profile not found")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::owner_profile::handler::get_full",
     skip(app_state)
@@ -55,6 +65,17 @@ pub async fn get_full<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    put, path = "/api/owner_profile/update", tag = "Owner Profile",
+    summary = "Update the owner profile",
+    request_body = OwnerProfileUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Owner profile updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::owner_profile::model::OwnerProfileFull>),
+        (status = 401, description = "Authentication required"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::owner_profile::handler::update",
     skip(app_state)

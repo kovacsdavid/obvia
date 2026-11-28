@@ -34,7 +34,7 @@ use serde_json::json;
 use std::fmt::{Display, Formatter};
 use tracing::Level;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct TaskUserInputHelper {
     pub id: Option<String>,
     pub worksheet_id: String,

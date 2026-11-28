@@ -30,7 +30,7 @@ use serde_json::json;
 use std::fmt::{Display, Formatter};
 use tracing::Level;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct OwnerProfileUserInputHelper {
     pub id: Option<String>,
     pub name: String,

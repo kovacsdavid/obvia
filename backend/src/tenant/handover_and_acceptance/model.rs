@@ -34,7 +34,7 @@ use crate::tenant::{
     currencies::model::Currency, customers::model::CustomerFull, users::model::User,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 pub struct HandoverAndAcceptance {
     pub id: Uuid,
     pub display_id: String,
@@ -57,7 +57,7 @@ pub struct HandoverAndAcceptance {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 pub struct HandoverAndAcceptanceFull {
     pub id: Uuid,
     pub display_id: String,
@@ -126,7 +126,7 @@ impl
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, PartialEq, utoipa::ToSchema)]
 pub struct ItemIdentifierType {
     pub id: Uuid,
     pub name: String,
@@ -134,7 +134,7 @@ pub struct ItemIdentifierType {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, PartialEq, utoipa::ToSchema)]
 pub struct ItemMake {
     pub id: Uuid,
     pub name: String,
@@ -142,7 +142,7 @@ pub struct ItemMake {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 pub struct ItemModel {
     pub id: Uuid,
     pub make_id: Uuid,
@@ -151,7 +151,7 @@ pub struct ItemModel {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, PartialEq, utoipa::ToSchema)]
 pub struct ItemModelFull {
     pub id: Uuid,
     pub make: ItemMake,

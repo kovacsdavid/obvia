@@ -36,6 +36,17 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
+#[utoipa::path(
+    get, path = "/api/services/get_resolved", tag = "Services",
+    summary = "Get a service with resolved details",
+    params(("uuid" = uuid::Uuid, Query, description = "Service ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Resolved service", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::services::model::ServiceResolved>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Service not found")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::services::handler::get_resolved",
     skip(app_state)
@@ -60,6 +71,17 @@ pub async fn get_resolved<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/services/get", tag = "Services",
+    summary = "Get a service",
+    params(("uuid" = uuid::Uuid, Query, description = "Service ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Service", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::services::model::Service>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Service not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::services::handler::get", skip(app_state))]
 pub async fn get<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -80,6 +102,18 @@ pub async fn get<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    post, path = "/api/services/create", tag = "Services",
+    summary = "Create a service",
+    request_body = ServiceUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 201, description = "Service created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::services::model::Service>),
+        (status = 401, description = "Authentication required"),
+        (status = 409, description = "Service already exists"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::tenant::services::handler::create", skip(app_state))]
 pub async fn create<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -100,6 +134,18 @@ pub async fn create<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    put, path = "/api/services/update", tag = "Services",
+    summary = "Update a service",
+    request_body = ServiceUserInputHelper,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Service updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::services::model::Service>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Service not found"),
+        (status = 422, description = "Invalid input")
+    )
+)]
 #[instrument(name = "obvia::tenant::services::handler::update", skip(app_state))]
 pub async fn update<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -120,6 +166,17 @@ pub async fn update<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    delete, path = "/api/services/delete", tag = "Services",
+    summary = "Delete a service",
+    params(("uuid" = uuid::Uuid, Query, description = "Service ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Service deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Service not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::services::handler::delete", skip(app_state))]
 pub async fn delete<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -142,6 +199,16 @@ pub async fn delete<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/services/list", tag = "Services",
+    summary = "List services",
+    params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Page of services", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::services::model::ServiceResolved>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(name = "obvia::tenant::services::handler::list", skip(app_state))]
 pub async fn list<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -169,6 +236,16 @@ pub async fn list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/services/select_list", tag = "Services",
+    summary = "Get service select-list items",
+    params(("list" = Option<String>, Query, description = "Select-list type")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),
+        (status = 401, description = "Authentication required")
+    )
+)]
 #[instrument(
     name = "obvia::tenant::services::handler::select_list",
     skip(app_state)
@@ -201,6 +278,17 @@ pub async fn select_list<A: AppStateInterface>(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/api/services/print", tag = "Services",
+    summary = "Print a service as PDF",
+    params(("uuid" = uuid::Uuid, Query, description = "Service ID")),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "PDF document", body = crate::common::api_docs::PdfDocument, content_type = "application/pdf", headers(("Content-Disposition" = String))),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Service not found")
+    )
+)]
 #[instrument(name = "obvia::tenant::services::handler::print", skip(app_state))]
 pub async fn print<A: AppStateInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,

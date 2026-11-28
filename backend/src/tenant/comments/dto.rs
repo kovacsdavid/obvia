@@ -33,7 +33,7 @@ use crate::{
     tenant::comments::types::{Comment, CommentableType},
 };
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct CommentUserInputHelper {
     pub id: Option<String>,
     pub commentable_type: String,

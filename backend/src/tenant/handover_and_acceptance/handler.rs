@@ -48,7 +48,7 @@ use crate::{
     params(("uuid" = uuid::Uuid, Query, description = "Record ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Full record", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Full record", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::handover_and_acceptance::model::HandoverAndAcceptanceFull>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Record not found")
     )
@@ -82,7 +82,7 @@ pub async fn get_full<A: AppStateInterface>(
     params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of records", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of records", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::handover_and_acceptance::model::HandoverAndAcceptanceFull>>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -123,7 +123,7 @@ pub async fn list<A: AppStateInterface>(
     params(("list" = Option<String>, Query, description = "Select-list type"), ("param" = Option<String>, Query, description = "Optional select-list parameter")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -163,7 +163,7 @@ pub async fn select_list<A: AppStateInterface>(
     request_body = UserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Record created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Record created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::handover_and_acceptance::model::HandoverAndAcceptance>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid input")
     )
@@ -197,7 +197,7 @@ pub async fn create<A: AppStateInterface>(
     request_body = UserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Record updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Record updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::handover_and_acceptance::model::HandoverAndAcceptance>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Record not found"),
         (status = 422, description = "Invalid input")
@@ -232,7 +232,7 @@ pub async fn update<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Record ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Record deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Record deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Record not found")
     )

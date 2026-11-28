@@ -34,7 +34,7 @@ use tracing::instrument;
     summary = "Get claims for the authenticated user",
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Authenticated user's claims", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Authenticated user's claims", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::manager::auth::dto::claims::Claims>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -60,7 +60,7 @@ pub async fn get_claims<A: AppStateInterface>(
     summary = "Start two-factor authentication setup",
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "OTP setup secret and provisioning data", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "OTP setup secret", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, String>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -90,7 +90,7 @@ pub async fn otp_enable<A: AppStateInterface>(
     request_body = OtpUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Two-factor authentication enabled", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Two-factor authentication enabled", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid OTP")
     )
@@ -128,7 +128,7 @@ pub async fn otp_verify<A: AppStateInterface>(
     request_body = OtpUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Two-factor authentication disabled", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Two-factor authentication disabled", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid OTP")
     )

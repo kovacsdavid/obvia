@@ -50,7 +50,7 @@ impl Debug for LoginRequest {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, utoipa::ToSchema)]
 pub struct UserPublic {
     pub id: Uuid,
     pub email: String,
@@ -75,7 +75,7 @@ impl From<User> for UserPublic {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, utoipa::ToSchema)]
 pub struct LoginResponse {
     claims: Claims,
     user: UserPublic,

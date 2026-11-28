@@ -37,7 +37,7 @@ use tracing::instrument;
     request_body = CommentUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Comment created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Comment created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::comments::model::Comment>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid input")
     )
@@ -68,7 +68,7 @@ pub async fn post<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Comment ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Comment deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Comment deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Comment not found")
     )

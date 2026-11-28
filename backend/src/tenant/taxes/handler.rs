@@ -42,7 +42,7 @@ use tracing::instrument;
     params(("uuid" = uuid::Uuid, Query, description = "Tax ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Resolved tax", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Resolved tax", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::taxes::model::TaxResolved>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Tax not found")
     )
@@ -74,7 +74,7 @@ pub async fn get_resolved<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Tax ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Tax", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Tax", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::taxes::model::Tax>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Tax not found")
     )
@@ -105,7 +105,7 @@ pub async fn get<A: AppStateInterface>(
     request_body = TaxUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Tax created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Tax created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::taxes::model::Tax>),
         (status = 401, description = "Authentication required"),
         (status = 409, description = "Tax already exists"),
         (status = 422, description = "Invalid input")
@@ -137,7 +137,7 @@ pub async fn create<A: AppStateInterface>(
     request_body = TaxUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Tax updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Tax updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::taxes::model::Tax>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Tax not found"),
         (status = 422, description = "Invalid input")
@@ -169,7 +169,7 @@ pub async fn update<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Tax ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Tax deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Tax deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Tax not found")
     )
@@ -202,7 +202,7 @@ pub async fn delete<A: AppStateInterface>(
     params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of taxes", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of taxes", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::taxes::model::TaxResolved>>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -239,7 +239,7 @@ pub async fn list<A: AppStateInterface>(
     params(("list" = Option<String>, Query, description = "Select-list type")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),
         (status = 401, description = "Authentication required")
     )
 )]

@@ -42,7 +42,7 @@ use tracing::instrument;
     params(("uuid" = uuid::Uuid, Query, description = "Product ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Resolved product", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Resolved product", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::products::model::ProductResolved>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Product not found")
     )
@@ -77,7 +77,7 @@ pub async fn get_resolved<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Product ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Product", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Product", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::products::model::Product>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Product not found")
     )
@@ -108,7 +108,7 @@ pub async fn get<A: AppStateInterface>(
     request_body = ProductUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Product updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Product updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::products::model::Product>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Product not found"),
         (status = 422, description = "Invalid input")
@@ -140,7 +140,7 @@ pub async fn update<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Product ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Product deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Product deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Product not found")
     )
@@ -173,7 +173,7 @@ pub async fn delete<A: AppStateInterface>(
     request_body = ProductUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Product created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Product created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::products::model::Product>),
         (status = 401, description = "Authentication required"),
         (status = 409, description = "Product already exists"),
         (status = 422, description = "Invalid input")
@@ -205,7 +205,7 @@ pub async fn create<A: AppStateInterface>(
     params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of products", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of products", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::products::model::ProductResolved>>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -242,7 +242,7 @@ pub async fn list<A: AppStateInterface>(
     params(("list" = Option<String>, Query, description = "Select-list type")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),
         (status = 401, description = "Authentication required")
     )
 )]

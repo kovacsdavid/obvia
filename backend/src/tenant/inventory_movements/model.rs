@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, utoipa::ToSchema)]
 pub struct InventoryMovement {
     pub id: Uuid,
     pub inventory_id: Uuid,
@@ -40,7 +40,7 @@ pub struct InventoryMovement {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 pub struct InventoryMovementResolved {
     pub id: Uuid,
     pub inventory_id: Uuid,

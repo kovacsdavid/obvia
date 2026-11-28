@@ -99,7 +99,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, utoipa::ToSchema)]
 #[serde(untagged)]
 pub enum PublicTenant {
     Managed(PublicTenantManaged),
@@ -125,7 +125,7 @@ impl From<Tenant> for PublicTenant {
     }
 }
 
-#[derive(Serialize, Debug, Clone, Default)]
+#[derive(Serialize, Debug, Clone, Default, utoipa::ToSchema)]
 pub struct PublicTenantManaged {
     pub id: Uuid,
     pub name: String,
@@ -167,7 +167,7 @@ pub struct TenantIdRequest {
     pub uuid: Uuid,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, utoipa::ToSchema)]
 pub struct NewTokenResponse {
     pub token: String,
     pub claims: Claims,

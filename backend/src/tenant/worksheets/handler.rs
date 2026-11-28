@@ -41,7 +41,7 @@ use tracing::instrument;
     params(("uuid" = uuid::Uuid, Query, description = "Worksheet ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Resolved worksheet", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Resolved worksheet", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::worksheets::model::WorksheetResolved>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Worksheet not found")
     )
@@ -76,7 +76,7 @@ pub async fn get_resolved<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Worksheet ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Worksheet", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Worksheet", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::worksheets::model::Worksheet>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Worksheet not found")
     )
@@ -107,7 +107,7 @@ pub async fn get<A: AppStateInterface>(
     request_body = WorksheetUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Worksheet updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Worksheet updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::worksheets::model::Worksheet>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Worksheet not found"),
         (status = 422, description = "Invalid input")
@@ -139,7 +139,7 @@ pub async fn update<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Worksheet ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Worksheet deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Worksheet deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Worksheet not found")
     )
@@ -172,7 +172,7 @@ pub async fn delete<A: AppStateInterface>(
     request_body = WorksheetUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Worksheet created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Worksheet created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::worksheets::model::Worksheet>),
         (status = 401, description = "Authentication required"),
         (status = 409, description = "Worksheet already exists"),
         (status = 422, description = "Invalid input")
@@ -204,7 +204,7 @@ pub async fn create<A: AppStateInterface>(
     params(("list" = Option<String>, Query, description = "Select-list type")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -246,7 +246,7 @@ pub async fn select_list<A: AppStateInterface>(
     params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of worksheets", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of worksheets", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::worksheets::model::WorksheetResolved>>),
         (status = 401, description = "Authentication required")
     )
 )]

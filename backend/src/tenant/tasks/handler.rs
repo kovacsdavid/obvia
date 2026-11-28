@@ -41,7 +41,7 @@ use tracing::instrument;
     params(("uuid" = uuid::Uuid, Query, description = "Task ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Resolved task", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Resolved task", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::tasks::model::TaskResolved>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Task not found")
     )
@@ -73,7 +73,7 @@ pub async fn get_resolved<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Task ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Task", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Task", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::tasks::model::Task>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Task not found")
     )
@@ -104,7 +104,7 @@ pub async fn get<A: AppStateInterface>(
     request_body = TaskUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Task updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Task updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::tasks::model::Task>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Task not found"),
         (status = 422, description = "Invalid input")
@@ -136,7 +136,7 @@ pub async fn update<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Task ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Task deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Task deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Task not found")
     )
@@ -169,7 +169,7 @@ pub async fn delete<A: AppStateInterface>(
     request_body = TaskUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Task created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Task created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::tasks::model::Task>),
         (status = 401, description = "Authentication required"),
         (status = 409, description = "Task already exists"),
         (status = 422, description = "Invalid input")
@@ -201,7 +201,7 @@ pub async fn create<A: AppStateInterface>(
     params(("list" = Option<String>, Query, description = "Select-list type")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -240,7 +240,7 @@ pub async fn select_list<A: AppStateInterface>(
     params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of tasks", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of tasks", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::tasks::model::TaskResolved>>),
         (status = 401, description = "Authentication required")
     )
 )]

@@ -42,7 +42,7 @@ use tracing::instrument;
     summary = "Log in and issue access and refresh tokens",
     request_body = LoginRequest,
     responses(
-        (status = 200, description = "Login succeeded", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Login succeeded", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::manager::auth::dto::login::LoginResponse>),
         (status = 401, description = "Invalid credentials"),
         (status = 422, description = "Invalid input")
     )
@@ -90,7 +90,7 @@ pub async fn login<A: AppStateInterface>(
     post, path = "/api/auth/t/refresh", tag = "Authentication",
     summary = "Refresh tokens using the refresh-token cookie",
     responses(
-        (status = 200, description = "Tokens refreshed", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Tokens refreshed", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::manager::auth::dto::login::LoginResponse>),
         (status = 401, description = "Refresh token missing, expired, or invalid")
     )
 )]
@@ -163,7 +163,7 @@ pub async fn logout<A: AppStateInterface>(
     summary = "Register a user",
     request_body = RegisterRequestHelper,
     responses(
-        (status = 201, description = "User registered", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "User registered", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 409, description = "User already exists"),
         (status = 422, description = "Invalid input")
     )
@@ -194,7 +194,7 @@ pub async fn register<A: AppStateInterface>(
     summary = "Verify an email address",
     params(("id" = String, Query, description = "Email verification token")),
     responses(
-        (status = 200, description = "Email verified", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Email verified", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 422, description = "Invalid or expired token")
     )
 )]
@@ -231,7 +231,7 @@ pub async fn verify_email<A: AppStateInterface>(
     summary = "Resend email verification",
     request_body = ResendEmailValidationRequestHelper,
     responses(
-        (status = 200, description = "Verification email queued", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Verification email queued", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 422, description = "Invalid input")
     )
 )]
@@ -272,7 +272,7 @@ pub async fn resend_email_verification<A: AppStateInterface>(
     summary = "Request a password reset",
     request_body = ForgottenPasswordRequestHelper,
     responses(
-        (status = 200, description = "Password reset instructions queued", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Password reset instructions queued", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 422, description = "Invalid input")
     )
 )]
@@ -309,7 +309,7 @@ pub async fn forgotten_password<A: AppStateInterface>(
     summary = "Set a new password using a reset token",
     request_body = NewPasswordRequestHelper,
     responses(
-        (status = 200, description = "Password changed", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Password changed", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 422, description = "Invalid input or token")
     )
 )]

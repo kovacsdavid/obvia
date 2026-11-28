@@ -46,7 +46,7 @@ use tracing::instrument;
     params(("uuid" = uuid::Uuid, Query, description = "Reservation ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Inventory reservation", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Inventory reservation", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::inventory_reservations::model::InventoryReservation>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Reservation not found")
     )
@@ -80,7 +80,7 @@ pub async fn get<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Reservation ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Resolved reservation", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Resolved reservation", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::inventory_reservations::model::InventoryReservationResolved>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Reservation not found")
     )
@@ -115,7 +115,7 @@ pub async fn get_resolved<A: AppStateInterface>(
     request_body = InventoryReservationUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Reservation created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Reservation created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::inventory_reservations::model::InventoryReservation>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid input")
     )
@@ -152,7 +152,7 @@ pub async fn create<A: AppStateInterface>(
     request_body = InventoryReservationUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Reservation updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Reservation updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::inventory_reservations::model::InventoryReservation>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Reservation not found"),
         (status = 422, description = "Invalid input")
@@ -190,7 +190,7 @@ pub async fn update<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Reservation ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Reservation deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Reservation deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Reservation not found")
     )
@@ -226,7 +226,7 @@ pub async fn delete<A: AppStateInterface>(
     params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression"), ("inventory_id" = Option<String>, Query, description = "Filter by inventory ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of inventory reservations", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of inventory reservations", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::inventory_reservations::model::InventoryReservationResolved>>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -273,7 +273,7 @@ pub async fn list<A: AppStateInterface>(
     params(("list" = Option<String>, Query, description = "Select-list type")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Select-list items", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, Vec<crate::common::model::SelectOption>>),
         (status = 401, description = "Authentication required")
     )
 )]

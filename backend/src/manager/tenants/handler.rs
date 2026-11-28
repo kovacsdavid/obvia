@@ -43,7 +43,7 @@ use tracing::instrument;
     request_body = CreateTenantHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Tenant created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Tenant created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::manager::tenants::dto::PublicTenantManaged>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid input")
     )
@@ -112,7 +112,7 @@ pub async fn get_resolved<A: AppStateInterface>(
     params(("q" = Option<String>, Query, description = "Tenant filtering, ordering, and paging expression")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of tenants", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of tenants", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::manager::tenants::dto::PublicTenant>>),
         (status = 401, description = "Authentication required")
     )
 )]
@@ -150,7 +150,7 @@ pub async fn list<A: AppStateInterface>(
     request_body = TenantIdRequest,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Tenant activated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Tenant activated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::manager::tenants::dto::NewTokenResponse>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid tenant ID")
     )
@@ -181,7 +181,7 @@ pub async fn activate<A: AppStateInterface>(
     request_body = TenantIdRequest,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Tenant deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Tenant deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::manager::tenants::dto::NewTokenResponse>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid tenant ID")
     )

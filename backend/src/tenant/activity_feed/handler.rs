@@ -40,7 +40,7 @@ use tracing::instrument;
     params(("q" = Option<String>, Query, description = "Optional filtering and paging expression"), ("resource_id" = Option<String>, Query, description = "Resource ID"), ("resource_type" = Option<String>, Query, description = "Resource type")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of activity feed entries", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of activity feed entries", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::activity_feed::model::ActivityFeedResolved>>),
         (status = 401, description = "Authentication required")
     )
 )]

@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, utoipa::ToSchema)]
 pub struct Service {
     pub id: Uuid,
     pub name: String,
@@ -40,7 +40,7 @@ pub struct Service {
     pub unit_of_measure_id: Uuid,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 pub struct ServiceResolved {
     pub id: Uuid,
     pub name: String,

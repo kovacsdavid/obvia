@@ -41,7 +41,7 @@ use tracing::instrument;
     params(("uuid" = uuid::Uuid, Query, description = "Warehouse ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Resolved warehouse", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Resolved warehouse", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::warehouses::model::WarehouseResolved>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Warehouse not found")
     )
@@ -76,7 +76,7 @@ pub async fn get_resolved<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Warehouse ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Warehouse", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Warehouse", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::warehouses::model::Warehouse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Warehouse not found")
     )
@@ -107,7 +107,7 @@ pub async fn get<A: AppStateInterface>(
     request_body = WarehouseUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Warehouse updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Warehouse updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::warehouses::model::Warehouse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Warehouse not found"),
         (status = 422, description = "Invalid input")
@@ -139,7 +139,7 @@ pub async fn update<A: AppStateInterface>(
     params(("uuid" = uuid::Uuid, Query, description = "Warehouse ID")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Warehouse deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Warehouse deleted", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::SimpleMessageResponse>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Warehouse not found")
     )
@@ -172,7 +172,7 @@ pub async fn delete<A: AppStateInterface>(
     request_body = WarehouseUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 201, description = "Warehouse created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 201, description = "Warehouse created", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::warehouses::model::Warehouse>),
         (status = 401, description = "Authentication required"),
         (status = 409, description = "Warehouse already exists"),
         (status = 422, description = "Invalid input")
@@ -204,7 +204,7 @@ pub async fn create<A: AppStateInterface>(
     params(("q" = Option<String>, Query, description = "Optional filtering, ordering, and paging expression")),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Page of warehouses", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::common::dto::JsonObjectSchema>>),
+        (status = 200, description = "Page of warehouses", body = crate::common::dto::SuccessResponse<crate::common::dto::PaginatorMeta, Vec<crate::tenant::warehouses::model::WarehouseResolved>>),
         (status = 401, description = "Authentication required")
     )
 )]

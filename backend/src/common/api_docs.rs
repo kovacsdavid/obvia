@@ -353,6 +353,64 @@ mod tests {
         assert!(print["headers"]["Content-Disposition"].is_object());
 
         let schemas = &document["components"]["schemas"];
+        assert!(schemas.get("JsonObjectSchema").is_none());
+        for schema in [
+            "LoginResponse",
+            "Claims",
+            "PublicTenantManaged",
+            "PublicTenant",
+            "NewTokenResponse",
+            "ActivityFeedResolved",
+            "SelectOption",
+            "Comment",
+            "HandoverAndAcceptance",
+            "HandoverAndAcceptanceFull",
+            "Inventory",
+            "InventoryResolved",
+            "InventoryMovement",
+            "InventoryMovementResolved",
+            "InventoryReservation",
+            "InventoryReservationResolved",
+            "OwnerProfileFull",
+            "Product",
+            "ProductResolved",
+            "Service",
+            "ServiceResolved",
+            "Task",
+            "TaskResolved",
+            "Tax",
+            "TaxResolved",
+            "Warehouse",
+            "WarehouseResolved",
+            "Worksheet",
+            "WorksheetResolved",
+        ] {
+            assert!(
+                schemas.get(schema).is_some(),
+                "missing response schema {schema}"
+            );
+        }
+        let tax_select_list = &paths["/api/taxes/select_list"]["get"]["responses"]["200"]["content"]
+            ["application/json"]["schema"];
+        assert!(
+            tax_select_list["$ref"]
+                .as_str()
+                .unwrap()
+                .contains("SelectOption")
+        );
+        assert!(schemas["SelectOption"]["properties"]["value"].is_object());
+        assert!(schemas["SelectOption"]["properties"]["title"].is_object());
+        let tax_page = &paths["/api/taxes/list"]["get"]["responses"]["200"]["content"]["application/json"]
+            ["schema"]["$ref"];
+        assert!(
+            tax_page
+                .as_str()
+                .unwrap()
+                .contains("SuccessResponse_PaginatorMeta_Vec_TaxResolved")
+        );
+        let login = &paths["/api/auth/login"]["post"]["responses"]["200"]["content"]["application/json"]
+            ["schema"]["$ref"];
+        assert!(login.as_str().unwrap().contains("LoginResponse"));
         assert_eq!(
             get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"],
             "#/components/schemas/SuccessResponse_EmptyType_Customer"

@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, utoipa::ToSchema)]
 pub struct Task {
     pub id: Uuid,
     pub worksheet_id: Uuid,
@@ -44,7 +44,7 @@ pub struct Task {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder, utoipa::ToSchema)]
 #[builder(build_fn(error = "CommonBuilderError"))]
 pub struct TaskResolved {
     pub id: Uuid,

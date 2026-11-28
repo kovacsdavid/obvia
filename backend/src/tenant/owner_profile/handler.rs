@@ -38,7 +38,7 @@ use tracing::instrument;
     summary = "Get the full owner profile",
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Owner profile with resolved addresses", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Owner profile with resolved addresses", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::owner_profile::model::OwnerProfileFull>),
         (status = 401, description = "Authentication required"),
         (status = 404, description = "Owner profile not found")
     )
@@ -71,7 +71,7 @@ pub async fn get_full<A: AppStateInterface>(
     request_body = OwnerProfileUserInputHelper,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Owner profile updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::common::dto::JsonObjectSchema>),
+        (status = 200, description = "Owner profile updated", body = crate::common::dto::SuccessResponse<crate::common::dto::EmptyType, crate::tenant::owner_profile::model::OwnerProfileFull>),
         (status = 401, description = "Authentication required"),
         (status = 422, description = "Invalid input")
     )
